@@ -1,42 +1,279 @@
-
 {
   "entities": {
     "Project": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Project",
-      "description": "Represents an industrial trade integration project for a specific client.",
       "type": "object",
+      "description": "Represents a client project for system deployment, containing overall project details and branding.",
       "properties": {
-        "clientName": { "type": "string" },
-        "brandColor": { "type": "string" },
-        "logoUrl": { "type": "string" },
-        "startDate": { "type": "string", "format": "date" },
-        "status": { "type": "string", "enum": ["active", "completed", "on_hold"] }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Project entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the User who owns or created this project. (Relationship: User 1:N Project)"
+        },
+        "clientName": {
+          "type": "string",
+          "description": "The name of the client company (e.g., 'Bombril', 'BIC')."
+        },
+        "clientLogo": {
+          "type": "string",
+          "description": "URL to the client's logo image.",
+          "format": "uri"
+        },
+        "clientColor": {
+          "type": "string",
+          "description": "Primary brand color of the client, used for dynamic theming (e.g., '#FF0000')."
+        },
+        "clientColorSecondary": {
+          "type": "string",
+          "description": "Secondary brand color of the client, used for dynamic theming."
+        },
+        "mascotImageUrl": {
+          "type": "string",
+          "description": "URL to an image of the Sellers Pulse mascot customized with the client's branding.",
+          "format": "uri"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The official start date of the project.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The official estimated end date of the project.",
+          "format": "date-time"
+        },
+        "currentPhaseId": {
+          "type": "string",
+          "description": "Reference to the currently active Phase for this project. (Relationship: Project 1:1 Phase)"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the project was created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp when the project was last updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["clientName", "brandColor"]
+      "required": [
+        "id",
+        "userId",
+        "clientName",
+        "clientLogo",
+        "clientColor",
+        "startDate",
+        "endDate",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Phase": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Phase",
+      "type": "object",
+      "description": "Represents a specific stage or milestone within a project, part of a standard project workflow.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Phase entity."
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to the Project this phase belongs to. (Relationship: Project 1:N Phase)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The descriptive name of the phase (e.g., 'Reunião de Boas-Vindas')."
+        },
+        "order": {
+          "type": "number",
+          "description": "The sequential order of the phase within the project workflow."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "The scheduled start date for this phase.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "The scheduled end date for this phase.",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "description": "The current status of the phase.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "color": {
+          "type": "string",
+          "description": "A color associated with the phase, potentially inherited from the client's brand color."
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "name",
+        "order",
+        "startDate",
+        "endDate",
+        "status",
+        "color"
+      ]
     },
     "WeeklyUpdate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "WeeklyUpdate",
-      "description": "Weekly status update for a project.",
       "type": "object",
+      "description": "Captures weekly progress and key metrics for a project, used for reporting and presentations.",
       "properties": {
-        "weekNumber": { "type": "number" },
-        "highlights": { "type": "array", "items": { "type": "string" } },
-        "blockers": { "type": "array", "items": { "type": "string" } },
-        "nextSteps": { "type": "array", "items": { "type": "string" } }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the WeeklyUpdate entity."
+        },
+        "projectId": {
+          "type": "string",
+          "description": "Reference to the Project this weekly update belongs to. (Relationship: Project 1:N WeeklyUpdate)"
+        },
+        "weekNumber": {
+          "type": "number",
+          "description": "The sequential week number within the project's lifecycle for this update."
+        },
+        "date": {
+          "type": "string",
+          "description": "The date corresponding to this weekly update.",
+          "format": "date-time"
+        },
+        "distributorsTotal": {
+          "type": "number",
+          "description": "Total number of distributors associated with the project."
+        },
+        "distributorsIntegrated": {
+          "type": "number",
+          "description": "Number of distributors successfully integrated."
+        },
+        "distributorsPending": {
+          "type": "number",
+          "description": "Number of distributors whose integration is pending."
+        },
+        "distributorsBlocked": {
+          "type": "number",
+          "description": "Number of distributors whose integration is blocked."
+        },
+        "highlights": {
+          "type": "array",
+          "description": "A list of key achievements or positive developments for the week.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "blockers": {
+          "type": "array",
+          "description": "A list of obstacles or issues encountered during the week.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "nextSteps": {
+          "type": "array",
+          "description": "A list of planned actions for the upcoming period.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aiSummary": {
+          "type": "string",
+          "description": "An AI-generated summary of the weekly update content."
+        }
+      },
+      "required": [
+        "id",
+        "projectId",
+        "weekNumber",
+        "date",
+        "distributorsTotal",
+        "distributorsIntegrated",
+        "distributorsPending",
+        "distributorsBlocked",
+        "highlights",
+        "blockers",
+        "nextSteps",
+        "aiSummary"
+      ]
     }
   },
   "auth": {
-    "providers": ["google.com"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
-    "/projects/{projectId}": {
-      "schema": { "$ref": "#/entities/Project" },
-      "description": "Store project details per industry client."
-    },
-    "/projects/{projectId}/weeklyUpdates/{updateId}": {
-      "schema": { "$ref": "#/entities/WeeklyUpdate" },
-      "description": "Store weekly updates for a specific project."
-    }
+    "structure": [
+      {
+        "path": "/projects/{projectId}",
+        "definition": {
+          "entityName": "Project",
+          "schema": {
+            "$ref": "#/backend/entities/Project"
+          },
+          "description": "Top-level collection for client projects. Each project is owned by a specific user identified by the 'userId' field. This field acts as the primary owner identifier for authorization.",
+          "params": [
+            {
+              "name": "projectId",
+              "description": "The unique identifier for a client project."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/projects/{projectId}/phases/{phaseId}",
+        "definition": {
+          "entityName": "Phase",
+          "schema": {
+            "$ref": "#/backend/entities/Phase"
+          },
+          "description": "Subcollection for phases within a project. Each phase document includes a denormalized 'ownerId' field (copied from the parent project's 'userId') to enable authorization independence and simplified security rules.",
+          "params": [
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the parent project."
+            },
+            {
+              "name": "phaseId",
+              "description": "The unique identifier for a specific phase within a project."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/projects/{projectId}/weeklyUpdates/{weeklyUpdateId}",
+        "definition": {
+          "entityName": "WeeklyUpdate",
+          "schema": {
+            "$ref": "#/backend/entities/WeeklyUpdate"
+          },
+          "description": "Subcollection for weekly progress updates of a project. Each weekly update document includes a denormalized 'ownerId' field (copied from the parent project's 'userId') for authorization independence and simplified security rules.",
+          "params": [
+            {
+              "name": "projectId",
+              "description": "The unique identifier of the parent project."
+            },
+            {
+              "name": "weeklyUpdateId",
+              "description": "The unique identifier for a specific weekly update within a project."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to be secure, scalable, and debuggable, adhering strictly to the provided core design principles and strategy mandates. The primary strategy employed is **Authorization Independence via Denormalization** (Mandate A).\n\n1.  **Authorization Independence (CRITICAL) & Denormalization:**\n    *   The `Project` entity is stored in the top-level `/projects` collection and includes a `userId` field, which acts as the owner identifier. This is already part of its schema. All access to a project will be gated by this `userId`.\n    *   For subcollections (`phases` and `weeklyUpdates`), which logically belong to a specific project and thus implicitly to the project's owner, the `ownerId` (a copy of the parent `Project`'s `userId`) will be denormalized and stored directly within each `Phase` and `WeeklyUpdate` document. This is crucial for eliminating `get()` calls in Firestore Security Rules. Rules for `/projects/{projectId}/phases/{phaseId}` or `/projects/{projectId}/weeklyUpdates/{weeklyUpdateId}` can directly check `resource.data.ownerId == request.auth.uid`, ensuring atomic and independent authorization checks without needing to fetch the parent `Project` document. This greatly simplifies rule logic, improves performance, and prevents issues with transactional integrity.\n\n2.  **QAPs (Queries as Authorization Primitives):**\n    *   **`/projects` Collection:** For listing projects, the `projects` collection allows users to perform a query like `db.collection('projects').where('userId', '==', auth.uid)`. Security rules can then permit reads only if `request.auth.uid == resource.data.userId`. This ensures that `list` operations only return projects owned by the authenticated user, making the query itself the primitive for authorization without relying on server-side filters. This is a highly efficient and secure pattern.\n    *   **Subcollections (`/projects/{projectId}/phases` and `/projects/{projectId}/weeklyUpdates`):** Because the `ownerId` is denormalized into each document, `list` queries on these subcollections are also QAP-compliant. A user can only access these subcollections if they know the `projectId` of an owned project. The security rules for these paths will check `resource.data.ownerId == request.auth.uid` for every document in the result set, automatically filtering out any documents that might somehow exist for projects not owned by the requesting user, even if the `projectId` in the path matches.\n\n3.  **Structural Segregation & Access Modeling:**\n    *   All documents within `/projects` represent user-owned projects, sharing a homogeneous security posture (owner-access). Similarly, `phases` and `weeklyUpdates` documents within a project subcollection share the security posture of being tied to that project's owner.\n    *   The design uses a clear **Hierarchical Path for User-Owned Data** (`/projects/{projectId}`) and **Continues Hierarchy for Nested Data** (`/projects/{projectId}/phases/{phaseId}`, `/projects/{projectId}/weeklyUpdates/{weeklyUpdateId}`). This provides clear ownership and logical grouping, simplifying rule writing.\n\n4.  **Clarity & Predictability:**\n    *   Consistent naming conventions are used (e.g., `projectId`, `phaseId`, `weeklyUpdateId`). Wildcards are descriptive. The `status` field in `Phase` explicitly models its state.\n\nThis robust structure minimizes the potential for security vulnerabilities, simplifies Firebase Security Rules, and optimizes for scalable data access patterns."
   }
 }
