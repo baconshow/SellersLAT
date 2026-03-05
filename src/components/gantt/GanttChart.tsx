@@ -30,6 +30,8 @@ export default function GanttChart({ project }: Props) {
   const [editingPhase, setEditingPhase]   = useState<string | null>(null)
   const [editValue,    setEditValue]      = useState('')
 
+  if (!project || !project.startDate || !project.endDate) return null;
+
   const projectStart = new Date(project.startDate)
   const projectEnd   = new Date(project.endDate)
   const totalDays    = differenceInDays(projectEnd, projectStart) || 1
@@ -48,7 +50,6 @@ export default function GanttChart({ project }: Props) {
 
   const LABEL_WIDTH = 200
 
-  /* ── inline rename ── */
   const startEdit = (phase: ProjectPhase) => {
     setEditingPhase(phase.id)
     setEditValue(phase.name)
@@ -68,7 +69,6 @@ export default function GanttChart({ project }: Props) {
     setEditingPhase(null)
   }
 
-  /* ── status toggle ── */
   const changeStatus = async (phaseId: string, status: PhaseStatus) => {
     const updated = project.phases.map(p =>
       p.id === phaseId ? { ...p, status } : p
@@ -87,7 +87,6 @@ export default function GanttChart({ project }: Props) {
     <div className="w-full rounded-2xl overflow-hidden"
          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
 
-      {/* ── Header ── */}
       <div className="px-6 py-4 flex items-center justify-between"
            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <div>
@@ -111,7 +110,6 @@ export default function GanttChart({ project }: Props) {
 
       <div className="p-6 overflow-x-auto">
         <div className="min-w-[800px]">
-          {/* ── Month labels ── */}
           <div className="relative mb-4 h-5" style={{ marginLeft: `${LABEL_WIDTH}px` }}>
             {months.map(month => {
               const left = pct(month < projectStart ? projectStart : month)
@@ -127,10 +125,7 @@ export default function GanttChart({ project }: Props) {
             })}
           </div>
 
-          {/* ── Rows ── */}
           <div className="space-y-2 relative">
-
-            {/* Today marker */}
             {isActiveProject && (
               <div
                 className="absolute top-0 bottom-0 w-px z-20 pointer-events-none"
@@ -169,7 +164,6 @@ export default function GanttChart({ project }: Props) {
                   onMouseEnter={() => setHoveredPhase(phase.id)}
                   onMouseLeave={() => setHoveredPhase(null)}
                 >
-                  {/* Phase name col */}
                   <div className="flex-shrink-0 flex items-center gap-2 pr-4" style={{ width: `${LABEL_WIDTH}px` }}>
                     {editingPhase === phase.id ? (
                       <div className="flex items-center gap-1 flex-1">
@@ -215,7 +209,6 @@ export default function GanttChart({ project }: Props) {
                     )}
                   </div>
 
-                  {/* Bar track */}
                   <div className="flex-1 relative h-full flex items-center">
                     <motion.div
                       initial={{ scaleX: 0 }}
@@ -232,7 +225,6 @@ export default function GanttChart({ project }: Props) {
                         cursor: 'pointer',
                       }}
                     >
-                      {/* Bar fill */}
                       <div
                         className="w-full h-full relative"
                         style={
@@ -246,10 +238,8 @@ export default function GanttChart({ project }: Props) {
                             : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }
                         }
                       >
-                        {/* Top Highlight Highlight */}
                         <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/15 rounded-[inherit]" />
 
-                        {/* Shimmer on active */}
                         {isActive && (
                           <div
                             className="absolute inset-0"
@@ -261,7 +251,6 @@ export default function GanttChart({ project }: Props) {
                           />
                         )}
 
-                        {/* Bottom glow edge */}
                         {isActive && (
                           <div
                             className="absolute bottom-0 left-0 right-0"
@@ -273,7 +262,6 @@ export default function GanttChart({ project }: Props) {
                           />
                         )}
 
-                        {/* Dates inside bar */}
                         {width > 12 && (
                           <div className="absolute inset-0 flex items-center justify-between px-3">
                             <span className="text-[11px] font-medium"
@@ -288,7 +276,6 @@ export default function GanttChart({ project }: Props) {
                         )}
                       </div>
 
-                      {/* "Estamos Aqui" badge */}
                       {isActive && (
                         <motion.div
                           animate={{ y: [0, -4, 0] }}
@@ -315,7 +302,6 @@ export default function GanttChart({ project }: Props) {
                       )}
                     </motion.div>
 
-                    {/* Hover tooltip */}
                     <AnimatePresence>
                       {isHovered && (
                         <motion.div
@@ -347,7 +333,6 @@ export default function GanttChart({ project }: Props) {
                             <span className="text-sm" style={{ color: cfg.color }}>{cfg.label}</span>
                           </div>
 
-                          {/* Status buttons */}
                           <div className="flex gap-1 mt-2 pt-2"
                                style={{ borderTop: '1px solid rgba(255,255,255,0.08)', pointerEvents: 'auto' }}>
                             {(['pending','in_progress','completed','blocked'] as PhaseStatus[]).map(s => {
