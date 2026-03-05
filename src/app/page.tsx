@@ -3,20 +3,17 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
-import { AlertCircle } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { ChevronRight } from 'lucide-react'
 
 export default function LoginPage() {
-  const { user, loading, isConfigured, signInWithGoogle } = useAuth()
+  const { user, loading, signInWithGoogle, skipLogin } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading && user) router.replace('/dashboard')
+    if (!loading && user) {
+      router.replace('/dashboard')
+    }
   }, [user, loading, router])
-
-  const handleLogin = async () => {
-    await signInWithGoogle()
-  }
 
   if (loading) return <LoadingScreen />
 
@@ -88,18 +85,28 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <button
-            onClick={handleLogin}
-            className="relative w-full flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-semibold text-sm overflow-hidden group transition-all hover:scale-[1.02] active:scale-[0.98]"
-            style={{
-              background: 'linear-gradient(135deg, #00D4AA, #8B5CF6)',
-              color: '#050508',
-            }}
-          >
-            <span className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all duration-200" />
-            <GoogleIcon />
-            Entrar com Google
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={() => signInWithGoogle()}
+              className="relative w-full flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-semibold text-sm overflow-hidden group transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{
+                background: 'linear-gradient(135deg, #00D4AA, #8B5CF6)',
+                color: '#050508',
+              }}
+            >
+              <span className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all duration-200" />
+              <GoogleIcon />
+              Entrar com Google
+            </button>
+
+            <button
+              onClick={() => skipLogin()}
+              className="w-full py-3 px-6 rounded-xl text-xs font-medium text-white/40 hover:text-white/80 hover:bg-white/5 transition-all flex items-center justify-center gap-2 group"
+            >
+              Pular Login (Modo Dev)
+              <ChevronRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
 
           <p className="text-center text-white/25 text-xs">
             Uso exclusivo da equipe Sellers

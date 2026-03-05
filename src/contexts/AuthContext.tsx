@@ -1,82 +1,88 @@
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { GoogleAuthProvider, signInWithPopup, signOut, type User, onAuthStateChanged } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
 import { useFirebase } from '@/firebase';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
-  user: User | null;
+  user: any | null;
   loading: boolean;
   isConfigured: boolean;
   signInWithGoogle: () => Promise<void>;
+  skipLogin: () => void;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Usuário fake para desenvolvimento
+const MOCK_USER = {
+  uid: 'dev-user-123',
+  displayName: 'Alexandre Sellers (Dev)',
+  email: 'alexandre@sellers.com.br',
+  photoURL: 'https://picsum.photos/seed/dev/200/200',
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { auth, user: firebaseUser, isUserLoading } = useFirebase();
-  const [user, setUser] = useState<User | null>(null);
+  const firebase = useFirebase();
+  const [user, setUser] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Monitora o estado de autenticação de forma segura
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
+    if (firebase.isUserLoading) return;
+
+    if (firebase.user) {
+      setUser(firebase.user);
+    } else {
+      // Verifica se existe um usuário "skip" no localStorage para manter a sessão dev
+      const savedDevUser = localStorage.getItem('sellers_pulse_dev_mode');
+      if (savedDevUser) {
+        setUser(MOCK_USER);
+      }
     }
-
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    }, (error) => {
-      console.error("Auth state error:", error);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [auth]);
+    setLoading(false);
+  }, [firebase.user, firebase.isUserLoading]);
 
   const signInWithGoogle = async () => {
-    if (!auth) {
-      toast.error('O serviço de autenticação não está pronto. Verifique as chaves do Firebase.');
+    if (!firebase.auth) {
+      toast.error('Firebase Auth não inicializado.');
       return;
     }
 
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-
     try {
-      await signInWithPopup(auth, provider);
-      toast.success('Bem-vindo ao Sellers Pulse!');
+      const result = await signInWithPopup(firebase.auth, provider);
+      setUser(result.user);
+      localStorage.removeItem('sellers_pulse_dev_mode');
+      toast.success('Bem-vindo!');
     } catch (error: any) {
       console.error("Erro de login:", error);
-      if (error.code === 'auth/operation-not-allowed') {
-        toast.error('O login com Google não está ativado no Firebase Console.');
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        toast.error('Login cancelado.');
-      } else {
-        toast.error('Erro ao autenticar: ' + (error.message || 'Erro desconhecido'));
-      }
+      toast.error('Erro ao autenticar: ' + (error.message || 'Erro desconhecido'));
     }
   };
 
+  const skipLogin = () => {
+    setUser(MOCK_USER);
+    localStorage.setItem('sellers_pulse_dev_mode', 'true');
+    toast.success('Modo Desenvolvedor Ativo');
+  };
+
   const logout = async () => {
-    if (!auth) return;
-    try {
-      await signOut(auth);
-      toast.success('Até logo!');
-    } catch (error) {
-      toast.error('Erro ao sair.');
+    localStorage.removeItem('sellers_pulse_dev_mode');
+    if (firebase.auth) {
+      await signOut(firebase.auth);
     }
+    setUser(null);
+    toast.success('Até logo!');
   };
 
   return (
     <AuthContext.Provider value={{ 
-      user: user || firebaseUser, 
-      loading: loading && isUserLoading, 
-      isConfigured: !!auth, 
+      user, 
+      loading, 
+      isConfigured: !!firebase.auth, 
       signInWithGoogle, 
+      skipLogin,
       logout 
     }}>
       {children}
