@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut, type User, onAuthStateChanged } from 'firebase/auth';
 import { useFirebase } from '@/firebase';
 import toast from 'react-hot-toast';
 
@@ -20,13 +20,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setUser(firebaseUser);
-    setLoading(isUserLoading);
+    if (!auth) return;
+
+    // Sincroniza o estado do usuário com o listener do Firebase
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
+  // Fallback caso useFirebase ainda esteja carregando
+  useEffect(() => {
+    if (!isUserLoading) {
+      setUser(firebaseUser);
+      setLoading(false);
+    }
   }, [firebaseUser, isUserLoading]);
 
   const signInWithGoogle = async () => {
     if (!auth) {
-      toast.error('O serviço de autenticação não está disponível.');
+      toast.error('O serviço de autenticação não está disponível. Verifique as chaves do Firebase.');
       return;
     }
 

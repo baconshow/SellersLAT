@@ -1,16 +1,11 @@
 'use client';
 /**
- * Este arquivo foi simplificado para evitar conflitos de inicialização.
- * Use os hooks de @/firebase (useFirebase, useAuth, useFirestore) em vez deste arquivo.
+ * Este arquivo atua como uma ponte para a inicialização centralizada do Firebase.
+ * Isso evita a inicialização dupla que causa o erro "authorizedDomains is not iterable".
  */
-import { getApps, getApp, initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { firebaseConfig } from '@/firebase/config';
+import { initializeFirebase } from '@/firebase';
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth = getAuth(app);
-const db = getFirestore(app);
+const sdks = initializeFirebase();
 
-export { auth, db };
-export const googleProvider = new GoogleAuthProvider();
+export const auth = sdks.auth;
+export const db = sdks.firestore;
