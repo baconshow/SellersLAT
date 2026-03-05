@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, BarChart3, GanttChart, Presentation,
-  Sparkles, Settings, ChevronLeft, LogOut, Plus, Briefcase
+  Sparkles, Settings, ChevronLeft, LogOut, Briefcase
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { cn } from '@/lib/utils'
@@ -113,28 +113,6 @@ export default function Sidebar({ projectId, onNewProject }: SidebarProps) {
               <NavLink key={item.href} item={item} collapsed={collapsed} active={pathname === item.href} />
             ))}
           </>
-        )}
-
-        {onNewProject && (
-          <div className="mt-4 px-1">
-            <button
-              onClick={onNewProject}
-              className={`w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${collapsed ? 'justify-center' : 'justify-start'}`}
-              style={{ background: 'var(--color-brand-soft, rgba(0,212,170,0.12))' }}
-            >
-              <Plus className="w-4 h-4 flex-shrink-0" style={{ color: 'var(--color-brand, #00D4AA)' }} />
-              <AnimatePresence>
-                {!collapsed && (
-                  <motion.span
-                    initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }}
-                    style={{ color: 'var(--color-brand, #00D4AA)' }}
-                  >
-                    Novo Projeto
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </button>
-          </div>
         )}
       </nav>
 
