@@ -1,30 +1,47 @@
-'use client'
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { subscribeToProject } from '@/lib/firestore'
-import { applyTheme } from '@/lib/theme'
-import type { Project } from '@/types'
-import GanttChart from '@/components/gantt/GanttChart'
-import { motion } from 'framer-motion'
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { subscribeToProject } from '@/lib/firestore';
+import type { Project } from '@/types';
+import GanttChartComponent from '@/components/gantt/GanttChart';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function GanttPage() {
-  const { id } = useParams<{ id: string }>()
-  const [project, setProject] = useState<Project | null>(null)
+  const { id } = useParams<{ id: string }>();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const [project, setProject] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!id) return
-    return subscribeToProject(id, p => {
-      setProject(p)
-      if (p) applyTheme(p.clientColor, p.clientColorSecondary, p.clientColorRgb)
-    })
-  }, [id])
+    if (!authLoading && !user) router.replace('/');
+  }, [user, authLoading, router]);
 
-  if (!project) return (
-    <div className="flex items-center justify-center h-64">
-      <div className="w-8 h-8 rounded-full border-2 border-transparent animate-spin"
-           style={{ borderTopColor: 'var(--color-brand,#00D4AA)' }} />
-    </div>
-  )
+  useEffect(() => {
+    if (!id) return;
+    const unsub = subscribeToProject(id, (p) => {
+      setProject(p);
+      setLoading(false);
+    });
+    return unsub;
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="p-8 space-y-4">
+        <div className="h-8 w-48 rounded shimmer" />
+        <div className="h-[400px] rounded-2xl shimmer" />
+      </div>
+    );
+  }
+
+  if (!project) {
+    return (
+      <div className="p-8 text-white/40">Projeto não encontrado.</div>
+    );
+  }
 
   return (
     <motion.div
@@ -34,11 +51,11 @@ export default function GanttPage() {
     >
       <div className="mb-6">
         <h2 className="text-2xl font-black text-white">Cronograma</h2>
-        <p className="text-sm mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Clique no lápis para editar · hover na barra para mudar status
+        <p className="text-white/40 text-sm mt-1">
+          Gerenciamento detalhado das fases do projeto {project.clientName}.
         </p>
       </div>
-      <GanttChart project={project} />
+      <GanttChartComponent project={project} />
     </motion.div>
-  )
+  );
 }

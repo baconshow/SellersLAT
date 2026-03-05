@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body>
+      <body className="antialiased">
         <FirebaseClientProvider>
           <AuthProvider>
             <div className="noise" />

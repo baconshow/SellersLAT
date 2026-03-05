@@ -1,15 +1,21 @@
 import { ThemeHandler } from "@/components/ThemeHandler";
+import ProjectLayoutClient from "./ProjectLayoutClient";
 
 export default async function ProjectLayout({
   children,
+  params,
 }: {
   children: React.ReactNode;
   params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
+
   return (
-    <div className="min-h-screen" style={{ background: '#050508' }}>
+    <>
       <ThemeHandler primaryColor="#00D4AA" secondaryColor="#8B5CF6" />
-      {children}
-    </div>
+      <ProjectLayoutClient projectId={id}>
+        {children}
+      </ProjectLayoutClient>
+    </>
   );
 }

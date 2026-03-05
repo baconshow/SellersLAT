@@ -8,7 +8,6 @@ import {
   Sparkles, Settings, ChevronLeft, LogOut, Briefcase
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { cn } from '@/lib/utils'
 import Image from 'next/image'
 
 interface SidebarProps {
@@ -40,7 +39,7 @@ export default function Sidebar({ projectId, collapsed: externalCollapsed, setCo
     { icon: BarChart3,    label: 'Dashboard',    href: `/project/${projectId}` },
     { icon: GanttChart,   label: 'Gantt',        href: `/project/${projectId}/gantt` },
     { icon: Presentation, label: 'Apresentação', href: `/project/${projectId}/slides` },
-    { icon: Sparkles,     label: 'IA',           href: `/project/${projectId}/ai`, badge: 'AI' },
+    { icon: Sparkles,     label: 'Chat AI',      href: `/project/${projectId}/chat`, badge: 'AI' },
     { icon: Settings,     label: 'Configurações',href: `/project/${projectId}/settings` },
   ] : []
 
@@ -98,18 +97,11 @@ export default function Sidebar({ projectId, collapsed: externalCollapsed, setCo
         {projectItems.length > 0 && (
           <>
             <div className="px-2 mt-4 mb-1">
-              <AnimatePresence>
-                {!collapsed && (
-                  <motion.p
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="text-xs uppercase tracking-widest font-medium px-2"
-                    style={{ color: 'rgba(255,255,255,0.25)' }}
-                  >
-                    Projeto
-                  </motion.p>
-                )}
-              </AnimatePresence>
-              {collapsed && <div className="h-px mx-2 my-1" style={{ background: 'rgba(255,255,255,0.08)' }} />}
+              {!collapsed && (
+                <p className="text-[10px] uppercase tracking-widest font-bold px-2 text-white/20">
+                  Projeto
+                </p>
+              )}
             </div>
             {projectItems.map(item => (
               <NavLink key={item.href} item={item} collapsed={collapsed} active={pathname === item.href} />
@@ -128,22 +120,17 @@ export default function Sidebar({ projectId, collapsed: externalCollapsed, setCo
           ) : (
             <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold"
                  style={{ background: 'var(--color-brand-soft, rgba(0,212,170,0.12))', color: 'var(--color-brand, #00D4AA)' }}>
-              {user?.displayName?.[0] ?? 'S'}
+              {user?.displayName?.[0] ?? 'B'}
             </div>
           )}
-          <AnimatePresence>
-            {!collapsed && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-white truncate">{user?.displayName || 'Usuário'}</p>
-                <p className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{user?.email}</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
           {!collapsed && (
-            <button onClick={logout}
-              className="p-1.5 rounded-lg transition-colors"
-              style={{ color: 'rgba(255,255,255,0.3)' }}
-            >
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-white truncate">{user?.displayName || 'Bacon (Dev)'}</p>
+              <p className="text-[10px] truncate text-white/30">{user?.email}</p>
+            </div>
+          )}
+          {!collapsed && (
+            <button onClick={logout} className="p-1.5 rounded-lg text-white/20 hover:text-white/40">
               <LogOut className="w-3.5 h-3.5" />
             </button>
           )}
@@ -166,28 +153,12 @@ function NavLink({ item, collapsed, active }: { item: NavItem; collapsed: boolea
       } : { color: 'rgba(255,255,255,0.45)' }}
     >
       <Icon className="w-4 h-4 flex-shrink-0" />
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.span
-            initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -8 }} transition={{ duration: 0.15 }}
-          >
-            {item.label}
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {!collapsed && <span>{item.label}</span>}
       {item.badge && !collapsed && (
         <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-md text-black"
               style={{ background: 'var(--color-brand, #00D4AA)' }}>
           {item.badge}
         </span>
-      )}
-      {collapsed && (
-        <div className="absolute left-full ml-3 px-2 py-1 rounded-lg text-xs text-white whitespace-nowrap
-                        opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50"
-             style={{ background: '#161622', border: '1px solid rgba(255,255,255,0.1)' }}>
-          {item.label}
-        </div>
       )}
     </Link>
   )
