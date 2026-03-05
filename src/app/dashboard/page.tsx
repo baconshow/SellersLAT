@@ -142,10 +142,6 @@ export default function DashboardPage() {
       {showModal && (
         <NewProjectModal
           onClose={() => setShowModal(false)}
-          onCreated={(id) => {
-            setShowModal(false)
-            router.push(`/project/${id}`)
-          }}
         />
       )}
     </div>
