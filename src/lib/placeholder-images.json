@@ -1,3 +1,22 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "sellers-mascot",
+      "description": "Sellers Pulse Mascot - Friendly robot or character representing the Sellers team",
+      "imageUrl": "https://picsum.photos/seed/sellers-mascot/400/400",
+      "imageHint": "friendly mascot"
+    },
+    {
+      "id": "client-logo-placeholder",
+      "description": "Generic client logo placeholder",
+      "imageUrl": "https://picsum.photos/seed/client-logo/200/200",
+      "imageHint": "company logo"
+    },
+    {
+      "id": "sellers-logo",
+      "description": "Sellers official logo",
+      "imageUrl": "https://picsum.photos/seed/sellers-logo/150/50",
+      "imageHint": "tech logo"
+    }
+  ]
 }
