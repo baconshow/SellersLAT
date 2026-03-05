@@ -3,10 +3,11 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
+import { AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
-  const { user, loading, signInWithGoogle } = useAuth()
+  const { user, loading, isConfigured, signInWithGoogle } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -14,18 +15,17 @@ export default function LoginPage() {
   }, [user, loading, router])
 
   const handleLogin = async () => {
-    try {
-      await signInWithGoogle()
-    } catch {
-      toast.error('Erro ao fazer login. Tente novamente.')
+    if (!isConfigured) {
+      toast.error('Configurações do Firebase ausentes.')
+      return
     }
+    await signInWithGoogle()
   }
 
   if (loading) return <LoadingScreen />
 
   return (
     <div className="min-h-screen bg-void flex items-center justify-center relative overflow-hidden">
-      {/* Background grid */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -35,7 +35,6 @@ export default function LoginPage() {
         }}
       />
 
-      {/* Center glow */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -49,18 +48,15 @@ export default function LoginPage() {
         transition={{ duration: 0.7, ease: [0.34, 1.56, 0.64, 1] }}
         className="relative z-10 flex flex-col items-center gap-10 px-6"
       >
-        {/* Logo + Mascot */}
         <div className="flex flex-col items-center gap-6">
           <motion.div
             animate={{ y: [0, -10, 0] }}
             transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
             className="relative"
           >
-            {/* Mascote placeholder — substitua pela imagem real */}
             <div className="w-40 h-40 rounded-full glass flex items-center justify-center relative overflow-hidden"
                  style={{ boxShadow: '0 0 60px rgba(var(--color-brand-rgb),0.3)' }}>
               <svg viewBox="0 0 100 100" className="w-24 h-24 opacity-90">
-                {/* Sellers mascot outline */}
                 <ellipse cx="50" cy="40" rx="28" ry="30" fill="none" stroke="var(--color-brand)" strokeWidth="2.5"/>
                 <circle cx="38" cy="38" r="8" fill="none" stroke="var(--color-brand)" strokeWidth="2.5"/>
                 <circle cx="62" cy="38" r="8" fill="none" stroke="var(--color-brand)" strokeWidth="2.5"/>
@@ -73,7 +69,6 @@ export default function LoginPage() {
             </div>
           </motion.div>
 
-          {/* Brand name */}
           <div className="text-center">
             <h1 className="text-5xl font-display font-800 tracking-tight">
               <span className="text-brand-gradient">Sellers</span>
@@ -85,13 +80,19 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Login card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.5 }}
           className="glass w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6"
         >
+          {!isConfigured && (
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-200 text-xs">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <p>O Firebase ainda não foi configurado. Adicione suas chaves no arquivo <b>.env</b> para ativar o login.</p>
+            </div>
+          )}
+
           <div className="text-center">
             <p className="text-white/70 text-sm leading-relaxed">
               Acesse sua conta para gerenciar projetos e acompanhar implantações em tempo real.
@@ -100,7 +101,10 @@ export default function LoginPage() {
 
           <button
             onClick={handleLogin}
-            className="relative w-full flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-semibold text-sm overflow-hidden group"
+            disabled={!isConfigured}
+            className={`relative w-full flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-semibold text-sm overflow-hidden group transition-all ${
+              isConfigured ? 'hover:scale-[1.02] active:scale-[0.98]' : 'opacity-50 cursor-not-allowed grayscale'
+            }`}
             style={{
               background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-secondary))',
               color: '#050508',
@@ -114,25 +118,6 @@ export default function LoginPage() {
           <p className="text-center text-white/25 text-xs">
             Uso exclusivo da equipe Sellers
           </p>
-        </motion.div>
-
-        {/* Stats decorative */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className="flex gap-8 text-center"
-        >
-          {[
-            { label: 'Indústrias', value: '12+' },
-            { label: 'Distribuidores', value: '2.4k' },
-            { label: 'Projetos Ativos', value: '8' },
-          ].map(s => (
-            <div key={s.label}>
-              <p className="text-xl font-bold text-brand-gradient">{s.value}</p>
-              <p className="text-xs text-white/30 mt-0.5">{s.label}</p>
-            </div>
-          ))}
         </motion.div>
       </motion.div>
     </div>
