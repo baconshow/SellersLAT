@@ -24,9 +24,20 @@ export interface WeeklyUpdate {
   aiSummary?: string
 }
 
+export interface ProjectKPI {
+  id:       string
+  label:    string
+  value:    number
+  target:   number
+  unit?:    string
+  trend?:   'up' | 'down' | 'stable'
+  history?: number[]
+}
+
 export interface Project {
   id: string
   userId: string
+  name?: string
   clientName: string
   clientLogo?: string
   clientColor: string
@@ -40,6 +51,10 @@ export interface Project {
   weeklyUpdates: WeeklyUpdate[]
   createdAt: string
   updatedAt: string
+  // novos campos
+  description?: string
+  objective?:   string
+  kpis?:        ProjectKPI[]
 }
 
 export interface AIMessage {
@@ -92,19 +107,4 @@ export const DEFAULT_PHASES: Omit<ProjectPhase, 'id' | 'startDate' | 'endDate'>[
     status: 'pending',
     description: 'Consultoria estratégica sobre melhorias de vendas, mix, campanhas e oportunidades',
   },
-  // Adicionar estes campos ao interface Project existente:
-  description?: string          // descrição geral do projeto
-  objective?: string            // objetivo executivo (usado na capa)
-  kpis?: ProjectKPI[]           // métricas do projeto
-
-// Adicionar este novo interface ao arquivo:
-export interface ProjectKPI {
-  id:     string
-  label:  string
-  value:  number
-  target: number
-  unit?:  string
-  trend?: 'up' | 'down' | 'stable'
-  history?: number[]            // últimos N valores para sparkline
-}
 ]
