@@ -20,8 +20,6 @@ export default function RootLayout({
         <FirebaseClientProvider>
           <AuthProvider>
             <div className="noise" />
-            <div className="ambient-orb-1" />
-            <div className="ambient-orb-2" />
             {children}
             <Toaster />
           </AuthProvider>

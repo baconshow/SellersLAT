@@ -90,6 +90,11 @@ export function subscribeToProject(
   })
 }
 
+export async function getProject(id: string): Promise<Project | null> {
+  const snap = await getDoc(doc(db, 'projects', id))
+  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null
+}
+
 export async function updateProject(
   id: string,
   data: Partial<Project>

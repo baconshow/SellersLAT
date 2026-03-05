@@ -54,7 +54,7 @@ export default function KPICards({ project }: Props) {
               border: '1px solid rgba(255,255,255,0.07)',
             }}
           >
-            <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full blur-xl opacity-25"
+            <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full blur-2xl opacity-15"
                  style={{ background: kpi.color }} />
             <div className="relative z-10">
               <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
