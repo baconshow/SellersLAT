@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth';
-import { auth, googleProvider } from '@/lib/firebase';
+import { GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
+import { useFirebase } from '@/firebase';
 import toast from 'react-hot-toast';
 
 interface AuthContextType {
@@ -15,32 +15,26 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const { auth, user: firebaseUser, isUserLoading } = useFirebase();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Como agora usamos a config direta, isConfigured é sempre true se o auth existir
-  const isConfigured = !!auth;
 
   useEffect(() => {
-    if (!auth) {
-      setLoading(false);
-      return;
-    }
-
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setLoading(false);
-    });
-    return unsub;
-  }, []);
+    setUser(firebaseUser);
+    setLoading(isUserLoading);
+  }, [firebaseUser, isUserLoading]);
 
   const signInWithGoogle = async () => {
     if (!auth) {
-      toast.error('Erro de inicialização do Firebase.');
+      toast.error('O serviço de autenticação não está disponível.');
       return;
     }
+
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+
     try {
-      await signInWithPopup(auth, googleProvider);
+      await signInWithPopup(auth, provider);
       toast.success('Bem-vindo ao Sellers Pulse!');
     } catch (error: any) {
       console.error("Erro de login:", error);
@@ -48,8 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.error('O login com Google não está ativado no Firebase Console.');
       } else if (error.code === 'auth/popup-closed-by-user') {
         toast.error('Login cancelado.');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        toast.error('Este domínio não está autorizado no Firebase Console.');
       } else {
-        toast.error('Erro ao autenticar: ' + error.message);
+        toast.error('Erro ao autenticar: ' + (error.message || 'Erro desconhecido'));
       }
     }
   };
@@ -65,7 +61,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, isConfigured, signInWithGoogle, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      isConfigured: !!auth, 
+      signInWithGoogle, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );
