@@ -1,3 +1,4 @@
+
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously, type User } from 'firebase/auth';
@@ -31,7 +32,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (firebase.isUserLoading) return;
 
     if (firebase.user) {
-      // Se for um usuário anônimo (Modo Dev), mesclamos com os dados fakes para o UI
       if (firebase.user.isAnonymous) {
         setUser({
           ...firebase.user,
@@ -53,24 +53,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const provider = new GoogleAuthProvider();
+    // Forçar a seleção de conta para evitar fechamento automático por cache
+    provider.setCustomParameters({ prompt: 'select_account' });
+
     try {
+      console.log('Iniciando login com Google...');
       const result = await signInWithPopup(firebase.auth, provider);
       setUser(result.user);
       localStorage.removeItem('sellers_pulse_dev_mode');
-      toast.success('Bem-vindo!');
+      toast.success(`Bem-vindo, ${result.user.displayName}!`);
     } catch (error: any) {
-      console.error("Erro de login:", error);
-      toast.error('Erro ao autenticar: ' + (error.message || 'Erro desconhecido'));
+      console.error("Erro detalhado de login:", error);
+      
+      // Tratamento específico para erros comuns em ambientes de dev
+      if (error.code === 'auth/unauthorized-domain') {
+        toast.error('Domínio não autorizado! Adicione este domínio no Console do Firebase.');
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        toast.error('O popup foi fechado antes de completar o login.');
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        // Ignora, geralmente é um clique duplo
+      } else {
+        toast.error('Erro ao autenticar: ' + (error.message || 'Verifique o console'));
+      }
     }
   };
 
   const skipLogin = async () => {
     if (!firebase.auth) return;
     try {
-      // Realiza login anônimo real para que o Firestore aceite as requisições
       await signInAnonymously(firebase.auth);
       localStorage.setItem('sellers_pulse_dev_mode', 'true');
-      toast.success('Modo Desenvolvedor Ativo (Sessão Anônima)');
+      toast.success('Modo Desenvolvedor Ativo');
     } catch (error) {
       console.error("Erro ao entrar em modo dev:", error);
       toast.error("Erro ao ativar modo dev.");
@@ -83,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await signOut(firebase.auth);
     }
     setUser(null);
-    toast.success('Até logo!');
+    toast.success('Sessão encerrada.');
   };
 
   return (
