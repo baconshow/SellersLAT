@@ -4,7 +4,7 @@ import {
   type Unsubscribe
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Project, ProjectPhase } from '@/types'
+import type { Project, ProjectPhase, WeeklyUpdate } from '@/types'
 import { DEFAULT_PHASES } from '@/types'
 import { differenceInDays, addDays } from 'date-fns'
 
@@ -113,4 +113,35 @@ export async function addWeeklyUpdate(
     distributorsIntegrated: number
     distributorsPending: number
     distributorsBlocked: number
-    highlights: string[
+    highlights: string[]
+    blockers: string[]
+    nextSteps: string[]
+    aiSummary?: string
+  }
+): Promise<void> {
+  const projectRef = doc(db, 'projects', projectId)
+  const snap = await getDoc(projectRef)
+  
+  if (!snap.exists()) throw new Error('Projeto não encontrado')
+  
+  const currentUpdates = snap.data().weeklyUpdates || []
+  const newUpdate: WeeklyUpdate = {
+    ...update,
+    id: generateId()
+  }
+
+  await updateDoc(projectRef, {
+    weeklyUpdates: [...currentUpdates, newUpdate],
+    updatedAt: serverTimestamp()
+  })
+}
+
+export async function updatePhases(
+  projectId: string,
+  phases: ProjectPhase[]
+): Promise<void> {
+  await updateDoc(doc(db, 'projects', projectId), {
+    phases,
+    updatedAt: serverTimestamp()
+  })
+}
