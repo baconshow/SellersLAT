@@ -46,7 +46,7 @@ export default function GanttChart({ project }: Props) {
   const todayPct       = pct(today)
   const isActiveProject = today >= projectStart && today <= projectEnd
 
-  const LABEL_WIDTH = 200 // Reduced slightly and used for all calculations
+  const LABEL_WIDTH = 200
 
   /* ── inline rename ── */
   const startEdit = (phase: ProjectPhase) => {
@@ -226,8 +226,8 @@ export default function GanttChart({ project }: Props) {
                         left:   `${left}%`,
                         width:  `${width}%`,
                         originX: 0,
-                        height: 34,
-                        borderRadius: 10,
+                        height: 36,
+                        borderRadius: 16,
                         overflow: 'hidden',
                         cursor: 'pointer',
                       }}
@@ -237,15 +237,18 @@ export default function GanttChart({ project }: Props) {
                         className="w-full h-full relative"
                         style={
                           phase.status === 'completed'
-                            ? { background: `linear-gradient(90deg, ${cfg.color}bb, ${cfg.color}55)` }
+                            ? { background: `linear-gradient(90deg, ${cfg.color}dd, ${cfg.color}88)` }
                             : phase.status === 'in_progress'
                             ? { background: 'linear-gradient(90deg, var(--color-brand,#00D4AA), var(--color-brand-secondary,#8B5CF6))',
                                 boxShadow: '0 0 16px var(--color-brand-glow, rgba(0,212,170,0.4))' }
                             : phase.status === 'blocked'
                             ? { background: `linear-gradient(90deg, ${cfg.color}55, ${cfg.color}22)` }
-                            : { background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }
+                            : { background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)' }
                         }
                       >
+                        {/* Top Highlight Highlight */}
+                        <div className="absolute top-0 left-0 right-0 h-[1px] bg-white/15 rounded-[inherit]" />
+
                         {/* Shimmer on active */}
                         {isActive && (
                           <div
