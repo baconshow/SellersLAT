@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,7 @@ import {
   Mic, 
   User, 
   Bot, 
-  ChevronRight,
-  TrendingUp,
-  ShieldAlert,
+  ShieldAlert, 
   Lightbulb
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,12 +22,13 @@ interface Message {
   content: string;
 }
 
-export default function ChatPage({ params }: { params: { id: string } }) {
+export default function ChatPage() {
+  const { id } = useParams<{ id: string }>();
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: 'assistant', 
-      content: "Olá! Sou a Sellers AI. Posso ajudar com análises do projeto Bombril, resumos de status, identificação de riscos ou até atualizar os slides da sua apresentação. Como posso ajudar hoje?" 
+      content: "Olá! Sou a Sellers AI. Posso ajudar com análises do projeto, resumos de status, identificação de riscos ou até atualizar os slides da sua apresentação. Como posso ajudar hoje?" 
     }
   ]);
   const [loading, setLoading] = useState(false);
@@ -50,13 +49,12 @@ export default function ChatPage({ params }: { params: { id: string } }) {
     setLoading(true);
 
     try {
-      // Mock data for AI assistant context
       const projectDataMock = {
-        projectName: "Implantação Bombril",
-        clientName: "Bombril",
+        projectName: "Projeto Sellers Pulse",
+        clientName: "Cliente Ativo",
         currentPhase: "Implementação",
-        startDate: "2023-01-01T00:00:00Z",
-        endDate: "2023-12-31T00:00:00Z",
+        startDate: new Date().toISOString(),
+        endDate: new Date().toISOString(),
         phases: [],
         weeklyUpdates: [],
         currentPresentationContent: {}
@@ -96,30 +94,14 @@ export default function ChatPage({ params }: { params: { id: string } }) {
       </header>
 
       <div className="flex-1 flex overflow-hidden">
-        {/* Chat Area */}
         <div className="flex-1 flex flex-col relative">
-          <div 
-            ref={scrollRef}
-            className="flex-1 overflow-y-auto p-8 space-y-8 scroll-smooth"
-          >
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 space-y-8 scroll-smooth">
             {messages.map((msg, i) => (
-              <div 
-                key={i} 
-                className={cn(
-                  "flex gap-4 max-w-[800px]",
-                  msg.role === 'user' ? "ml-auto flex-row-reverse" : ""
-                )}
-              >
-                <div className={cn(
-                  "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 glass",
-                  msg.role === 'assistant' ? "bg-primary/20" : "bg-white/5"
-                )}>
+              <div key={i} className={cn("flex gap-4 max-w-[800px]", msg.role === 'user' ? "ml-auto flex-row-reverse" : "")}>
+                <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 glass", msg.role === 'assistant' ? "bg-primary/20" : "bg-white/5")}>
                   {msg.role === 'assistant' ? <Bot className="w-6 h-6 text-primary" /> : <User className="w-6 h-6 text-white/40" />}
                 </div>
-                <div className={cn(
-                  "p-5 rounded-2xl text-sm leading-relaxed",
-                  msg.role === 'assistant' ? "bg-white/5 border border-white/5" : "bg-primary text-white"
-                )}>
+                <div className={cn("p-5 rounded-2xl text-sm leading-relaxed", msg.role === 'assistant' ? "bg-white/5 border border-white/5" : "bg-primary text-white")}>
                   {msg.content}
                 </div>
               </div>
@@ -144,34 +126,19 @@ export default function ChatPage({ params }: { params: { id: string } }) {
             <div className="max-w-[800px] mx-auto space-y-6">
               <div className="flex flex-wrap gap-3">
                 {suggestions.map((s, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => { setInput(s.query); }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full glass hover:bg-white/10 text-xs font-medium transition-all"
-                  >
+                  <button key={i} onClick={() => { setInput(s.query); }} className="flex items-center gap-2 px-4 py-2 rounded-full glass hover:bg-white/10 text-xs font-medium transition-all">
                     <s.icon className="w-3 h-3 text-primary" />
                     {s.label}
                   </button>
                 ))}
               </div>
-
               <div className="relative">
-                <Input 
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Pergunte qualquer coisa sobre o projeto..."
-                  className="h-16 pl-6 pr-24 bg-white/5 border-white/10 rounded-3xl focus-visible:ring-primary focus-visible:ring-offset-0 placeholder:text-white/20"
-                />
+                <Input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSend()} placeholder="Pergunte qualquer coisa sobre o projeto..." className="h-16 pl-6 pr-24 bg-white/5 border-white/10 rounded-3xl focus-visible:ring-primary focus-visible:ring-offset-0 placeholder:text-white/20" />
                 <div className="absolute right-2 top-2 bottom-2 flex gap-2">
                   <Button variant="ghost" size="icon" className="rounded-2xl hover:bg-white/5 h-full w-12 text-white/40">
                     <Mic className="w-5 h-5" />
                   </Button>
-                  <Button 
-                    onClick={handleSend}
-                    disabled={loading}
-                    className="bg-primary hover:bg-primary/90 rounded-2xl h-full w-12"
-                  >
+                  <Button onClick={handleSend} disabled={loading} className="bg-primary hover:bg-primary/90 rounded-2xl h-full w-12">
                     <Send className="w-5 h-5" />
                   </Button>
                 </div>
@@ -180,7 +147,6 @@ export default function ChatPage({ params }: { params: { id: string } }) {
           </div>
         </div>
 
-        {/* Info Sidebar */}
         <aside className="w-80 border-l border-white/10 p-8 hidden xl:block bg-black/20">
           <h3 className="text-xs font-bold uppercase text-white/40 tracking-widest mb-6">Sugestões de Análise</h3>
           <div className="space-y-4">

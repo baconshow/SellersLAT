@@ -1,8 +1,8 @@
-
 "use client";
 
 import { useEffect } from 'react';
 import { hexToHsl } from '@/lib/utils';
+import { hexToRgb } from '@/lib/theme';
 
 interface ThemeHandlerProps {
   primaryColor?: string;
@@ -13,19 +13,19 @@ export function ThemeHandler({ primaryColor, secondaryColor }: ThemeHandlerProps
   useEffect(() => {
     const root = document.documentElement;
     if (primaryColor) {
-      root.style.setProperty('--brand', hexToHsl(primaryColor));
-      root.style.setProperty('--primary', hexToHsl(primaryColor));
-      root.style.setProperty('--ring', hexToHsl(primaryColor));
-      root.style.setProperty('--sidebar-primary', hexToHsl(primaryColor));
-    } else {
-      root.style.setProperty('--brand', '250 82% 60%');
-      root.style.setProperty('--primary', '250 82% 60%');
+      const rgb = hexToRgb(primaryColor);
+      root.style.setProperty('--color-brand', primaryColor);
+      root.style.setProperty('--color-brand-rgb', rgb);
+      root.style.setProperty('--color-brand-soft', `rgba(${rgb}, 0.15)`);
+      root.style.setProperty('--color-brand-glow', `rgba(${rgb}, 0.35)`);
+      
+      // For Shadcn HSL components
+      const hsl = hexToHsl(primaryColor);
+      root.style.setProperty('--primary', hsl);
     }
 
     if (secondaryColor) {
-      root.style.setProperty('--brand-secondary', hexToHsl(secondaryColor));
-    } else {
-      root.style.setProperty('--brand-secondary', '260 70% 50%');
+      root.style.setProperty('--color-brand-secondary', secondaryColor);
     }
   }, [primaryColor, secondaryColor]);
 
