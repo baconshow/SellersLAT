@@ -29,7 +29,6 @@ export default function Sidebar({ projectId, collapsed: externalCollapsed, setCo
   const pathname = usePathname()
   const { user, logout } = useAuth()
 
-  // Prioriza o estado externo se fornecido, senão usa o interno
   const collapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed
   const setCollapsed = setExternalCollapsed || setInternalCollapsed
 
@@ -61,7 +60,6 @@ export default function Sidebar({ projectId, collapsed: externalCollapsed, setCo
         borderRight: '1px solid rgba(255,255,255,0.06)',
       }}
     >
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-5"
            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
         <AnimatePresence>
@@ -92,7 +90,6 @@ export default function Sidebar({ projectId, collapsed: externalCollapsed, setCo
         </button>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 py-4 px-2 flex flex-col gap-1 overflow-y-auto">
         {dashboardItems.map(item => (
           <NavLink key={item.href} item={item} collapsed={collapsed} active={pathname === item.href} />
@@ -121,7 +118,6 @@ export default function Sidebar({ projectId, collapsed: externalCollapsed, setCo
         )}
       </nav>
 
-      {/* User footer */}
       <div className="p-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
         <div className={`flex items-center gap-3 ${collapsed ? 'justify-center' : ''}`}>
           {user?.photoURL ? (
@@ -138,7 +134,7 @@ export default function Sidebar({ projectId, collapsed: externalCollapsed, setCo
           <AnimatePresence>
             {!collapsed && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-white truncate">{user?.displayName}</p>
+                <p className="text-xs font-medium text-white truncate">{user?.displayName || 'Usuário'}</p>
                 <p className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.35)' }}>{user?.email}</p>
               </motion.div>
             )}
