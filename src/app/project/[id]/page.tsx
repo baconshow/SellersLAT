@@ -3,8 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  BarChart3, GanttChart, Presentation, Sparkles,
-  Plus, MessageSquare, RefreshCw, ChevronDown
+  Sparkles, Plus
 } from 'lucide-react'
 import { subscribeToProject } from '@/lib/firestore'
 import { applyTheme } from '@/lib/theme'
@@ -56,7 +55,7 @@ export default function ProjectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-void flex">
+    <div className="min-h-screen bg-[#050508] flex">
       <Sidebar 
         projectId={id} 
         collapsed={sidebarCollapsed} 
@@ -205,7 +204,7 @@ export default function ProjectPage() {
 
 function ProjectSkeleton() {
   return (
-    <div className="min-h-screen bg-void flex">
+    <div className="min-h-screen bg-[#050508] flex">
       <div className="w-[240px] glass-strong" />
       <div className="flex-1 p-8 space-y-4">
         {[...Array(4)].map((_, i) => (
@@ -219,7 +218,7 @@ function ProjectSkeleton() {
 function NotFound() {
   const router = useRouter()
   return (
-    <div className="min-h-screen bg-void flex items-center justify-center">
+    <div className="min-h-screen bg-[#050508] flex items-center justify-center">
       <div className="text-center">
         <p className="text-6xl mb-4">🔍</p>
         <h2 className="text-xl font-bold text-white mb-2">Projeto não encontrado</h2>
