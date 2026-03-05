@@ -1,4 +1,4 @@
-import { ProjectSidebar } from "@/components/ProjectSidebar";
+import Sidebar from "@/components/layout/Sidebar";
 import { ThemeHandler } from "@/components/ThemeHandler";
 
 const MOCK_PROJECT_THEME = {
@@ -21,7 +21,7 @@ export default async function ProjectLayout({
         primaryColor={MOCK_PROJECT_THEME.primary} 
         secondaryColor={MOCK_PROJECT_THEME.secondary} 
       />
-      <ProjectSidebar clientId={id} />
+      <Sidebar projectId={id} />
       <div className="flex-1 flex flex-col">
         {children}
       </div>
