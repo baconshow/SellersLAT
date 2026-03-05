@@ -59,17 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       const result = await signInWithPopup(firebase.auth, provider);
       setUser(result.user);
-      localStorage.removeItem('sellers_pulse_dev_mode');
       toast.success(`Bem-vindo, ${result.user.displayName}!`);
     } catch (error: any) {
-      console.error("Erro no login Google:", error);
+      console.error("Erro detalhado no login Google:", error);
       setLoading(false);
       
       if (error.code === 'auth/unauthorized-domain') {
         const domain = window.location.hostname;
-        toast.error(`Domínio "${domain}" não autorizado no Firebase. Verifique no Console.`);
+        console.error("DOMÍNIO NÃO AUTORIZADO NO FIREBASE:", domain);
+        toast.error(
+          `Domínio "${domain}" não autorizado. Adicione-o no Console do Firebase > Authentication > Settings > Authorized Domains.`,
+          { duration: 10000 }
+        );
       } else if (error.code === 'auth/popup-closed-by-user') {
-        toast.error('Login cancelado.');
+        toast.error('Login cancelado pelo usuário.');
       } else {
         toast.error('Erro ao entrar com Google: ' + error.message);
       }
