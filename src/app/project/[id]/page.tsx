@@ -16,6 +16,7 @@ import GanttChartComponent from '@/components/gantt/GanttChart'
 import SlidesDeck from '@/components/presentation/SlidesDeck'
 import AIChat from '@/components/ai/AIChat'
 import WeeklyUpdateDrawer from '@/components/ui/WeeklyUpdateDrawer'
+import { cn } from '@/lib/utils'
 
 type ActiveView = 'dashboard' | 'gantt' | 'slides' | 'ai'
 
@@ -28,6 +29,7 @@ export default function ProjectPage() {
   const [activeView, setActiveView] = useState<ActiveView>('dashboard')
   const [showUpdateDrawer, setShowUpdateDrawer] = useState(false)
   const [showAIPanel, setShowAIPanel] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) router.replace('/')
@@ -55,9 +57,18 @@ export default function ProjectPage() {
 
   return (
     <div className="min-h-screen bg-void flex">
-      <Sidebar projectId={id} onNewProject={() => router.push('/dashboard')} />
+      <Sidebar 
+        projectId={id} 
+        collapsed={sidebarCollapsed} 
+        setCollapsed={setSidebarCollapsed} 
+      />
 
-      <main className="flex-1 ml-[240px] flex flex-col min-h-screen">
+      <main 
+        className={cn(
+          "flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out",
+          sidebarCollapsed ? "ml-[72px]" : "ml-[240px]"
+        )}
+      >
         {/* Project header bar */}
         <div className="sticky top-0 z-40 glass-strong border-b border-white/5">
           <div className="px-8 py-3 flex items-center justify-between">

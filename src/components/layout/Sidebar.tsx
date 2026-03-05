@@ -13,7 +13,8 @@ import Image from 'next/image'
 
 interface SidebarProps {
   projectId?: string
-  onNewProject?: () => void
+  collapsed?: boolean
+  setCollapsed?: (collapsed: boolean) => void
 }
 
 interface NavItem {
@@ -23,10 +24,14 @@ interface NavItem {
   badge?: string
 }
 
-export default function Sidebar({ projectId, onNewProject }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
+export default function Sidebar({ projectId, collapsed: externalCollapsed, setCollapsed: setExternalCollapsed }: SidebarProps) {
+  const [internalCollapsed, setInternalCollapsed] = useState(false)
   const pathname = usePathname()
   const { user, logout } = useAuth()
+
+  // Prioriza o estado externo se fornecido, senão usa o interno
+  const collapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed
+  const setCollapsed = setExternalCollapsed || setInternalCollapsed
 
   const dashboardItems: NavItem[] = [
     { icon: LayoutDashboard, label: 'Projetos', href: '/dashboard' },
@@ -77,7 +82,7 @@ export default function Sidebar({ projectId, onNewProject }: SidebarProps) {
         </AnimatePresence>
 
         <button
-          onClick={() => setCollapsed(c => !c)}
+          onClick={() => setCollapsed(!collapsed)}
           className="w-8 h-8 rounded-lg flex items-center justify-center ml-auto transition-colors"
           style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}
         >

@@ -10,12 +10,14 @@ import type { Project } from '@/types'
 import Sidebar from '@/components/layout/Sidebar'
 import ProjectCard from '@/components/dashboard/ProjectCard'
 import NewProjectModal from '@/components/dashboard/NewProjectModal'
+import { cn } from '@/lib/utils'
 
 export default function DashboardPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
   const [projects, setProjects] = useState<Project[]>([])
   const [showModal, setShowModal] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   useEffect(() => {
     if (!loading && !user) router.replace('/')
@@ -47,10 +49,18 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-[#050508] flex">
-      <Sidebar onNewProject={() => setShowModal(true)} />
+      <Sidebar 
+        collapsed={sidebarCollapsed} 
+        setCollapsed={setSidebarCollapsed} 
+      />
 
       {/* Main content */}
-      <main className="flex-1 ml-[240px] min-h-screen">
+      <main 
+        className={cn(
+          "flex-1 min-h-screen transition-all duration-300 ease-in-out",
+          sidebarCollapsed ? "ml-[72px]" : "ml-[240px]"
+        )}
+      >
         {/* Header */}
         <div className="sticky top-0 z-40 glass-strong border-b border-white/5">
           <div className="px-8 py-4 flex items-center justify-between">

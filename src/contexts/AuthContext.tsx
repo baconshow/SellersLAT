@@ -17,7 +17,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 // Usuário fake para consistência visual em modo dev
 const MOCK_USER_DATA = {
-  displayName: 'Alexandre Sellers (Dev)',
+  displayName: 'Bacon (Dev)',
   email: 'alexandre@sellers.com.br',
   photoURL: 'https://picsum.photos/seed/dev/200/200',
 };
