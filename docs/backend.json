@@ -1,0 +1,42 @@
+
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "Represents an industrial trade integration project for a specific client.",
+      "type": "object",
+      "properties": {
+        "clientName": { "type": "string" },
+        "brandColor": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "startDate": { "type": "string", "format": "date" },
+        "status": { "type": "string", "enum": ["active", "completed", "on_hold"] }
+      },
+      "required": ["clientName", "brandColor"]
+    },
+    "WeeklyUpdate": {
+      "title": "WeeklyUpdate",
+      "description": "Weekly status update for a project.",
+      "type": "object",
+      "properties": {
+        "weekNumber": { "type": "number" },
+        "highlights": { "type": "array", "items": { "type": "string" } },
+        "blockers": { "type": "array", "items": { "type": "string" } },
+        "nextSteps": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+  "auth": {
+    "providers": ["google.com"]
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Store project details per industry client."
+    },
+    "/projects/{projectId}/weeklyUpdates/{updateId}": {
+      "schema": { "$ref": "#/entities/WeeklyUpdate" },
+      "description": "Store weekly updates for a specific project."
+    }
+  }
+}
