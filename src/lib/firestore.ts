@@ -1,7 +1,7 @@
 import {
   collection, doc, getDoc, addDoc, updateDoc, deleteDoc,
   query, where, orderBy, onSnapshot, serverTimestamp,
-  type Unsubscribe
+  type Unsubscribe, Timestamp
 } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Project, ProjectPhase, WeeklyUpdate } from '@/types'
@@ -71,13 +71,22 @@ export function subscribeToProjects(
   userId: string,
   cb: (projects: Project[]) => void
 ): Unsubscribe {
+  // Simplified query to avoid index requirement (orderBy + where requires composite index)
   const q = query(
     collection(db, 'projects'),
-    where('userId', '==', userId),
-    orderBy('createdAt', 'desc')
+    where('userId', '==', userId)
   )
   return onSnapshot(q, snap => {
-    cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as Project)))
+    const projects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Project))
+    
+    // Client-side sorting by createdAt
+    projects.sort((a, b) => {
+      const timeA = (a.createdAt as unknown as Timestamp)?.seconds || 0
+      const timeB = (b.createdAt as unknown as Timestamp)?.seconds || 0
+      return timeB - timeA
+    })
+    
+    cb(projects)
   })
 }
 
