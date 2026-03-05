@@ -46,7 +46,7 @@ export default function DashboardPage() {
   }).length
 
   return (
-    <div className="min-h-screen bg-void flex">
+    <div className="min-h-screen bg-[#050508] flex">
       <Sidebar onNewProject={() => setShowModal(true)} />
 
       {/* Main content */}
