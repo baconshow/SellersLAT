@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import { onAuthStateChanged, signInWithPopup, signOut, type User } from 'firebase/auth'
 import { auth, googleProvider } from '@/lib/firebase'
+import toast from 'react-hot-toast'
 
 interface AuthContextType {
   user: User | null
@@ -17,6 +18,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!auth) {
+      setLoading(false)
+      return
+    }
+
     const unsub = onAuthStateChanged(auth, u => {
       setUser(u)
       setLoading(false)
@@ -25,10 +31,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signInWithGoogle = async () => {
-    await signInWithPopup(auth, googleProvider)
+    if (!auth) {
+      toast.error('Configuração do Firebase não encontrada. Verifique seu arquivo .env')
+      return
+    }
+    try {
+      await signInWithPopup(auth, googleProvider)
+    } catch (error) {
+      console.error('Erro ao fazer login:', error)
+      throw error
+    }
   }
 
   const logout = async () => {
+    if (!auth) return
     await signOut(auth)
   }
 
