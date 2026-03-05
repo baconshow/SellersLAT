@@ -1,4 +1,3 @@
-
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
@@ -49,13 +48,7 @@ export default function GanttPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="glass px-4 py-2.5 rounded-xl border-white/5 flex items-center gap-3">
-            <Info className="w-4 h-4 text-primary" />
-            <div className="text-[11px] leading-tight">
-              <p className="text-white font-bold">Dica de Gestão</p>
-              <p className="text-white/40">Mantenha os status sempre atualizados para o cliente.</p>
-            </div>
-          </div>
+          {/* Bloco de dica removido conforme solicitação */}
         </div>
       </div>
 
