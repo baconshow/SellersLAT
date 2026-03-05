@@ -1,4 +1,3 @@
-
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously, type User } from 'firebase/auth';
@@ -16,11 +15,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Usuário fake para consistência visual em modo dev
+// Dados fake para o modo anônimo (Guest)
 const MOCK_USER_DATA = {
-  displayName: 'Bacon (Dev)',
-  email: 'dev@sellerspulse.com.br',
-  photoURL: 'https://picsum.photos/seed/dev/200/200',
+  displayName: 'Visitante (Sellers Pulse)',
+  email: 'guest@sellerspulse.com.br',
+  photoURL: 'https://picsum.photos/seed/guest/200/200',
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -53,27 +52,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     const provider = new GoogleAuthProvider();
-    // Forçar a seleção de conta para evitar fechamento automático por cache
     provider.setCustomParameters({ prompt: 'select_account' });
 
     try {
-      console.log('Iniciando login com Google...');
+      setLoading(true);
       const result = await signInWithPopup(firebase.auth, provider);
       setUser(result.user);
       localStorage.removeItem('sellers_pulse_dev_mode');
       toast.success(`Bem-vindo, ${result.user.displayName}!`);
     } catch (error: any) {
-      console.error("Erro detalhado de login:", error);
+      console.error("Erro no login Google:", error);
+      setLoading(false);
       
-      // Tratamento específico para erros comuns em ambientes de dev
       if (error.code === 'auth/unauthorized-domain') {
-        toast.error('Domínio não autorizado! Adicione este domínio no Console do Firebase.');
+        toast.error('Domínio não autorizado no Firebase!');
       } else if (error.code === 'auth/popup-closed-by-user') {
-        toast.error('O popup foi fechado antes de completar o login.');
-      } else if (error.code === 'auth/cancelled-popup-request') {
-        // Ignora, geralmente é um clique duplo
+        toast.error('Login cancelado.');
       } else {
-        toast.error('Erro ao autenticar: ' + (error.message || 'Verifique o console'));
+        toast.error('Erro ao entrar com Google.');
       }
     }
   };
@@ -81,17 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const skipLogin = async () => {
     if (!firebase.auth) return;
     try {
+      setLoading(true);
       await signInAnonymously(firebase.auth);
-      localStorage.setItem('sellers_pulse_dev_mode', 'true');
-      toast.success('Modo Desenvolvedor Ativo');
+      toast.success('Entrando como Visitante');
     } catch (error) {
-      console.error("Erro ao entrar em modo dev:", error);
-      toast.error("Erro ao ativar modo dev.");
+      console.error("Erro no login anônimo:", error);
+      setLoading(false);
+      toast.error("Erro ao entrar como convidado.");
     }
   };
 
   const logout = async () => {
-    localStorage.removeItem('sellers_pulse_dev_mode');
     if (firebase.auth) {
       await signOut(firebase.auth);
     }
