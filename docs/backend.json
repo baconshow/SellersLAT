@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Project": {
@@ -92,7 +93,7 @@
           "description": "The descriptive name of the phase (e.g., 'Reunião de Boas-Vindas')."
         },
         "order": {
-          "type": "number",
+          "number": "number",
           "description": "The sequential order of the phase within the project workflow."
         },
         "startDate": {
@@ -211,7 +212,7 @@
   },
   "auth": {
     "providers": [
-      "password",
+      "google",
       "anonymous"
     ]
   },
@@ -224,7 +225,7 @@
           "schema": {
             "$ref": "#/backend/entities/Project"
           },
-          "description": "Top-level collection for client projects. Each project is owned by a specific user identified by the 'userId' field. This field acts as the primary owner identifier for authorization.",
+          "description": "Top-level collection for client projects. Each project is owned by a specific user identified by the 'userId' field.",
           "params": [
             {
               "name": "projectId",
@@ -232,48 +233,7 @@
             }
           ]
         }
-      },
-      {
-        "path": "/projects/{projectId}/phases/{phaseId}",
-        "definition": {
-          "entityName": "Phase",
-          "schema": {
-            "$ref": "#/backend/entities/Phase"
-          },
-          "description": "Subcollection for phases within a project. Each phase document includes a denormalized 'ownerId' field (copied from the parent project's 'userId') to enable authorization independence and simplified security rules.",
-          "params": [
-            {
-              "name": "projectId",
-              "description": "The unique identifier of the parent project."
-            },
-            {
-              "name": "phaseId",
-              "description": "The unique identifier for a specific phase within a project."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/projects/{projectId}/weeklyUpdates/{weeklyUpdateId}",
-        "definition": {
-          "entityName": "WeeklyUpdate",
-          "schema": {
-            "$ref": "#/backend/entities/WeeklyUpdate"
-          },
-          "description": "Subcollection for weekly progress updates of a project. Each weekly update document includes a denormalized 'ownerId' field (copied from the parent project's 'userId') for authorization independence and simplified security rules.",
-          "params": [
-            {
-              "name": "projectId",
-              "description": "The unique identifier of the parent project."
-            },
-            {
-              "name": "weeklyUpdateId",
-              "description": "The unique identifier for a specific weekly update within a project."
-            }
-          ]
-        }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to be secure, scalable, and debuggable, adhering strictly to the provided core design principles and strategy mandates. The primary strategy employed is **Authorization Independence via Denormalization** (Mandate A).\n\n1.  **Authorization Independence (CRITICAL) & Denormalization:**\n    *   The `Project` entity is stored in the top-level `/projects` collection and includes a `userId` field, which acts as the owner identifier. This is already part of its schema. All access to a project will be gated by this `userId`.\n    *   For subcollections (`phases` and `weeklyUpdates`), which logically belong to a specific project and thus implicitly to the project's owner, the `ownerId` (a copy of the parent `Project`'s `userId`) will be denormalized and stored directly within each `Phase` and `WeeklyUpdate` document. This is crucial for eliminating `get()` calls in Firestore Security Rules. Rules for `/projects/{projectId}/phases/{phaseId}` or `/projects/{projectId}/weeklyUpdates/{weeklyUpdateId}` can directly check `resource.data.ownerId == request.auth.uid`, ensuring atomic and independent authorization checks without needing to fetch the parent `Project` document. This greatly simplifies rule logic, improves performance, and prevents issues with transactional integrity.\n\n2.  **QAPs (Queries as Authorization Primitives):**\n    *   **`/projects` Collection:** For listing projects, the `projects` collection allows users to perform a query like `db.collection('projects').where('userId', '==', auth.uid)`. Security rules can then permit reads only if `request.auth.uid == resource.data.userId`. This ensures that `list` operations only return projects owned by the authenticated user, making the query itself the primitive for authorization without relying on server-side filters. This is a highly efficient and secure pattern.\n    *   **Subcollections (`/projects/{projectId}/phases` and `/projects/{projectId}/weeklyUpdates`):** Because the `ownerId` is denormalized into each document, `list` queries on these subcollections are also QAP-compliant. A user can only access these subcollections if they know the `projectId` of an owned project. The security rules for these paths will check `resource.data.ownerId == request.auth.uid` for every document in the result set, automatically filtering out any documents that might somehow exist for projects not owned by the requesting user, even if the `projectId` in the path matches.\n\n3.  **Structural Segregation & Access Modeling:**\n    *   All documents within `/projects` represent user-owned projects, sharing a homogeneous security posture (owner-access). Similarly, `phases` and `weeklyUpdates` documents within a project subcollection share the security posture of being tied to that project's owner.\n    *   The design uses a clear **Hierarchical Path for User-Owned Data** (`/projects/{projectId}`) and **Continues Hierarchy for Nested Data** (`/projects/{projectId}/phases/{phaseId}`, `/projects/{projectId}/weeklyUpdates/{weeklyUpdateId}`). This provides clear ownership and logical grouping, simplifying rule writing.\n\n4.  **Clarity & Predictability:**\n    *   Consistent naming conventions are used (e.g., `projectId`, `phaseId`, `weeklyUpdateId`). Wildcards are descriptive. The `status` field in `Phase` explicitly models its state.\n\nThis robust structure minimizes the potential for security vulnerabilities, simplifies Firebase Security Rules, and optimizes for scalable data access patterns."
+    ]
   }
 }
