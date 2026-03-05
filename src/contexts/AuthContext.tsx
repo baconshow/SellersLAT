@@ -19,29 +19,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Monitora o estado de autenticação de forma segura
   useEffect(() => {
-    if (!auth) return;
+    if (!auth) {
+      setLoading(false);
+      return;
+    }
 
-    // Sincroniza o estado do usuário com o listener do Firebase
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
+      setLoading(false);
+    }, (error) => {
+      console.error("Auth state error:", error);
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, [auth]);
 
-  // Fallback caso useFirebase ainda esteja carregando
-  useEffect(() => {
-    if (!isUserLoading) {
-      setUser(firebaseUser);
-      setLoading(false);
-    }
-  }, [firebaseUser, isUserLoading]);
-
   const signInWithGoogle = async () => {
     if (!auth) {
-      toast.error('O serviço de autenticação não está disponível. Verifique as chaves do Firebase.');
+      toast.error('O serviço de autenticação não está pronto. Verifique as chaves do Firebase.');
       return;
     }
 
@@ -57,8 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.error('O login com Google não está ativado no Firebase Console.');
       } else if (error.code === 'auth/popup-closed-by-user') {
         toast.error('Login cancelado.');
-      } else if (error.code === 'auth/unauthorized-domain') {
-        toast.error('Este domínio não está autorizado no Firebase Console.');
       } else {
         toast.error('Erro ao autenticar: ' + (error.message || 'Erro desconhecido'));
       }
@@ -77,8 +73,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ 
-      user, 
-      loading, 
+      user: user || firebaseUser, 
+      loading: loading && isUserLoading, 
       isConfigured: !!auth, 
       signInWithGoogle, 
       logout 
