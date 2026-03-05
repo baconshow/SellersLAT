@@ -1,6 +1,6 @@
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { GoogleAuthProvider, signInWithPopup, signOut, type User } from 'firebase/auth';
+import { GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously, type User } from 'firebase/auth';
 import { useFirebase } from '@/firebase';
 import toast from 'react-hot-toast';
 
@@ -9,15 +9,14 @@ interface AuthContextType {
   loading: boolean;
   isConfigured: boolean;
   signInWithGoogle: () => Promise<void>;
-  skipLogin: () => void;
+  skipLogin: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Usuário fake para desenvolvimento
-const MOCK_USER = {
-  uid: 'dev-user-123',
+// Usuário fake para consistência visual em modo dev
+const MOCK_USER_DATA = {
   displayName: 'Alexandre Sellers (Dev)',
   email: 'alexandre@sellers.com.br',
   photoURL: 'https://picsum.photos/seed/dev/200/200',
@@ -32,13 +31,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (firebase.isUserLoading) return;
 
     if (firebase.user) {
-      setUser(firebase.user);
-    } else {
-      // Verifica se existe um usuário "skip" no localStorage para manter a sessão dev
-      const savedDevUser = localStorage.getItem('sellers_pulse_dev_mode');
-      if (savedDevUser) {
-        setUser(MOCK_USER);
+      // Se for um usuário anônimo (Modo Dev), mesclamos com os dados fakes para o UI
+      if (firebase.user.isAnonymous) {
+        setUser({
+          ...firebase.user,
+          ...MOCK_USER_DATA,
+        });
+      } else {
+        setUser(firebase.user);
       }
+    } else {
+      setUser(null);
     }
     setLoading(false);
   }, [firebase.user, firebase.isUserLoading]);
@@ -61,10 +64,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const skipLogin = () => {
-    setUser(MOCK_USER);
-    localStorage.setItem('sellers_pulse_dev_mode', 'true');
-    toast.success('Modo Desenvolvedor Ativo');
+  const skipLogin = async () => {
+    if (!firebase.auth) return;
+    try {
+      // Realiza login anônimo real para que o Firestore aceite as requisições
+      await signInAnonymously(firebase.auth);
+      localStorage.setItem('sellers_pulse_dev_mode', 'true');
+      toast.success('Modo Desenvolvedor Ativo (Sessão Anônima)');
+    } catch (error) {
+      console.error("Erro ao entrar em modo dev:", error);
+      toast.error("Erro ao ativar modo dev.");
+    }
   };
 
   const logout = async () => {
