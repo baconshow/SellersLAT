@@ -1,3 +1,4 @@
+
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously, type User } from 'firebase/auth';
@@ -65,11 +66,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       
       if (error.code === 'auth/unauthorized-domain') {
-        toast.error('Domínio não autorizado no Firebase!');
+        const domain = window.location.hostname;
+        toast.error(`Domínio "${domain}" não autorizado no Firebase. Verifique no Console.`);
       } else if (error.code === 'auth/popup-closed-by-user') {
         toast.error('Login cancelado.');
       } else {
-        toast.error('Erro ao entrar com Google.');
+        toast.error('Erro ao entrar com Google: ' + error.message);
       }
     }
   };

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { firebaseConfig } from '@/firebase/config';
@@ -15,13 +16,9 @@ export function initializeFirebase() {
   let firebaseApp: FirebaseApp;
 
   if (!getApps().length) {
-    try {
-      // Tenta inicialização automática do App Hosting (apenas em produção/servidor)
-      firebaseApp = initializeApp();
-    } catch (e) {
-      // Fallback para a configuração manual (desenvolvimento e build)
-      firebaseApp = initializeApp(firebaseConfig);
-    }
+    // Usamos explicitamente a configuração do config.ts para garantir consistência
+    // em ambientes de desenvolvimento como Cloud Workstations.
+    firebaseApp = initializeApp(firebaseConfig);
   } else {
     firebaseApp = getApp();
   }
