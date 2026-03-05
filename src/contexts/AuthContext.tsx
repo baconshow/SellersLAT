@@ -17,6 +17,8 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Como agora usamos a config direta, isConfigured é sempre true se o auth existir
   const isConfigured = !!auth;
 
   useEffect(() => {
@@ -34,17 +36,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     if (!auth) {
-      toast.error('Firebase não configurado. Adicione suas chaves no arquivo .env');
+      toast.error('Erro de inicialização do Firebase.');
       return;
     }
     try {
       await signInWithPopup(auth, googleProvider);
       toast.success('Bem-vindo ao Sellers Pulse!');
     } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
+      console.error("Erro de login:", error);
+      if (error.code === 'auth/operation-not-allowed') {
+        toast.error('O login com Google não está ativado no Firebase Console.');
+      } else if (error.code === 'auth/popup-closed-by-user') {
         toast.error('Login cancelado.');
       } else {
-        toast.error('Erro ao autenticar. Verifique se o Google Login está ativo no console.');
+        toast.error('Erro ao autenticar: ' + error.message);
       }
     }
   };

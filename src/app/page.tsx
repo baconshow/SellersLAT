@@ -15,17 +15,13 @@ export default function LoginPage() {
   }, [user, loading, router])
 
   const handleLogin = async () => {
-    if (!isConfigured) {
-      toast.error('Configurações do Firebase ausentes.')
-      return
-    }
     await signInWithGoogle()
   }
 
   if (loading) return <LoadingScreen />
 
   return (
-    <div className="min-h-screen bg-void flex items-center justify-center relative overflow-hidden">
+    <div className="min-h-screen bg-[#050508] flex items-center justify-center relative overflow-hidden">
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -38,7 +34,7 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(var(--color-brand-rgb),0.08) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(0,212,170,0.08) 0%, transparent 70%)',
         }}
       />
 
@@ -55,22 +51,22 @@ export default function LoginPage() {
             className="relative"
           >
             <div className="w-40 h-40 rounded-full glass flex items-center justify-center relative overflow-hidden"
-                 style={{ boxShadow: '0 0 60px rgba(var(--color-brand-rgb),0.3)' }}>
+                 style={{ boxShadow: '0 0 60px rgba(0,212,170,0.3)' }}>
               <svg viewBox="0 0 100 100" className="w-24 h-24 opacity-90">
-                <ellipse cx="50" cy="40" rx="28" ry="30" fill="none" stroke="var(--color-brand)" strokeWidth="2.5"/>
-                <circle cx="38" cy="38" r="8" fill="none" stroke="var(--color-brand)" strokeWidth="2.5"/>
-                <circle cx="62" cy="38" r="8" fill="none" stroke="var(--color-brand)" strokeWidth="2.5"/>
-                <path d="M43 58 Q50 64 57 58" fill="none" stroke="var(--color-brand)" strokeWidth="2.5" strokeLinecap="round"/>
-                <path d="M32 25 Q50 15 68 25" fill="none" stroke="var(--color-brand)" strokeWidth="2.5"/>
-                <line x1="50" y1="70" x2="50" y2="85" stroke="var(--color-brand)" strokeWidth="2.5"/>
-                <line x1="50" y1="75" x2="38" y2="85" stroke="var(--color-brand)" strokeWidth="2.5"/>
-                <line x1="50" y1="75" x2="62" y2="85" stroke="var(--color-brand)" strokeWidth="2.5"/>
+                <ellipse cx="50" cy="40" rx="28" ry="30" fill="none" stroke="#00D4AA" strokeWidth="2.5"/>
+                <circle cx="38" cy="38" r="8" fill="none" stroke="#00D4AA" strokeWidth="2.5"/>
+                <circle cx="62" cy="38" r="8" fill="none" stroke="#00D4AA" strokeWidth="2.5"/>
+                <path d="M43 58 Q50 64 57 58" fill="none" stroke="#00D4AA" strokeWidth="2.5" strokeLinecap="round"/>
+                <path d="M32 25 Q50 15 68 25" fill="none" stroke="#00D4AA" strokeWidth="2.5"/>
+                <line x1="50" y1="70" x2="50" y2="85" stroke="#00D4AA" strokeWidth="2.5"/>
+                <line x1="50" y1="75" x2="38" y2="85" stroke="#00D4AA" strokeWidth="2.5"/>
+                <line x1="50" y1="75" x2="62" y2="85" stroke="#00D4AA" strokeWidth="2.5"/>
               </svg>
             </div>
           </motion.div>
 
           <div className="text-center">
-            <h1 className="text-5xl font-display font-800 tracking-tight">
+            <h1 className="text-5xl font-800 tracking-tight">
               <span className="text-brand-gradient">Sellers</span>
               <span className="text-white"> Pulse</span>
             </h1>
@@ -86,13 +82,6 @@ export default function LoginPage() {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="glass w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6"
         >
-          {!isConfigured && (
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-200 text-xs">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-              <p>O Firebase ainda não foi configurado. Adicione suas chaves no arquivo <b>.env</b> para ativar o login.</p>
-            </div>
-          )}
-
           <div className="text-center">
             <p className="text-white/70 text-sm leading-relaxed">
               Acesse sua conta para gerenciar projetos e acompanhar implantações em tempo real.
@@ -101,12 +90,9 @@ export default function LoginPage() {
 
           <button
             onClick={handleLogin}
-            disabled={!isConfigured}
-            className={`relative w-full flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-semibold text-sm overflow-hidden group transition-all ${
-              isConfigured ? 'hover:scale-[1.02] active:scale-[0.98]' : 'opacity-50 cursor-not-allowed grayscale'
-            }`}
+            className="relative w-full flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-semibold text-sm overflow-hidden group transition-all hover:scale-[1.02] active:scale-[0.98]"
             style={{
-              background: 'linear-gradient(135deg, var(--color-brand), var(--color-brand-secondary))',
+              background: 'linear-gradient(135deg, #00D4AA, #8B5CF6)',
               color: '#050508',
             }}
           >
@@ -137,10 +123,10 @@ function GoogleIcon() {
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-void flex items-center justify-center">
+    <div className="min-h-screen bg-[#050508] flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
         <div className="w-12 h-12 rounded-full border-2 border-transparent animate-spin"
-             style={{ borderTopColor: 'var(--color-brand)', borderRightColor: 'var(--color-brand-secondary)' }} />
+             style={{ borderTopColor: '#00D4AA', borderRightColor: '#8B5CF6' }} />
         <p className="text-white/40 text-sm">Carregando...</p>
       </div>
     </div>
