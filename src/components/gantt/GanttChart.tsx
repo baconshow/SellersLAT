@@ -227,7 +227,7 @@ export default function GanttChart({ project }: Props) {
                         width:  `${width}%`,
                         originX: 0,
                         height: 36,
-                        borderRadius: 16,
+                        borderRadius: 6,
                         overflow: 'hidden',
                         cursor: 'pointer',
                       }}
