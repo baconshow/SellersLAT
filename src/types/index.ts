@@ -1,4 +1,5 @@
 export type PhaseStatus = 'pending' | 'in_progress' | 'completed' | 'blocked'
+export type DistributorStatus = 'integrated' | 'pending' | 'blocked' | 'not_started'
 
 export interface ProjectPhase {
   id: string
@@ -8,6 +9,41 @@ export interface ProjectPhase {
   endDate: string
   status: PhaseStatus
   description?: string
+}
+
+export interface Distributor {
+  id: string
+  name: string
+  status: DistributorStatus
+  connectionType?: string        // 'FTP' | 'Ello' | 'API' | 'Manual'
+  responsible?: string           // pessoa de contato na distribuidora
+  notes?: string                 // observações gerais
+  blockerDescription?: string    // o que está travando
+  solution?: string              // como foi resolvido
+  integratedAt?: string          // data de integração
+  weekAdded?: number             // semana em que foi adicionado
+}
+
+export interface DistributorSnapshot {
+  id:             string
+  name:           string
+  status:         DistributorStatus
+  notes?:         string
+  connectionType?: string
+  responsible?:   string
+  blockerDescription?: string
+}
+
+export type DistributorHistoryType = 'import' | 'manual_edit' | 'weekly_snapshot'
+
+export interface DistributorHistoryEntry {
+  id:           string
+  type:         DistributorHistoryType
+  timestamp:    string
+  source?:      string
+  distributors: Distributor[]
+  weekNumber?:  number
+  note?:        string
 }
 
 export interface WeeklyUpdate {
@@ -22,6 +58,7 @@ export interface WeeklyUpdate {
   blockers: string[]
   nextSteps: string[]
   aiSummary?: string
+  distributorSnapshots?: DistributorSnapshot[]  // snapshot dos distribuidores nessa semana
 }
 
 export interface ProjectKPI {
@@ -49,9 +86,10 @@ export interface Project {
   currentPhaseId?: string
   phases: ProjectPhase[]
   weeklyUpdates: WeeklyUpdate[]
+  distributors?: Distributor[]   // lista de distribuidores do projeto
+  distributorHistory?: DistributorHistoryEntry[]
   createdAt: string
   updatedAt: string
-  // novos campos
   description?: string
   objective?:   string
   kpis?:        ProjectKPI[]

@@ -1,14 +1,12 @@
 import {
   collection, doc, getDoc, addDoc, updateDoc, deleteDoc,
-  query, where, onSnapshot, serverTimestamp,
+  query, where, orderBy, onSnapshot, serverTimestamp,
   type Unsubscribe, Timestamp
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Project, ProjectPhase, WeeklyUpdate } from '@/types'
+import type { Project, ProjectPhase, WeeklyUpdate, Distributor, DistributorSnapshot, DistributorHistoryEntry } from '@/types'
 import { DEFAULT_PHASES } from '@/types'
 import { differenceInDays, addDays } from 'date-fns'
-import { errorEmitter } from '@/firebase/error-emitter'
-import { FirestorePermissionError } from '@/firebase/errors'
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36)
@@ -61,23 +59,13 @@ export async function createProject(
     endDate: data.endDate,
     phases,
     weeklyUpdates: [],
+    distributors: [],
     currentPhaseId: phases[0].id,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   }
 
-  const colRef = collection(db, 'projects')
-  const promise = addDoc(colRef, payload)
-  
-  promise.catch(async (err) => {
-    errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: colRef.path,
-      operation: 'create',
-      requestResourceData: payload
-    }))
-  })
-
-  const ref = await promise
+  const ref = await addDoc(collection(db, 'projects'), payload)
   return ref.id
 }
 
@@ -85,85 +73,47 @@ export function subscribeToProjects(
   userId: string,
   cb: (projects: Project[]) => void
 ): Unsubscribe {
-  const colRef = collection(db, 'projects')
-  const q = query(colRef, where('userId', '==', userId))
-  
-  return onSnapshot(q, 
-    snap => {
-      const projects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Project))
-      projects.sort((a, b) => {
-        const timeA = (a.createdAt as unknown as Timestamp)?.seconds || 0
-        const timeB = (b.createdAt as unknown as Timestamp)?.seconds || 0
-        return timeB - timeA
-      })
-      cb(projects)
-    },
-    async (err) => {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: colRef.path,
-        operation: 'list'
-      }))
-    }
+  const q = query(
+    collection(db, 'projects'),
+    where('userId', '==', userId)
   )
+  return onSnapshot(q, snap => {
+    const projects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Project))
+    projects.sort((a, b) => {
+      const timeA = (a.createdAt as unknown as Timestamp)?.seconds || 0
+      const timeB = (b.createdAt as unknown as Timestamp)?.seconds || 0
+      return timeB - timeA
+    })
+    cb(projects)
+  })
 }
 
 export function subscribeToProject(
   id: string,
   cb: (project: Project | null) => void
 ): Unsubscribe {
-  const docRef = doc(db, 'projects', id)
-  return onSnapshot(docRef, 
-    snap => {
-      cb(snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null)
-    },
-    async (err) => {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({
-        path: docRef.path,
-        operation: 'get'
-      }))
-    }
-  )
+  return onSnapshot(doc(db, 'projects', id), snap => {
+    cb(snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null)
+  })
 }
 
 export async function getProject(id: string): Promise<Project | null> {
-  const docRef = doc(db, 'projects', id)
-  try {
-    const snap = await getDoc(docRef)
-    return snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null
-  } catch (err) {
-    errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: docRef.path,
-      operation: 'get'
-    }))
-    throw err
-  }
+  const snap = await getDoc(doc(db, 'projects', id))
+  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null
 }
 
 export async function updateProject(
   id: string,
   data: Partial<Project>
 ): Promise<void> {
-  const docRef = doc(db, 'projects', id)
-  updateDoc(docRef, {
+  await updateDoc(doc(db, 'projects', id), {
     ...data,
     updatedAt: serverTimestamp(),
-  }).catch(async (err) => {
-    errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: docRef.path,
-      operation: 'update',
-      requestResourceData: data
-    }))
   })
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  const docRef = doc(db, 'projects', id)
-  deleteDoc(docRef).catch(async (err) => {
-    errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: docRef.path,
-      operation: 'delete'
-    }))
-  })
+  await deleteDoc(doc(db, 'projects', id))
 }
 
 export async function addWeeklyUpdate(
@@ -183,26 +133,32 @@ export async function addWeeklyUpdate(
 ): Promise<void> {
   const projectRef = doc(db, 'projects', projectId)
   const snap = await getDoc(projectRef)
-  
   if (!snap.exists()) throw new Error('Projeto não encontrado')
-  
-  const currentUpdates = snap.data().weeklyUpdates || []
+
+  const data = snap.data()
+  const currentUpdates = data.weeklyUpdates || []
+  const distributors: Distributor[] = data.distributors || []
+
+  // Snapshot do estado atual dos distribuidores
+  const distributorSnapshots: DistributorSnapshot[] = distributors.map(d => ({
+    id:                 d.id,
+    name:               d.name,
+    status:             d.status,
+    notes:              d.notes,
+    connectionType:     d.connectionType,
+    responsible:        d.responsible,
+    blockerDescription: d.blockerDescription,
+  }))
+
   const newUpdate: WeeklyUpdate = {
     ...update,
-    id: generateId()
+    id: generateId(),
+    distributorSnapshots,
   }
 
-  const dataToUpdate = {
+  await updateDoc(projectRef, {
     weeklyUpdates: [...currentUpdates, newUpdate],
-    updatedAt: serverTimestamp()
-  }
-
-  updateDoc(projectRef, dataToUpdate).catch(async (err) => {
-    errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: projectRef.path,
-      operation: 'update',
-      requestResourceData: dataToUpdate
-    }))
+    updatedAt: serverTimestamp(),
   })
 }
 
@@ -210,16 +166,127 @@ export async function updatePhases(
   projectId: string,
   phases: ProjectPhase[]
 ): Promise<void> {
-  const docRef = doc(db, 'projects', projectId)
-  const data = {
+  await updateDoc(doc(db, 'projects', projectId), {
     phases,
-    updatedAt: serverTimestamp()
+    updatedAt: serverTimestamp(),
+  })
+}
+
+// ─── Distributors ─────────────────────────────────────────────────────────────
+
+export async function addDistributor(
+  projectId: string,
+  data: Omit<Distributor, 'id'>
+): Promise<void> {
+  const projectRef = doc(db, 'projects', projectId)
+  const snap = await getDoc(projectRef)
+  if (!snap.exists()) throw new Error('Projeto não encontrado')
+
+  const current: Distributor[] = snap.data().distributors || []
+  const newDistributor: Distributor = { ...data, id: generateId() }
+
+  await updateDoc(projectRef, {
+    distributors: [...current, newDistributor],
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function updateDistributor(
+  projectId: string,
+  distributorId: string,
+  data: Partial<Omit<Distributor, 'id'>>
+): Promise<void> {
+  const projectRef = doc(db, 'projects', projectId)
+  const snap = await getDoc(projectRef)
+  if (!snap.exists()) throw new Error('Projeto não encontrado')
+
+  const current: Distributor[] = snap.data().distributors || []
+  const updated = current.map(d =>
+    d.id === distributorId ? { ...d, ...data } : d
+  )
+
+  await updateDoc(projectRef, {
+    distributors: updated,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function deleteDistributor(
+  projectId: string,
+  distributorId: string
+): Promise<void> {
+  const projectRef = doc(db, 'projects', projectId)
+  const snap = await getDoc(projectRef)
+  if (!snap.exists()) throw new Error('Projeto não encontrado')
+
+  const current: Distributor[] = snap.data().distributors || []
+  const filtered = current.filter(d => d.id !== distributorId)
+
+  await updateDoc(projectRef, {
+    distributors: filtered,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function updateDistributors(
+  projectId: string,
+  distributors: Distributor[]
+): Promise<void> {
+  await updateDoc(doc(db, 'projects', projectId), {
+    distributors,
+    updatedAt: serverTimestamp(),
+  })
+}
+// ─── Distributor History ──────────────────────────────────────────────────────
+
+
+export async function addDistributorHistory(
+  projectId: string,
+  entry: Omit<DistributorHistoryEntry, 'id' | 'timestamp'>
+): Promise<void> {
+  const projectRef = doc(db, 'projects', projectId)
+  const snap = await getDoc(projectRef)
+  if (!snap.exists()) throw new Error('Projeto não encontrado')
+
+  const current: DistributorHistoryEntry[] = snap.data().distributorHistory || []
+  const newEntry: DistributorHistoryEntry = {
+    ...entry,
+    id:        generateId(),
+    timestamp: new Date().toISOString(),
   }
-  updateDoc(docRef, data).catch(async (err) => {
-    errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: docRef.path,
-      operation: 'update',
-      requestResourceData: data
-    }))
+
+  await updateDoc(projectRef, {
+    distributorHistory: [...current, newEntry],
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function restoreDistributorsFromHistory(
+  projectId: string,
+  entryId: string
+): Promise<void> {
+  const projectRef = doc(db, 'projects', projectId)
+  const snap = await getDoc(projectRef)
+  if (!snap.exists()) throw new Error('Projeto não encontrado')
+
+  const history: DistributorHistoryEntry[] = snap.data().distributorHistory || []
+  const entry = history.find(e => e.id === entryId)
+  if (!entry) throw new Error('Entrada de histórico não encontrada')
+
+  // Salva backup do estado atual antes de restaurar
+  const current: Distributor[] = snap.data().distributors || []
+  const backupEntry: DistributorHistoryEntry = {
+    id:          generateId(),
+    type:        'manual_edit',
+    timestamp:   new Date().toISOString(),
+    source:      'pre_restore_backup',
+    distributors: current,
+    note:        `Backup automático antes de restaurar entrada ${entryId}`,
+  }
+
+  await updateDoc(projectRef, {
+    distributors:       entry.distributors,
+    distributorHistory: [...history, backupEntry],
+    updatedAt:          serverTimestamp(),
   })
 }
