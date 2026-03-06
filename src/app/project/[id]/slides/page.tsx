@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight, Sparkles, Loader2,
   Maximize2, Minimize2, CheckCircle2, Clock,
   XCircle, Circle,
-} from 'lucide-root';
+} from 'lucide-react';
 import { subscribeToProject } from '@/lib/firestore';
 import { generatePresentationContent } from '@/ai/flows/generate-presentation-content-flow';
 import type { Project } from '@/types';
@@ -226,7 +226,7 @@ function KPIsSlide({ project }: { project: Project }) {
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.08 + 0.3 }}
               className="rounded-md p-5 text-center"
-              style={{ background: s.bg, border: `1px solid ${s.border}` }}>
+              style={{ background: s.bg, border: `1px solid ${s.border}`, borderRadius: 6 }}>
               <div className="text-4xl font-black mb-1.5" style={{ color: s.color }}>{s.value}</div>
               <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{s.label}</div>
             </motion.div>
@@ -266,7 +266,7 @@ function ListSlide({ project, type }: { project: Project; type: 'highlights' | '
             <motion.div key={idx} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.1 }} className="flex items-start gap-5">
               <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5"
-                   style={{ background: `color-mix(in srgb, ${cfg.accent} 18%, transparent)`, color: cfg.accent }}>
+                   style={{ background: `color-mix(in srgb, ${cfg.accent} 18%, transparent)`, color: cfg.accent, borderRadius: 6 }}>
                 {type === 'nextsteps' ? idx + 1 : cfg.icon}
               </div>
               <p className="text-white/70 text-lg font-medium leading-relaxed">{item}</p>
@@ -311,8 +311,8 @@ function ThumbnailStrip({ slides, current, onSelect }: {
           className="flex flex-col items-center gap-1 group transition-all">
           <div className="w-[72px] h-10 rounded-md border flex items-center justify-center text-[9px] font-bold uppercase tracking-wider transition-all"
                style={idx === current
-                 ? { borderColor: 'var(--color-brand)', background: 'color-mix(in srgb, var(--color-brand) 12%, transparent)', color: 'var(--color-brand)' }
-                 : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.25)' }}>
+                 ? { borderColor: 'var(--color-brand)', background: 'color-mix(in srgb, var(--color-brand) 12%, transparent)', color: 'var(--color-brand)', borderRadius: 6 }
+                 : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.25)', borderRadius: 6 }}>
             {idx + 1}
           </div>
           <span className="text-[9px] font-medium transition-colors"
@@ -368,8 +368,9 @@ export default function SlidesPage() {
   }, [go]);
 
   const toggleFullscreen = () => {
+    if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen();
+      containerRef.current.requestFullscreen();
       setIsFullscreen(true);
     } else {
       document.exitFullscreen();
@@ -429,6 +430,7 @@ export default function SlidesPage() {
                background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
                backdropFilter: 'blur(24px)',
                boxShadow: '0 40px 100px rgba(0,0,0,0.7)',
+               borderRadius: 6
              }}>
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div key={currentSlide} custom={direction} variants={variants}
@@ -451,11 +453,13 @@ export default function SlidesPage() {
 
           {/* Arrow buttons */}
           <button onClick={() => go(-1)} disabled={currentSlide === 0}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-md bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-black/70 disabled:opacity-0 disabled:pointer-events-none transition-all">
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-md bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-black/70 disabled:opacity-0 disabled:pointer-events-none transition-all"
+            style={{ borderRadius: 6 }}>
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button onClick={() => go(1)} disabled={currentSlide === slides.length - 1}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-md bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-black/70 disabled:opacity-0 disabled:pointer-events-none transition-all">
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-md bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-black/70 disabled:opacity-0 disabled:pointer-events-none transition-all"
+            style={{ borderRadius: 6 }}>
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
