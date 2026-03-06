@@ -1,47 +1,38 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-import Sidebar from '@/components/layout/Sidebar';
-import { cn } from '@/lib/utils';
-import { getProject } from '@/lib/firestore';
-import type { Project } from '@/types';
+'use client'
+import { useState, useEffect } from 'react'
+import TopNav from '@/components/layout/TopNav'
+import { getProject } from '@/lib/firestore'
+import type { Project } from '@/types'
 
 interface ProjectLayoutClientProps {
-  children: React.ReactNode;
-  projectId: string;
+  children:  React.ReactNode
+  projectId: string
 }
 
 export default function ProjectLayoutClient({
   children,
   projectId,
 }: ProjectLayoutClientProps) {
-  const [collapsed, setCollapsed] = useState(false);
-  const [project,   setProject]   = useState<Project | null>(null);
+  const [project, setProject] = useState<Project | null>(null)
 
   useEffect(() => {
-    getProject(projectId).then(setProject).catch(() => null);
-  }, [projectId]);
+    getProject(projectId).then(setProject).catch(() => null)
+  }, [projectId])
 
-  const brandColor          = project?.clientColor          ?? '#00D4AA';
-  const brandColorSecondary = project?.clientColorSecondary ?? '#8B5CF6';
+  const brandColor          = project?.clientColor          ?? '#00D4AA'
+  const brandColorSecondary = project?.clientColorSecondary ?? '#8B5CF6'
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#050508' }}>
-      <Sidebar
+    <div className="min-h-screen" style={{ background: '#050508' }}>
+      <TopNav
         projectId={projectId}
-        collapsed={collapsed}
-        setCollapsed={setCollapsed}
         brandColor={brandColor}
         brandColorSecondary={brandColorSecondary}
       />
-      <main
-        className={cn(
-          'flex-1 flex flex-col min-h-screen transition-all duration-300 ease-in-out min-w-0',
-          collapsed ? 'ml-[72px]' : 'ml-[240px]'
-        )}
-      >
+      {/* pt-16 compensa a altura do header fixo (64px) */}
+      <main className="flex flex-col min-h-screen pt-16">
         {children}
       </main>
     </div>
-  );
+  )
 }
