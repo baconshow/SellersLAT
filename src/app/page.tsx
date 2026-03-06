@@ -161,7 +161,7 @@ export default function LandingPage() {
           transition={{ duration: 0.6, delay: 0.35 }}
           className="text-white/30 text-sm font-medium tracking-[0.15em] uppercase mb-14 text-center"
         >
-          Gestão de Projetos de Integração
+          Sua jornada de Deploy simplificada.
         </motion.p>
 
         {/* Google Sign In */}
@@ -172,7 +172,7 @@ export default function LandingPage() {
         >
           <button
             onClick={signInWithGoogle}
-            className="group relative flex items-center gap-4 px-8 py-4 rounded-2xl transition-all duration-300"
+            className="group relative flex items-center gap-4 px-8 py-4 rounded-md transition-all duration-300"
             style={{
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.1)',

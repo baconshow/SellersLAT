@@ -108,7 +108,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
             <h2 className="text-xl font-bold text-white">Atualização Semanal</h2>
             <p className="text-xs text-white/40">Semana {form.weekNumber} • {project.clientName}</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-md transition-colors">
             <X className="w-5 h-5 text-white/40" />
           </button>
         </header>
@@ -124,7 +124,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
                   type="number"
                   value={form.distributorsTotal}
                   onChange={(e) => setForm({ ...form, distributorsTotal: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
                 />
               </div>
               <div>
@@ -133,7 +133,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
                   type="number"
                   value={form.distributorsIntegrated}
                   onChange={(e) => setForm({ ...form, distributorsIntegrated: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
                 />
               </div>
               <div>
@@ -142,7 +142,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
                   type="number"
                   value={form.distributorsPending}
                   onChange={(e) => setForm({ ...form, distributorsPending: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
                 />
               </div>
               <div>
@@ -151,7 +151,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
                   type="number"
                   value={form.distributorsBlocked}
                   onChange={(e) => setForm({ ...form, distributorsBlocked: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
+                  className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
                 />
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
                 </h3>
                 <button
                   onClick={() => addArrayItem(key)}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-brand transition-all"
+                  className="p-1.5 rounded-md bg-white/5 hover:bg-white/10 text-brand transition-all"
                 >
                   <Plus className="w-3.5 h-3.5" />
                 </button>
@@ -178,7 +178,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
                       value={item}
                       onChange={(e) => handleArrayChange(key, idx, e.target.value)}
                       placeholder={`Adicionar ${key.slice(0, -1)}...`}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:border-brand outline-none transition-all"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-4 py-2 text-sm focus:border-brand outline-none transition-all"
                     />
                     <button
                       onClick={() => removeArrayItem(key, idx)}
@@ -199,7 +199,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
               <button
                 onClick={handleGenerateAISummary}
                 disabled={generatingAI}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 transition-all disabled:opacity-50"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 transition-all disabled:opacity-50"
               >
                 {generatingAI ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
                 Gerar com IA
@@ -209,7 +209,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
               value={form.aiSummary}
               onChange={(e) => setForm({ ...form, aiSummary: e.target.value })}
               placeholder="O resumo gerado pela IA aparecerá aqui..."
-              className="w-full h-32 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-brand outline-none transition-all resize-none"
+              className="w-full h-32 bg-white/5 border border-white/10 rounded-md px-4 py-3 text-sm focus:border-brand outline-none transition-all resize-none"
             />
           </section>
         </div>
@@ -218,7 +218,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-gradient-to-r from-brand to-brand-secondary text-black font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-md bg-gradient-to-r from-brand to-brand-secondary text-black font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
             Salvar Atualização

@@ -43,7 +43,7 @@
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
   --ring: 168 100% 41.6%;
-  --radius: 0.75rem;
+  --radius: 6px;
 }
 
 * { transition: background-color 0.35s cubic-bezier(0.4,0,0.2,1),

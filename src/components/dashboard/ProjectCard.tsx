@@ -23,7 +23,7 @@ export default function ProjectCard({ project, index }: Props) {
       transition={{ delay: index * 0.05 }}
     >
       <Link href={`/project/${project.id}`}>
-        <div className="glass rounded-2xl p-6 group cursor-pointer hover:border-white/20 transition-all relative overflow-hidden">
+        <div className="glass rounded-md p-6 group cursor-pointer hover:border-white/20 transition-all relative overflow-hidden">
           {/* Brand Accent */}
           <div 
             className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full -translate-y-16 translate-x-16 blur-3xl transition-opacity group-hover:opacity-20"
@@ -33,7 +33,7 @@ export default function ProjectCard({ project, index }: Props) {
           <div className="flex items-start justify-between mb-4 relative z-10">
             <div className="flex items-center gap-3">
               <div 
-                className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black"
+                className="w-12 h-12 rounded-md flex items-center justify-center text-lg font-black"
                 style={{ 
                   background: `${project.clientColor}22`, 
                   border: `1px solid ${project.clientColor}44`,
@@ -52,7 +52,7 @@ export default function ProjectCard({ project, index }: Props) {
                 </div>
               </div>
             </div>
-            <div className="w-8 h-8 rounded-lg glass flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
+            <div className="w-8 h-8 rounded-md glass flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
               <ChevronRight className="w-4 h-4 text-white/40" />
             </div>
           </div>

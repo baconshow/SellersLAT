@@ -7,7 +7,7 @@ import {
   ChevronLeft, ChevronRight, Sparkles, Loader2,
   Maximize2, Minimize2, CheckCircle2, Clock,
   XCircle, Circle,
-} from 'lucide-react';
+} from 'lucide-root';
 import { subscribeToProject } from '@/lib/firestore';
 import { generatePresentationContent } from '@/ai/flows/generate-presentation-content-flow';
 import type { Project } from '@/types';
@@ -105,7 +105,7 @@ function CoverSlide({ project }: { project: Project }) {
       {/* Bottom */}
       <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-lg bg-white/10 flex items-center justify-center">
+          <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center">
             <span className="text-white/60 text-xs font-black">S</span>
           </div>
           <span className="text-white/30 text-xs font-semibold tracking-wider">SELLERS</span>
@@ -141,7 +141,7 @@ function PhasesSlide({ project }: { project: Project }) {
             <motion.div key={phase.id}
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className="flex items-center gap-4 px-5 py-3 rounded-2xl border transition-all"
+              className="flex items-center gap-4 px-5 py-3 rounded-md border transition-all"
               style={isActive
                 ? { background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 35%, transparent)` }
                 : { background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.06)' }}>
@@ -225,7 +225,7 @@ function KPIsSlide({ project }: { project: Project }) {
             <motion.div key={s.label}
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.08 + 0.3 }}
-              className="rounded-2xl p-5 text-center"
+              className="rounded-md p-5 text-center"
               style={{ background: s.bg, border: `1px solid ${s.border}` }}>
               <div className="text-4xl font-black mb-1.5" style={{ color: s.color }}>{s.value}</div>
               <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{s.label}</div>
@@ -265,7 +265,7 @@ function ListSlide({ project, type }: { project: Project; type: 'highlights' | '
           : cfg.items.map((item, idx) => (
             <motion.div key={idx} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.1 }} className="flex items-start gap-5">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5"
+              <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5"
                    style={{ background: `color-mix(in srgb, ${cfg.accent} 18%, transparent)`, color: cfg.accent }}>
                 {type === 'nextsteps' ? idx + 1 : cfg.icon}
               </div>
@@ -309,7 +309,7 @@ function ThumbnailStrip({ slides, current, onSelect }: {
       {slides.map((slide, idx) => (
         <button key={slide.id} onClick={() => onSelect(idx)}
           className="flex flex-col items-center gap-1 group transition-all">
-          <div className="w-[72px] h-10 rounded-lg border flex items-center justify-center text-[9px] font-bold uppercase tracking-wider transition-all"
+          <div className="w-[72px] h-10 rounded-md border flex items-center justify-center text-[9px] font-bold uppercase tracking-wider transition-all"
                style={idx === current
                  ? { borderColor: 'var(--color-brand)', background: 'color-mix(in srgb, var(--color-brand) 12%, transparent)', color: 'var(--color-brand)' }
                  : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.25)' }}>
@@ -417,37 +417,13 @@ export default function SlidesPage() {
   return (
     <div ref={containerRef} className="flex-1 flex flex-col h-screen bg-[#050508]">
 
-      {/* Header */}
-      <header className="h-14 border-b border-white/5 flex items-center justify-between px-6 bg-black/40 backdrop-blur-md flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-bold text-white">{project.clientName}</span>
-          <span className="text-white/20 text-xs">·</span>
-          <span className="text-xs text-white/35">Slides de Apresentação</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-white/20 font-mono mr-1">
-            {currentSlide + 1} / {slides.length}
-          </span>
-          <button onClick={handleGenerate} disabled={generating}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-bold text-white/60 hover:bg-white/10 hover:text-white transition-all disabled:opacity-40">
-            {generating
-              ? <Loader2 className="w-3 h-3 animate-spin" />
-              : <Sparkles className="w-3 h-3" style={{ color: 'var(--color-brand)' }} />}
-            {aiContent ? 'Atualizar IA' : 'Resumo IA'}
-          </button>
-          <button onClick={toggleFullscreen}
-            className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-white/35 hover:text-white transition-all">
-            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </button>
-        </div>
-      </header>
-
+      
       {/* Slide */}
       <main className="flex-1 flex items-center justify-center p-8 relative overflow-hidden min-h-0">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[140px] opacity-[0.04] pointer-events-none"
              style={{ background: 'var(--color-brand)' }} />
 
-        <div className="relative w-full max-w-5xl overflow-hidden rounded-[28px] border border-white/[0.07]"
+        <div className="relative w-full max-w-5xl overflow-hidden rounded-md border border-white/[0.07]"
              style={{
                aspectRatio: '16/9',
                background: 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
@@ -475,11 +451,11 @@ export default function SlidesPage() {
 
           {/* Arrow buttons */}
           <button onClick={() => go(-1)} disabled={currentSlide === 0}
-            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-black/70 disabled:opacity-0 disabled:pointer-events-none transition-all">
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-md bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-black/70 disabled:opacity-0 disabled:pointer-events-none transition-all">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button onClick={() => go(1)} disabled={currentSlide === slides.length - 1}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-black/70 disabled:opacity-0 disabled:pointer-events-none transition-all">
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-md bg-black/50 backdrop-blur-sm border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-black/70 disabled:opacity-0 disabled:pointer-events-none transition-all">
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>

@@ -24,11 +24,15 @@ export default function KPICards({ project }: Props) {
   const completedPhases = project.phases.filter(p => p.status === 'completed').length
   const totalPhases     = project.phases.length
 
-  const chartData = (project.weeklyUpdates ?? []).slice(-8).map(u => ({
+  const rawChartData = (project.weeklyUpdates ?? []).slice(-8).map(u => ({
     week: `S${u.weekNumber}`,
     integrados: u.distributorsIntegrated,
     pendentes:  u.distributorsPending,
   }))
+  
+  const chartData = rawChartData.length < 2
+    ? [{ week: '', integrados: 0, pendentes: 0 }, ...rawChartData]
+    : rawChartData
 
   const kpis = [
     { icon: CheckCircle2, label: 'Integrados', value: integrated, color: '#10B981', bg: '#10B98118', delta: '' },
@@ -48,7 +52,7 @@ export default function KPICards({ project }: Props) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06 }}
-            className="rounded-2xl p-5 relative overflow-hidden"
+            className="rounded-md p-5 relative overflow-hidden"
             style={{
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.07)',
@@ -57,7 +61,7 @@ export default function KPICards({ project }: Props) {
             <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full blur-2xl opacity-15"
                  style={{ background: kpi.color }} />
             <div className="relative z-10">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3"
+              <div className="w-9 h-9 rounded-md flex items-center justify-center mb-3"
                    style={{ background: kpi.bg }}>
                 <kpi.icon style={{ width: 18, height: 18, color: kpi.color }} />
               </div>
@@ -73,7 +77,7 @@ export default function KPICards({ project }: Props) {
         {/* Area chart */}
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
-          className="lg:col-span-2 rounded-2xl p-5"
+          className="lg:col-span-2 rounded-md p-5"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           <div className="flex items-center justify-between mb-4">
@@ -110,7 +114,7 @@ export default function KPICards({ project }: Props) {
                   contentStyle={{
                     background: 'rgba(22,22,34,0.97)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12, fontSize: 12,
+                    borderRadius: 6, fontSize: 12,
                   }}
                   labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
                 />
@@ -130,7 +134,7 @@ export default function KPICards({ project }: Props) {
         {/* Project status */}
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
-          className="rounded-2xl p-5 flex flex-col gap-4"
+          className="rounded-md p-5 flex flex-col gap-4"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           <h3 className="text-sm font-semibold text-white">Status do Projeto</h3>
@@ -175,7 +179,7 @@ function ProgressBar({ label, icon: Icon, value, color }: {
 
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between py-2 px-3 rounded-xl"
+    <div className="flex items-center justify-between py-2 px-3 rounded-md"
          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
       <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>
       <span className="text-xs font-semibold text-white truncate ml-2">{value}</span>
