@@ -40,11 +40,12 @@ export async function createProject(
     clientColorRgb: string
     startDate: string
     endDate: string
+    phases?: ProjectPhase[]
     clientLogo?: string
     mascotImageUrl?: string
   }
 ): Promise<string> {
-  const phases = distributePhases(data.startDate, data.endDate)
+  const phases = data.phases?.length ? data.phases : distributePhases(data.startDate, data.endDate)
 
   const payload = {
     userId,

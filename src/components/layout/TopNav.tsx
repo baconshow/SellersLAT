@@ -11,6 +11,7 @@ import { useState } from 'react'
 import Image from 'next/image'
 import type { Project } from '@/types'
 import WeeklyUpdateDrawer from '@/components/ui/WeeklyUpdateDrawer'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 interface TopNavProps {
   projectId:   string
@@ -160,6 +161,8 @@ export default function TopNav({
                 Atualizar Semana
               </button>
             )}
+
+            <ThemeToggle />
 
             {/* Avatar */}
             {user?.photoURL ? (

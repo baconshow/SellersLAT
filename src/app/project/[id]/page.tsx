@@ -9,14 +9,15 @@ import type { Project } from '@/types'
 import KPICards from '@/components/kpi/KPICards'
 import GanttChartComponent from '@/components/gantt/GanttChart'
 import AIChat from '@/components/ai/AIChat'
+import ProjectTimeline from '@/components/timeline/ProjectTimeline'
 
 export default function ProjectDashboardPage() {
   const { id } = useParams<{ id: string }>()
   const { user, loading } = useAuth()
   const router = useRouter()
-  const [project, setProject] = useState<Project | null>(null)
+  const [project, setProject]           = useState<Project | null>(null)
   const [projectLoading, setProjectLoading] = useState(true)
-  const [showAIPanel, setShowAIPanel] = useState(false)
+  const [showAIPanel, setShowAIPanel]   = useState(false)
 
   useEffect(() => {
     if (!loading && !user) router.replace('/')
@@ -45,8 +46,11 @@ export default function ProjectDashboardPage() {
       <div className="text-center">
         <p className="text-6xl mb-4">🔍</p>
         <h2 className="text-xl font-bold text-white mb-2">Projeto não encontrado</h2>
-        <button onClick={() => router.push('/dashboard')}
-          className="text-sm" style={{ color: 'var(--color-brand)' }}>
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="text-sm"
+          style={{ color: 'var(--color-brand)' }}
+        >
           Voltar ao Dashboard
         </button>
       </div>
@@ -65,6 +69,7 @@ export default function ProjectDashboardPage() {
       <div className="flex-1 p-8">
         <div className={`transition-all duration-300 ${showAIPanel ? 'mr-[380px]' : ''}`}>
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+
             <div className="mb-8">
               <h2 className="text-lg font-semibold text-white">
                 Semana{' '}
@@ -74,10 +79,17 @@ export default function ProjectDashboardPage() {
                 Visão geral do projeto {project.clientName}
               </p>
             </div>
+
             <KPICards project={project} />
+
+            <div className="mt-8">
+              <ProjectTimeline project={project} />
+            </div>
+
             <div className="mt-8">
               <GanttChartComponent project={project} />
             </div>
+
           </motion.div>
         </div>
       </div>

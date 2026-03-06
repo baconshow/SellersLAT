@@ -3,18 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* 
-  Exemplo de como adicionar sua fonte personalizada após o upload:
-  
-  @font-face {
-    font-family: 'MinhaFontePersonalizada';
-    src: url('/fonts/nome-do-arquivo.woff2') format('woff2');
-    font-weight: normal;
-    font-style: normal;
-    font-display: swap;
-  }
-*/
-
 :root {
   --color-brand: #00D4AA;
   --color-brand-secondary: #8B5CF6;
@@ -44,6 +32,79 @@
   --input: 240 3.7% 15.9%;
   --ring: 168 100% 41.6%;
   --radius: 6px;
+}
+
+/* Tema Claro */
+.light {
+  --background: 240 10% 96%;
+  --foreground: 240 10% 3.9%;
+  --card: 240 10% 96%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 240 10% 96%;
+  --popover-foreground: 240 10% 3.9%;
+  --secondary: 240 5% 90%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 5% 90%;
+  --muted-foreground: 240 4% 46%;
+  --accent: 240 5% 90%;
+  --accent-foreground: 240 5.9% 10%;
+  --border: 240 6% 88%;
+  --input: 240 6% 88%;
+}
+
+.light body {
+  background: #F4F4F6 !important;
+  color: #0A0A10 !important;
+}
+
+/* Mapeamento de Cores para o Tema Claro via Seletores CSS */
+.light .text-white, 
+.light .text-foreground {
+  color: #0A0A10 !important;
+}
+
+/* Fundos */
+.light [style*="#050508"] { background-color: #F4F4F6 !important; }
+.light [style*="rgba(255, 255, 255, 0.03)"], .light [style*="rgba(255,255,255,0.03)"] { background-color: rgba(0,0,0,0.03) !important; }
+.light [style*="rgba(255, 255, 255, 0.04)"], .light [style*="rgba(255,255,255,0.04)"] { background-color: rgba(0,0,0,0.04) !important; }
+.light [style*="rgba(255, 255, 255, 0.05)"], .light [style*="rgba(255,255,255,0.05)"] { background-color: rgba(0,0,0,0.05) !important; }
+.light [style*="rgba(255, 255, 255, 0.06)"], .light [style*="rgba(255,255,255,0.06)"] { background-color: rgba(0,0,0,0.06) !important; }
+.light [style*="rgba(255, 255, 255, 0.08)"], .light [style*="rgba(255,255,255,0.08)"] { background-color: rgba(0,0,0,0.08) !important; }
+.light [style*="rgba(255, 255, 255, 0.1)"], .light [style*="rgba(255,255,255,0.1)"] { background-color: rgba(0,0,0,0.10) !important; }
+.light [style*="rgba(10, 10, 14, 0.96)"], .light [style*="rgba(10,10,14,0.96)"] { background-color: rgba(255,255,255,0.96) !important; }
+.light [style*="rgba(14, 14, 22, 0.98)"], .light [style*="rgba(14,14,22,0.98)"] { background-color: rgba(255,255,255,0.98) !important; }
+
+/* Textos */
+.light [style*="rgba(255, 255, 255, 0.8)"], .light [style*="rgba(255,255,255,0.8)"] { color: rgba(10,10,16,0.80) !important; }
+.light [style*="rgba(255, 255, 255, 0.55)"], .light [style*="rgba(255,255,255,0.55)"] { color: rgba(10,10,16,0.55) !important; }
+.light [style*="rgba(255, 255, 255, 0.4)"], .light [style*="rgba(255,255,255,0.4)"] { color: rgba(10,10,16,0.40) !important; }
+.light [style*="rgba(255, 255, 255, 0.35)"], .light [style*="rgba(255,255,255,0.35)"] { color: rgba(10,10,16,0.35) !important; }
+.light [style*="rgba(255, 255, 255, 0.3)"], .light [style*="rgba(255,255,255,0.3)"] { color: rgba(10,10,16,0.30) !important; }
+.light [style*="rgba(255, 255, 255, 0.25)"], .light [style*="rgba(255,255,255,0.25)"] { color: rgba(10,10,16,0.25) !important; }
+.light [style*="rgba(255, 255, 255, 0.2)"], .light [style*="rgba(255,255,255,0.2)"] { color: rgba(10,10,16,0.20) !important; }
+.light [style*="rgba(255, 255, 255, 0.15)"], .light [style*="rgba(255,255,255,0.15)"] { color: rgba(10,10,16,0.15) !important; }
+.light [style*="rgba(255, 255, 255, 0.18)"], .light [style*="rgba(255,255,255,0.18)"] { color: rgba(10,10,16,0.18) !important; }
+
+/* Bordas */
+.light [style*="rgba(255, 255, 255, 0.06)"], .light [style*="rgba(255,255,255,0.06)"] { border-color: rgba(0,0,0,0.08) !important; }
+.light [style*="rgba(255, 255, 255, 0.07)"], .light [style*="rgba(255,255,255,0.07)"] { border-color: rgba(0,0,0,0.09) !important; }
+.light [style*="rgba(255, 255, 255, 0.08)"], .light [style*="rgba(255,255,255,0.08)"] { border-color: rgba(0,0,0,0.10) !important; }
+.light [style*="rgba(255, 255, 255, 0.1)"], .light [style*="rgba(255,255,255,0.1)"] { border-color: rgba(0,0,0,0.12) !important; }
+.light [style*="rgba(255, 255, 255, 0.12)"], .light [style*="rgba(255,255,255,0.12)"] { border-color: rgba(0,0,0,0.14) !important; }
+
+/* Glassmorphism */
+.light .glass {
+  background: rgba(255,255,255,0.82) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+}
+
+.light .glass-strong {
+  background: rgba(255,255,255,0.82) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
 }
 
 * { transition: background-color 0.35s cubic-bezier(0.4,0,0.2,1),

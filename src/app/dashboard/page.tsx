@@ -10,6 +10,7 @@ import type { Project } from '@/types'
 import ProjectCard from '@/components/dashboard/ProjectCard'
 import NewProjectModal from '@/components/dashboard/NewProjectModal'
 import Image from 'next/image'
+import ThemeToggle from '@/components/ui/ThemeToggle'
 
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth()
@@ -80,6 +81,7 @@ export default function DashboardPage() {
           </span>
 
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             {user?.photoURL ? (
               <Image
                 src={user.photoURL} alt={user.displayName || ''}
