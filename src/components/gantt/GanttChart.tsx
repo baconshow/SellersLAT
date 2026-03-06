@@ -174,15 +174,15 @@ export default function GanttChart({ project }: Props) {
                           if (e.key === 'Escape') setEditingPhase(null)
                         }}
                         autoFocus
-                        className="flex-1 rounded px-2 py-1 text-sm text-white outline-none min-w-0"
+                        className="flex-1 px-2 py-1 text-sm text-white outline-none min-w-0"
                         style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}
                       />
                       <button onClick={() => saveEdit(phase.id)}
-                        className="p-1 rounded text-emerald-400 hover:bg-white/10">
+                        className="p-1 rounded-md text-emerald-400 hover:bg-white/10">
                         <Check style={{ width: 12, height: 12 }} />
                       </button>
                       <button onClick={() => setEditingPhase(null)}
-                        className="p-1 rounded text-red-400 hover:bg-white/10">
+                        className="p-1 rounded-md text-red-400 hover:bg-white/10">
                         <X style={{ width: 12, height: 12 }} />
                       </button>
                     </div>
@@ -200,15 +200,15 @@ export default function GanttChart({ project }: Props) {
                       </span>
                       <button
                         onClick={() => startEdit(phase)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-white/10"
-                        style={{ color: 'rgba(255,255,255,0.3)', borderRadius: 6 }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-white/10"
+                        style={{ color: 'rgba(255,255,255,0.3)' }}
                       >
                         <Edit2 style={{ width: 11, height: 11 }} />
                       </button>
                       <button
                         onClick={() => deletePhase(phase.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-red-500/20"
-                        style={{ color: 'rgba(255,255,255,0.2)', borderRadius: 6 }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-red-500/20"
+                        style={{ color: 'rgba(255,255,255,0.2)' }}
                         onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
                         onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}
                       >
@@ -331,8 +331,8 @@ export default function GanttChart({ project }: Props) {
                             const c = STATUS_CONFIG[s]
                             return (
                               <button key={s} onClick={() => changeStatus(phase.id, s)} title={c.label}
-                                className="p-1.5 rounded transition-all hover:scale-110"
-                                style={{ background: phase.status === s ? `${c.color}33` : 'rgba(255,255,255,0.04)', borderRadius: 6 }}>
+                                className="p-1.5 rounded-md transition-all hover:scale-110"
+                                style={{ background: phase.status === s ? `${c.color}33` : 'rgba(255,255,255,0.04)' }}>
                                 <c.icon style={{ width: 12, height: 12, color: c.color }} />
                               </button>
                             )

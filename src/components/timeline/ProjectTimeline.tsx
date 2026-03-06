@@ -29,7 +29,7 @@ export default function ProjectTimeline({ project }: Props) {
   }, [project.weeklyUpdates])
 
   if (!chartData.length) return (
-    <div className="rounded-sm px-6 py-8 flex items-center justify-center mb-4"
+    <div className="rounded-md px-6 py-8 flex items-center justify-center mb-4"
          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
       <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>
         Adicione atualizações semanais para visualizar o gráfico de progresso.
@@ -38,7 +38,7 @@ export default function ProjectTimeline({ project }: Props) {
   )
 
   return (
-    <div className="rounded-sm p-6 mb-4"
+    <div className="rounded-md p-6 mb-4"
          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
 
       {/* Header */}
@@ -53,7 +53,7 @@ export default function ProjectTimeline({ project }: Props) {
             <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Previsto</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-5 h-0.5 rounded" style={{ background: 'var(--color-brand,#00D4AA)' }} />
+            <div className="w-5 h-0.5 rounded-md" style={{ background: 'var(--color-brand,#00D4AA)' }} />
             <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Realizado</span>
           </div>
           <div className="flex items-center gap-1.5">

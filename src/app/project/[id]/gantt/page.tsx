@@ -31,8 +31,8 @@ export default function GanttPage() {
   if (loading) {
     return (
       <div className="p-8 space-y-4">
-        <div className="h-8 w-48 rounded shimmer" />
-        <div className="h-[400px] rounded-2xl shimmer" />
+        <div className="h-8 w-48 rounded-md shimmer" />
+        <div className="h-[400px] rounded-md shimmer" />
       </div>
     );
   }

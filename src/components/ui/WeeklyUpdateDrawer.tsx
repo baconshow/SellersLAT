@@ -1,10 +1,8 @@
 'use client';
-
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, Plus, Trash2, Sparkles, Loader2, Save } from 'lucide-react';
-import { addWeeklyUpdate } from '@/lib/firestore';
-import { generateWeeklySummary } from '@/ai/flows/generate-weekly-summary';
+import { motion } from 'framer-motion';
+import { X, Plus, Trash2, Loader2, Save, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { addWeeklyUpdate, addDistributorHistory } from '@/lib/firestore';
 import type { Project } from '@/types';
 import toast from 'react-hot-toast';
 
@@ -15,21 +13,23 @@ interface Props {
 
 export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
   const [loading, setLoading] = useState(false);
-  const [generatingAI, setGeneratingAI] = useState(false);
-  
   const nextWeek = (project.weeklyUpdates?.length || 0) + 1;
-  
+  const distributors = project.distributors ?? [];
+
+  // Números calculados automaticamente
+  const autoStats = {
+    total:      distributors.length,
+    integrated: distributors.filter(d => d.status === 'integrated').length,
+    pending:    distributors.filter(d => d.status === 'pending').length,
+    blocked:    distributors.filter(d => d.status === 'blocked').length,
+  };
+
   const [form, setForm] = useState({
     weekNumber: nextWeek,
-    date: new Date().toISOString().split('T')[0],
-    distributorsTotal: project.weeklyUpdates?.[project.weeklyUpdates.length - 1]?.distributorsTotal || 0,
-    distributorsIntegrated: project.weeklyUpdates?.[project.weeklyUpdates.length - 1]?.distributorsIntegrated || 0,
-    distributorsPending: project.weeklyUpdates?.[project.weeklyUpdates.length - 1]?.distributorsPending || 0,
-    distributorsBlocked: project.weeklyUpdates?.[project.weeklyUpdates.length - 1]?.distributorsBlocked || 0,
+    date:       new Date().toISOString().split('T')[0],
     highlights: [''],
-    blockers: [''],
-    nextSteps: [''],
-    aiSummary: '',
+    blockers:   [''],
+    nextSteps:  [''],
   });
 
   const handleArrayChange = (key: 'highlights' | 'blockers' | 'nextSteps', index: number, value: string) => {
@@ -47,36 +47,28 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
     setForm({ ...form, [key]: newArr.length ? newArr : [''] });
   };
 
-  const handleGenerateAISummary = async () => {
-    if (form.highlights.filter(h => h.trim()).length === 0) {
-      toast.error('Adicione pelo menos um destaque para gerar o resumo.');
-      return;
-    }
-    setGeneratingAI(true);
-    try {
-      const result = await generateWeeklySummary({
-        weekNumber: form.weekNumber,
-        highlights: form.highlights.filter(i => i.trim()),
-        blockers: form.blockers.filter(i => i.trim()),
-        nextSteps: form.nextSteps.filter(i => i.trim()),
-      });
-      setForm({ ...form, aiSummary: result.aiSummary });
-      toast.success('Resumo gerado pela IA!');
-    } catch (error) {
-      toast.error('Erro ao gerar resumo pela IA.');
-    } finally {
-      setGeneratingAI(false);
-    }
-  };
+  const accent = project.clientColor || '#00D4AA';
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
       await addWeeklyUpdate(project.id, {
-        ...form,
+        weekNumber:             form.weekNumber,
+        date:                   form.date,
+        distributorsTotal:      autoStats.total,
+        distributorsIntegrated: autoStats.integrated,
+        distributorsPending:    autoStats.pending,
+        distributorsBlocked:    autoStats.blocked,
         highlights: form.highlights.filter(i => i.trim()),
-        blockers: form.blockers.filter(i => i.trim()),
-        nextSteps: form.nextSteps.filter(i => i.trim()),
+        blockers:   form.blockers.filter(i => i.trim()),
+        nextSteps:  form.nextSteps.filter(i => i.trim()),
+      });
+      await addDistributorHistory(project.id, {
+        type:         'weekly_snapshot',
+        source:       'weekly_update',
+        distributors: distributors,
+        weekNumber:   form.weekNumber,
+        note:         `Snapshot automático — Semana ${form.weekNumber}`,
       });
       toast.success('Atualização semanal salva!');
       onClose();
@@ -90,138 +82,135 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-[100] flex justify-end">
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
-        initial={{ x: '100%' }}
-        animate={{ x: 0 }}
-        exit={{ x: '100%' }}
+        initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="relative w-full max-w-xl h-full bg-[#0a0a0f] border-l border-white/10 shadow-2xl flex flex-col"
+        className="relative w-full max-w-xl h-full flex flex-col"
+        style={{ background: '#0a0a0f', borderLeft: '1px solid rgba(255,255,255,0.08)' }}
       >
-        <header className="p-6 border-b border-white/5 flex items-center justify-between">
+        {/* Header */}
+        <header className="p-6 flex items-center justify-between flex-shrink-0"
+                style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
           <div>
-            <h2 className="text-xl font-bold text-white">Atualização Semanal</h2>
-            <p className="text-xs text-white/40">Semana {form.weekNumber} • {project.clientName}</p>
+            <h2 className="text-base font-bold text-white">Atualização Semanal</h2>
+            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Semana {form.weekNumber} · {project.clientName}
+            </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-md transition-colors">
-            <X className="w-5 h-5 text-white/40" />
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>
+            <X style={{ width: 15, height: 15 }} />
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          {/* Métricas de Distribuidores */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-8"
+             style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.08) transparent' }}>
+
+          {/* Stats automáticos — read only */}
           <section>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4">Distribuidores</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] uppercase text-white/40 mb-1.5 block">Total</label>
-                <input
-                  type="number"
-                  value={form.distributorsTotal}
-                  onChange={(e) => setForm({ ...form, distributorsTotal: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase text-white/40 mb-1.5 block">Integrados</label>
-                <input
-                  type="number"
-                  value={form.distributorsIntegrated}
-                  onChange={(e) => setForm({ ...form, distributorsIntegrated: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase text-white/40 mb-1.5 block">Pendentes</label>
-                <input
-                  type="number"
-                  value={form.distributorsPending}
-                  onChange={(e) => setForm({ ...form, distributorsPending: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase text-white/40 mb-1.5 block">Bloqueados</label>
-                <input
-                  type="number"
-                  value={form.distributorsBlocked}
-                  onChange={(e) => setForm({ ...form, distributorsBlocked: parseInt(e.target.value) || 0 })}
-                  className="w-full bg-white/5 border border-white/10 rounded-md px-4 py-2.5 text-sm focus:border-brand outline-none transition-all"
-                />
-              </div>
+            <p className="text-[10px] font-bold uppercase tracking-widest mb-3"
+               style={{ color: 'rgba(255,255,255,0.25)' }}>
+              Distribuidores — calculado automaticamente
+            </p>
+            <div className="grid grid-cols-4 gap-2">
+              {[
+                { label: 'Total',      value: autoStats.total,      color: '#ffffff',  Icon: null          },
+                { label: 'Integrados', value: autoStats.integrated, color: '#22c55e',  Icon: CheckCircle2  },
+                { label: 'Pendentes',  value: autoStats.pending,    color: '#f59e0b',  Icon: Clock         },
+                { label: 'Bloqueados', value: autoStats.blocked,    color: '#ef4444',  Icon: XCircle       },
+              ].map(s => (
+                <div key={s.label} className="rounded-md p-3 text-center"
+                     style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                  <p className="text-xl font-black" style={{ color: s.color }}>{s.value}</p>
+                  <p className="text-[9px] uppercase tracking-wider mt-0.5"
+                     style={{ color: 'rgba(255,255,255,0.3)' }}>{s.label}</p>
+                </div>
+              ))}
             </div>
+            {distributors.length === 0 && (
+              <p className="text-[10px] mt-2" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                Nenhum distribuidor cadastrado. Importe um CSV na página de Distribuidores.
+              </p>
+            )}
           </section>
 
-          {/* Listas Dinâmicas */}
-          {(['highlights', 'blockers', 'nextSteps'] as const).map((key) => (
+          {/* Listas dinâmicas */}
+          {([
+            { key: 'highlights', label: 'Destaques',      placeholder: 'Adicionar destaque...'      },
+            { key: 'blockers',   label: 'Bloqueios',       placeholder: 'Adicionar bloqueio...'      },
+            { key: 'nextSteps',  label: 'Próximos Passos', placeholder: 'Adicionar próximo passo...' },
+          ] as const).map(({ key, label, placeholder }) => (
             <section key={key}>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-white/30">
-                  {key === 'highlights' ? 'Destaques' : key === 'blockers' ? 'Bloqueios' : 'Próximos Passos'}
-                </h3>
-                <button
-                  onClick={() => addArrayItem(key)}
-                  className="p-1.5 rounded-md bg-white/5 hover:bg-white/10 text-brand transition-all"
-                >
-                  <Plus className="w-3.5 h-3.5" />
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest"
+                   style={{ color: 'rgba(255,255,255,0.25)' }}>{label}</p>
+                <button onClick={() => addArrayItem(key)}
+                  className="w-6 h-6 rounded-md flex items-center justify-center transition-all"
+                  style={{ background: `${accent}15`, color: accent }}
+                  onMouseEnter={e => (e.currentTarget.style.background = `${accent}25`)}
+                  onMouseLeave={e => (e.currentTarget.style.background = `${accent}15`)}>
+                  <Plus style={{ width: 12, height: 12 }} />
                 </button>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {form[key].map((item, idx) => (
                   <div key={idx} className="flex gap-2">
                     <input
                       value={item}
-                      onChange={(e) => handleArrayChange(key, idx, e.target.value)}
-                      placeholder={`Adicionar ${key.slice(0, -1)}...`}
-                      className="flex-1 bg-white/5 border border-white/10 rounded-md px-4 py-2 text-sm focus:border-brand outline-none transition-all"
+                      onChange={e => handleArrayChange(key, idx, e.target.value)}
+                      placeholder={placeholder}
+                      className="flex-1 text-sm text-white outline-none"
+                      style={{
+                        background:   'rgba(255,255,255,0.04)',
+                        border:       '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 6,
+                        padding:      '9px 14px',
+                      }}
+                      onFocus={e  => (e.target.style.border = `1px solid ${accent}50`)}
+                      onBlur={e   => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')}
                     />
-                    <button
-                      onClick={() => removeArrayItem(key, idx)}
-                      className="p-2 text-white/20 hover:text-red-400 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
+                    <button onClick={() => removeArrayItem(key, idx)}
+                      className="w-8 h-8 rounded-md flex items-center justify-center transition-colors flex-shrink-0"
+                      style={{ color: 'rgba(255,255,255,0.2)' }}
+                      onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+                      onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}>
+                      <Trash2 style={{ width: 13, height: 13 }} />
                     </button>
                   </div>
                 ))}
               </div>
             </section>
           ))}
-
-          {/* Resumo da IA */}
-          <section className="pt-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xs font-bold uppercase tracking-widest text-white/30">Resumo da IA</h3>
-              <button
-                onClick={handleGenerateAISummary}
-                disabled={generatingAI}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-brand/10 text-brand border border-brand/20 hover:bg-brand/20 transition-all disabled:opacity-50"
-              >
-                {generatingAI ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
-                Gerar com IA
-              </button>
-            </div>
-            <textarea
-              value={form.aiSummary}
-              onChange={(e) => setForm({ ...form, aiSummary: e.target.value })}
-              placeholder="O resumo gerado pela IA aparecerá aqui..."
-              className="w-full h-32 bg-white/5 border border-white/10 rounded-md px-4 py-3 text-sm focus:border-brand outline-none transition-all resize-none"
-            />
-          </section>
         </div>
 
-        <footer className="p-6 border-t border-white/5">
+        {/* Footer */}
+        <footer className="p-6 flex-shrink-0 flex gap-3"
+                style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+          <button
+            onClick={onClose}
+            className="flex-1 py-3 rounded-md text-sm font-semibold transition-all"
+            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>
+            Cancelar
+          </button>
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-md bg-gradient-to-r from-brand to-brand-secondary text-black font-bold text-sm hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            Salvar Atualização
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-md text-sm font-bold transition-all disabled:opacity-50"
+            style={{ background: accent, color: '#050508' }}>
+            {loading
+              ? <Loader2 style={{ width: 15, height: 15 }} className="animate-spin" />
+              : <Save style={{ width: 15, height: 15 }} />
+            }
+            {loading ? 'Salvando...' : 'Salvar Atualização'}
           </button>
         </footer>
       </motion.div>

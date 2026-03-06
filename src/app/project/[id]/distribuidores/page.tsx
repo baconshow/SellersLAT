@@ -6,7 +6,7 @@ import {
   Plus, Search, CheckCircle2, Clock, XCircle, Circle,
   Pencil, Trash2, X, Wifi, HardDrive, Globe, FileText, Upload, AlertTriangle,
 } from 'lucide-react'
-import { subscribeToProject, addDistributor, updateDistributor, deleteDistributor } from '@/lib/firestore'
+import { subscribeToProject, addDistributor, updateDistributor, deleteDistributor, addDistributorHistory } from '@/lib/firestore'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Project, Distributor, DistributorStatus } from '@/types'
 
@@ -127,13 +127,18 @@ function ImportModal({
     }
     reader.readAsText(file, 'utf-8')
   }
-
   const handleImport = async () => {
     setImporting(true)
     try {
       for (const d of preview) {
         await addDistributor(projectId, d)
       }
+      await addDistributorHistory(projectId, {
+        type:         'import',
+        source:       'clickup_csv',
+        distributors: preview.map(d => ({ ...d, id: Math.random().toString(36).substring(2) })),
+        note:         `Importação de ${preview.length} distribuidores via CSV`,
+      })
       setDone(true)
       setTimeout(onClose, 1200)
     } catch (e: any) {

@@ -1,10 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   AlertTriangle, ArrowLeft, Palette, History,
-  Save, Target, Trash2, RotateCcw, Upload,
+  Target, Trash2, RotateCcw, Upload,
   CheckCircle2, Clock, XCircle, Circle, ChevronDown,
 } from 'lucide-react'
 import { subscribeToProject, updateProject, deleteProject, restoreDistributorsFromHistory } from '@/lib/firestore'
@@ -35,9 +35,9 @@ const DIST_STATUS_CFG: Record<DistributorStatus, { color: string; Icon: any }> =
 }
 
 const HISTORY_TYPE_CFG: Record<string, { label: string; color: string; icon: any }> = {
-  import:           { label: 'Importação CSV',   color: '#00D4AA', icon: Upload       },
-  manual_edit:      { label: 'Edição Manual',    color: '#f59e0b', icon: History      },
-  weekly_snapshot:  { label: 'Snapshot Semanal', color: '#8B5CF6', icon: CheckCircle2 },
+  import:          { label: 'Importação CSV',   color: '#00D4AA', icon: Upload       },
+  manual_edit:     { label: 'Edição Manual',    color: '#f59e0b', icon: History      },
+  weekly_snapshot: { label: 'Snapshot Semanal', color: '#8B5CF6', icon: CheckCircle2 },
 }
 
 type Tab = 'config' | 'history'
@@ -49,7 +49,7 @@ export default function SettingsPage() {
 
   const [project,           setProject]           = useState<Project | null>(null)
   const [loading,           setLoading]           = useState(true)
-  const [saving,            setSaving]            = useState(false)
+  const [saveStatus,        setSaveStatus]        = useState<'idle' | 'saving' | 'saved'>('idle')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [activeTab,         setActiveTab]         = useState<Tab>('config')
   const [restoringId,       setRestoringId]       = useState<string | null>(null)
@@ -63,6 +63,16 @@ export default function SettingsPage() {
     description:          '',
   })
 
+  const isDirty       = useRef(false)
+  const timerRef      = useRef<any>(null)
+  const savedTimerRef = useRef<any>(null)   // ← controla o dismiss da mensagem "tudo salvo"
+
+  // Wrapper — marca dirty e atualiza form
+  const updateForm = (patch: Partial<typeof form>) => {
+    isDirty.current = true
+    setForm(prev => ({ ...prev, ...patch }))
+  }
+
   useEffect(() => {
     if (!authLoading && !user) router.replace('/')
   }, [user, authLoading, router])
@@ -72,6 +82,7 @@ export default function SettingsPage() {
     const unsub = subscribeToProject(id, p => {
       if (p) {
         setProject(p)
+        // Só seta o form sem marcar dirty
         setForm({
           clientName:           p.clientName           ?? '',
           clientColor:          p.clientColor          ?? '#00D4AA',
@@ -86,18 +97,31 @@ export default function SettingsPage() {
     return unsub
   }, [id])
 
-  const handleSave = async () => {
+  const autoSave = useCallback(async (data: typeof form) => {
     if (!id || !project) return
-    setSaving(true)
+    setSaveStatus('saving')
+    isDirty.current = false   // ← evita re-trigger quando o Firestore atualiza o form
     try {
-      await updateProject(id, form)
-      toast.success('Configurações salvas!')
+      await updateProject(id, data)
+      // Cancela qualquer dismiss anterior e inicia um novo de 10s
+      clearTimeout(savedTimerRef.current)
+      setSaveStatus('saved')
+      savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 10_000)
     } catch {
       toast.error('Erro ao salvar.')
-    } finally {
-      setSaving(false)
+      setSaveStatus('idle')
     }
-  }
+  }, [id, project])
+
+  useEffect(() => {
+    if (!isDirty.current) return
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => autoSave(form), 1500)
+    return () => clearTimeout(timerRef.current)
+  }, [form])
+
+  // Limpa o timer ao desmontar
+  useEffect(() => () => clearTimeout(savedTimerRef.current), [])
 
   const handleDelete = async () => {
     if (!id) return
@@ -141,7 +165,7 @@ export default function SettingsPage() {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      className="px-8 pb-12 pt-4 max-w-3xl"
+      className="px-8 pb-12 pt-4 max-w-3xl mx-auto w-full"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -160,28 +184,13 @@ export default function SettingsPage() {
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{project.clientName}</p>
           </div>
         </div>
-
-        {activeTab === 'config' && (
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-md text-xs font-bold transition-all hover:opacity-90 disabled:opacity-50"
-            style={{ background: accent, color: '#050508' }}
-          >
-            {saving
-              ? <div className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-              : <Save style={{ width: 13, height: 13 }} />
-            }
-            Salvar
-          </button>
-        )}
       </div>
 
       {/* Tabs */}
       <div className="flex items-center gap-1 mb-6 p-1 rounded-md"
            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', width: 'fit-content' }}>
         {([
-          { key: 'config',  label: 'Configurações', Icon: Palette  },
+          { key: 'config',  label: 'Configurações', Icon: Palette },
           { key: 'history', label: 'Histórico',      Icon: History,
             badge: history.length > 0 ? history.length : undefined },
         ] as const).map(tab => (
@@ -214,7 +223,7 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <Field label="Nome do Cliente">
                 <input type="text" value={form.clientName}
-                  onChange={e => setForm({ ...form, clientName: e.target.value })}
+                  onChange={e => updateForm({ clientName: e.target.value })}
                   style={FIELD}
                   onFocus={e => (e.target.style.border = `1px solid ${accent}60`)}
                   onBlur={e  => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')} />
@@ -224,7 +233,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3 px-3 py-2 rounded-md"
                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <input type="color" value={form.clientColor}
-                      onChange={e => setForm({ ...form, clientColor: e.target.value })}
+                      onChange={e => updateForm({ clientColor: e.target.value })}
                       className="w-7 h-7 rounded cursor-pointer bg-transparent border-none" />
                     <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>
                       {form.clientColor}
@@ -235,7 +244,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3 px-3 py-2 rounded-md"
                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
                     <input type="color" value={form.clientColorSecondary}
-                      onChange={e => setForm({ ...form, clientColorSecondary: e.target.value })}
+                      onChange={e => updateForm({ clientColorSecondary: e.target.value })}
                       className="w-7 h-7 rounded cursor-pointer bg-transparent border-none" />
                     <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>
                       {form.clientColorSecondary}
@@ -265,7 +274,7 @@ export default function SettingsPage() {
             <div className="space-y-4">
               <Field label="Objetivo Principal">
                 <input type="text" value={form.objective}
-                  onChange={e => setForm({ ...form, objective: e.target.value })}
+                  onChange={e => updateForm({ objective: e.target.value })}
                   placeholder="Ex: Integrar 100% dos distribuidores Tier 1"
                   style={FIELD}
                   onFocus={e => (e.target.style.border = `1px solid ${accent}60`)}
@@ -273,7 +282,7 @@ export default function SettingsPage() {
               </Field>
               <Field label="Descrição">
                 <textarea value={form.description}
-                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  onChange={e => updateForm({ description: e.target.value })}
                   rows={4}
                   placeholder="Descreva o escopo e metas do projeto..."
                   style={{ ...FIELD, resize: 'none' } as React.CSSProperties}
@@ -326,6 +335,23 @@ export default function SettingsPage() {
               )}
             </div>
           </div>
+
+          {/* Auto-save status — rodapé */}
+          {/* Só monta o elemento quando saved, evitando o piscar do saving→saved→idle */}
+          <AnimatePresence>
+            {saveStatus === 'saved' && (
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 6 }}
+                className="flex items-center justify-center gap-2 py-3 text-xs"
+                style={{ color: accent }}
+              >
+                <span>✓</span>
+                Tudo salvo, pode sair tranquilo
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -348,30 +374,23 @@ export default function SettingsPage() {
               const Icon     = cfg.icon
               const isExpand = expandedEntry === entry.id
               const counts   = {
-                integrated:  entry.distributors.filter(d => d.status === 'integrated').length,
-                pending:     entry.distributors.filter(d => d.status === 'pending').length,
-                blocked:     entry.distributors.filter(d => d.status === 'blocked').length,
+                integrated: entry.distributors.filter(d => d.status === 'integrated').length,
+                pending:    entry.distributors.filter(d => d.status === 'pending').length,
+                blocked:    entry.distributors.filter(d => d.status === 'blocked').length,
               }
 
               return (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
+                <motion.div key={entry.id}
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                   className="rounded-md overflow-hidden"
                   style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
                 >
-                  {/* Row principal */}
                   <div className="flex items-center gap-4 px-4 py-3">
-
-                    {/* Ícone tipo */}
                     <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
                          style={{ background: `${cfg.color}15` }}>
                       <Icon style={{ width: 14, height: 14, color: cfg.color }} />
                     </div>
-
-                    {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-xs font-semibold text-white">{cfg.label}</p>
@@ -395,23 +414,10 @@ export default function SettingsPage() {
                         <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
                           {entry.distributors.length} distribuidores
                         </span>
-                        {/* Mini badges de status */}
                         <div className="flex items-center gap-1.5">
-                          {counts.integrated > 0 && (
-                            <span className="text-[9px] font-bold" style={{ color: '#22c55e' }}>
-                              {counts.integrated}✓
-                            </span>
-                          )}
-                          {counts.pending > 0 && (
-                            <span className="text-[9px] font-bold" style={{ color: '#f59e0b' }}>
-                              {counts.pending}⏳
-                            </span>
-                          )}
-                          {counts.blocked > 0 && (
-                            <span className="text-[9px] font-bold" style={{ color: '#ef4444' }}>
-                              {counts.blocked}⚠
-                            </span>
-                          )}
+                          {counts.integrated > 0 && <span className="text-[9px] font-bold" style={{ color: '#22c55e' }}>{counts.integrated}✓</span>}
+                          {counts.pending > 0    && <span className="text-[9px] font-bold" style={{ color: '#f59e0b' }}>{counts.pending}⏳</span>}
+                          {counts.blocked > 0    && <span className="text-[9px] font-bold" style={{ color: '#ef4444' }}>{counts.blocked}⚠</span>}
                         </div>
                       </div>
                       {entry.note && (
@@ -420,41 +426,31 @@ export default function SettingsPage() {
                         </p>
                       )}
                     </div>
-
-                    {/* Ações */}
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => setExpandedEntry(isExpand ? null : entry.id)}
+                      <button onClick={() => setExpandedEntry(isExpand ? null : entry.id)}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-all"
                         style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
                         onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
-                      >
+                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>
                         <ChevronDown style={{ width: 10, height: 10, transform: isExpand ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
                         Ver
                       </button>
-                      <button
-                        onClick={() => handleRestore(entry.id)}
-                        disabled={restoringId === entry.id}
+                      <button onClick={() => handleRestore(entry.id)} disabled={restoringId === entry.id}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold transition-all disabled:opacity-50"
                         style={{ background: `${accent}15`, border: `1px solid ${accent}30`, color: accent }}
                         onMouseEnter={e => (e.currentTarget.style.background = `${accent}25`)}
-                        onMouseLeave={e => (e.currentTarget.style.background = `${accent}15`)}
-                      >
+                        onMouseLeave={e => (e.currentTarget.style.background = `${accent}15`)}>
                         <RotateCcw style={{ width: 10, height: 10 }} />
                         {restoringId === entry.id ? 'Restaurando...' : 'Restaurar'}
                       </button>
                     </div>
                   </div>
 
-                  {/* Expanded: lista de distribuidores */}
                   <AnimatePresence>
                     {isExpand && (
                       <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
                         style={{ borderTop: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}
                       >
                         <div className="px-4 py-3 space-y-1.5 max-h-64 overflow-y-auto"
@@ -486,8 +482,6 @@ export default function SettingsPage() {
     </motion.div>
   )
 }
-
-// ── Helpers ────────────────────────────────────────────────
 
 function Section({ icon, title, accent, children }: {
   icon: React.ReactNode; title: string; accent: string; children: React.ReactNode
