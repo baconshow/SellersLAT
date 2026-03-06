@@ -1,12 +1,14 @@
 import {
   collection, doc, getDoc, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, onSnapshot, serverTimestamp,
+  query, where, onSnapshot, serverTimestamp,
   type Unsubscribe, Timestamp
 } from 'firebase/firestore'
 import { db } from './firebase'
 import type { Project, ProjectPhase, WeeklyUpdate } from '@/types'
 import { DEFAULT_PHASES } from '@/types'
 import { differenceInDays, addDays } from 'date-fns'
+import { errorEmitter } from '@/firebase/error-emitter'
+import { FirestorePermissionError } from '@/firebase/errors'
 
 function generateId(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36)
@@ -64,7 +66,18 @@ export async function createProject(
     updatedAt: serverTimestamp(),
   }
 
-  const ref = await addDoc(collection(db, 'projects'), payload)
+  const colRef = collection(db, 'projects')
+  const promise = addDoc(colRef, payload)
+  
+  promise.catch(async (err) => {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: colRef.path,
+      operation: 'create',
+      requestResourceData: payload
+    }))
+  })
+
+  const ref = await promise
   return ref.id
 }
 
@@ -72,51 +85,85 @@ export function subscribeToProjects(
   userId: string,
   cb: (projects: Project[]) => void
 ): Unsubscribe {
-  // Simplified query to avoid index requirement (orderBy + where requires composite index)
-  const q = query(
-    collection(db, 'projects'),
-    where('userId', '==', userId)
+  const colRef = collection(db, 'projects')
+  const q = query(colRef, where('userId', '==', userId))
+  
+  return onSnapshot(q, 
+    snap => {
+      const projects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Project))
+      projects.sort((a, b) => {
+        const timeA = (a.createdAt as unknown as Timestamp)?.seconds || 0
+        const timeB = (b.createdAt as unknown as Timestamp)?.seconds || 0
+        return timeB - timeA
+      })
+      cb(projects)
+    },
+    async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: colRef.path,
+        operation: 'list'
+      }))
+    }
   )
-  return onSnapshot(q, snap => {
-    const projects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Project))
-    
-    // Client-side sorting by createdAt
-    projects.sort((a, b) => {
-      const timeA = (a.createdAt as unknown as Timestamp)?.seconds || 0
-      const timeB = (b.createdAt as unknown as Timestamp)?.seconds || 0
-      return timeB - timeA
-    })
-    
-    cb(projects)
-  })
 }
 
 export function subscribeToProject(
   id: string,
   cb: (project: Project | null) => void
 ): Unsubscribe {
-  return onSnapshot(doc(db, 'projects', id), snap => {
-    cb(snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null)
-  })
+  const docRef = doc(db, 'projects', id)
+  return onSnapshot(docRef, 
+    snap => {
+      cb(snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null)
+    },
+    async (err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'get'
+      }))
+    }
+  )
 }
 
 export async function getProject(id: string): Promise<Project | null> {
-  const snap = await getDoc(doc(db, 'projects', id))
-  return snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null
+  const docRef = doc(db, 'projects', id)
+  try {
+    const snap = await getDoc(docRef)
+    return snap.exists() ? ({ id: snap.id, ...snap.data() } as Project) : null
+  } catch (err) {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: docRef.path,
+      operation: 'get'
+    }))
+    throw err
+  }
 }
 
 export async function updateProject(
   id: string,
   data: Partial<Project>
 ): Promise<void> {
-  await updateDoc(doc(db, 'projects', id), {
+  const docRef = doc(db, 'projects', id)
+  updateDoc(docRef, {
     ...data,
     updatedAt: serverTimestamp(),
+  }).catch(async (err) => {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: docRef.path,
+      operation: 'update',
+      requestResourceData: data
+    }))
   })
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  await deleteDoc(doc(db, 'projects', id))
+  const docRef = doc(db, 'projects', id)
+  deleteDoc(docRef).catch(async (err) => {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: docRef.path,
+      operation: 'delete'
+    }))
+  })
 }
 
 export async function addWeeklyUpdate(
@@ -145,9 +192,17 @@ export async function addWeeklyUpdate(
     id: generateId()
   }
 
-  await updateDoc(projectRef, {
+  const dataToUpdate = {
     weeklyUpdates: [...currentUpdates, newUpdate],
     updatedAt: serverTimestamp()
+  }
+
+  updateDoc(projectRef, dataToUpdate).catch(async (err) => {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: projectRef.path,
+      operation: 'update',
+      requestResourceData: dataToUpdate
+    }))
   })
 }
 
@@ -155,8 +210,16 @@ export async function updatePhases(
   projectId: string,
   phases: ProjectPhase[]
 ): Promise<void> {
-  await updateDoc(doc(db, 'projects', projectId), {
+  const docRef = doc(db, 'projects', projectId)
+  const data = {
     phases,
     updatedAt: serverTimestamp()
+  }
+  updateDoc(docRef, data).catch(async (err) => {
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: docRef.path,
+      operation: 'update',
+      requestResourceData: data
+    }))
   })
 }

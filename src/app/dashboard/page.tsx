@@ -2,20 +2,19 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Plus, TrendingUp, Users, Activity, FolderOpen, LogOut } from 'lucide-react'
+import { Plus, TrendingUp, Users, Activity, FolderOpen } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { subscribeToProjects } from '@/lib/firestore'
 import { resetTheme } from '@/lib/theme'
 import type { Project } from '@/types'
 import ProjectCard from '@/components/dashboard/ProjectCard'
 import NewProjectModal from '@/components/dashboard/NewProjectModal'
-import Image from 'next/image'
-import ThemeToggle from '@/components/ui/ThemeToggle'
+import TopNav from '@/components/layout/TopNav'
 
 export default function DashboardPage() {
   const { user, loading, logout } = useAuth()
   const router = useRouter()
-  const [projects, setProjects]   = useState<Project[]>([])
+  const [projects,  setProjects]  = useState<Project[]>([])
   const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
@@ -50,7 +49,9 @@ export default function DashboardPage() {
     { icon: Users,      label: 'Distribuidores',     value: totalDistributors, color: '#F59E0B', suffix: ''  },
     {
       icon: TrendingUp, label: 'Taxa de Integração',
-      value: totalDistributors > 0 ? Math.round((totalIntegrated / totalDistributors) * 100) : 0,
+      value: totalDistributors > 0
+        ? Math.round((totalIntegrated / totalDistributors) * 100)
+        : 0,
       color: '#8B5CF6', suffix: '%',
     },
   ]
@@ -58,59 +59,14 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#050508]">
 
-      {/* ── Header ─────────────────────────────────────────────── */}
-      <header
-        className="fixed top-0 left-0 right-0 z-50 pointer-events-none"
-        style={{ height: 100 }}
-      >
-        <div className="absolute inset-0" style={{
-          background: `linear-gradient(to bottom,
-            rgba(5,5,8,0.97) 0%,
-            rgba(5,5,8,0.82) 45%,
-            rgba(5,5,8,0.20) 78%,
-            transparent      100%
-          )`,
-        }} />
+      <TopNav
+        isDashboard
+        onNewProject={() => setShowModal(true)}
+      />
 
-        <div
-          className="relative z-10 flex items-center justify-between px-8 pointer-events-auto"
-          style={{ height: 64 }}
-        >
-          <span className="font-semibold text-white/80 text-sm tracking-wide">
-            PROJETOS
-          </span>
-
-          <div className="flex items-center gap-3">
-            <ThemeToggle />
-            {user?.photoURL ? (
-              <Image
-                src={user.photoURL} alt={user.displayName || ''}
-                width={28} height={28} className="rounded-full"
-                style={{ boxShadow: '0 0 0 1.5px rgba(255,255,255,0.15)' }}
-              />
-            ) : (
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-white/10 text-white/60">
-                {user?.displayName?.[0] ?? 'U'}
-              </div>
-            )}
-            <button
-              onClick={logout}
-              className="flex items-center justify-center w-7 h-7 rounded-md transition-all"
-              style={{ color: 'rgba(255,255,255,0.18)' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.18)')}
-            >
-              <LogOut style={{ width: 14, height: 14 }} />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Content ────────────────────────────────────────────── */}
       <main className="pt-20 px-8 pb-12">
 
-        
-        {/* Global KPIs */}
+        {/* KPIs globais */}
         <div className="grid grid-cols-4 gap-4 mb-8">
           {kpis.map((kpi, i) => (
             <motion.div
@@ -124,9 +80,8 @@ export default function DashboardPage() {
                 border:     '1px solid rgba(255,255,255,0.06)',
               }}
             >
-              {/* Blob */}
               <div
-                className="absolute top-0 right-0 w-24 h-24 rounded-full opacity-10 -translate-y-6 translate-x-6 blur-2xl pointer-events-none"
+                className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full blur-2xl opacity-15 pointer-events-none"
                 style={{ background: kpi.color }}
               />
               <div className="relative z-10">
@@ -137,13 +92,13 @@ export default function DashboardPage() {
                   <kpi.icon style={{ color: kpi.color, width: 18, height: 18 }} />
                 </div>
                 <p className="text-2xl font-bold text-white">{kpi.value}{kpi.suffix}</p>
-                <p className="text-xs text-white/35 mt-0.5">{kpi.label}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{kpi.label}</p>
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Projects grid */}
+        {/* Grid de projetos */}
         {projects.length === 0 ? (
           <EmptyState onNew={() => setShowModal(true)} />
         ) : (
@@ -157,20 +112,21 @@ export default function DashboardPage() {
               transition={{ delay: projects.length * 0.07 }}
               onClick={() => setShowModal(true)}
               className="rounded-md flex flex-col items-center justify-center gap-3 py-12
-                         cursor-pointer hover:bg-white/[0.03] transition-all group"
+                         cursor-pointer transition-all group"
               style={{
                 background: 'rgba(255,255,255,0.02)',
                 border:     '1px solid rgba(255,255,255,0.05)',
               }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
             >
               <div
-                className="w-12 h-12 rounded-md flex items-center justify-center
-                           transition-transform group-hover:scale-110"
+                className="w-12 h-12 rounded-md flex items-center justify-center transition-transform group-hover:scale-110"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
               >
                 <Plus className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors" />
               </div>
-              <p className="text-sm text-white/25 group-hover:text-white/50 transition-colors">
+              <p className="text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.25)' }}>
                 Novo Projeto
               </p>
             </motion.div>
@@ -197,7 +153,7 @@ function EmptyState({ onNew }: { onNew: () => void }) {
         <FolderOpen className="w-9 h-9 text-white/25" />
       </div>
       <h3 className="text-xl font-bold text-white mb-2">Nenhum projeto ainda</h3>
-      <p className="text-white/35 text-sm mb-6 max-w-xs">
+      <p className="text-sm mb-6 max-w-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
         Crie seu primeiro projeto para começar a acompanhar implantações.
       </p>
       <button

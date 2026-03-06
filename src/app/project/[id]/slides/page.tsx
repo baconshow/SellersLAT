@@ -15,6 +15,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+// ─── Helper ───────────────────────────────────────────────────────────────────
+
+function toDate(val: any): Date {
+  if (!val) return new Date();
+  if (typeof val?.toDate === 'function') return val.toDate(); // Firestore Timestamp
+  return new Date(val);
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type SlideType = 'cover' | 'phases' | 'kpis' | 'highlights' | 'blockers' | 'nextsteps' | 'summary';
@@ -50,8 +58,8 @@ const STATUS = {
 function CoverSlide({ project }: { project: Project }) {
   const now = new Date();
   const activePhase = project.phases.find(p => p.status === 'in_progress');
-  const total   = differenceInDays(new Date(project.endDate),   new Date(project.startDate)) || 1;
-  const elapsed = differenceInDays(now,                          new Date(project.startDate));
+  const total   = differenceInDays(toDate(project.endDate),   toDate(project.startDate)) || 1;
+  const elapsed = differenceInDays(now,                        toDate(project.startDate));
   const pct = Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
 
   return (
@@ -90,9 +98,9 @@ function CoverSlide({ project }: { project: Project }) {
         )}
         <div className="max-w-md">
           <div className="flex justify-between text-xs text-white/30 mb-2">
-            <span>{format(new Date(project.startDate), 'MMM yyyy', { locale: ptBR })}</span>
+            <span>{format(toDate(project.startDate), 'MMM yyyy', { locale: ptBR })}</span>
             <span className="font-bold" style={{ color: 'var(--color-brand)' }}>{pct}% concluído</span>
-            <span>{format(new Date(project.endDate),   'MMM yyyy', { locale: ptBR })}</span>
+            <span>{format(toDate(project.endDate),   'MMM yyyy', { locale: ptBR })}</span>
           </div>
           <div className="h-1 bg-white/10 rounded-full overflow-hidden">
             <motion.div className="h-full rounded-full" style={{ background: 'var(--color-brand)' }}
@@ -158,7 +166,7 @@ function PhasesSlide({ project }: { project: Project }) {
                 )}
               </div>
               <span className="text-xs text-white/25 font-mono flex-shrink-0">
-                {format(new Date(phase.startDate), 'dd/MM')} – {format(new Date(phase.endDate), 'dd/MM')}
+                {format(toDate(phase.startDate), 'dd/MM')} – {format(toDate(phase.endDate), 'dd/MM')}
               </span>
               <div className="w-14 h-1 rounded-full bg-white/5 flex-shrink-0 overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{
@@ -418,7 +426,6 @@ export default function SlidesPage() {
   return (
     <div ref={containerRef} className="flex-1 flex flex-col h-screen bg-[#050508]">
 
-      
       {/* Slide */}
       <main className="flex-1 flex items-center justify-center p-8 relative overflow-hidden min-h-0">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[140px] opacity-[0.04] pointer-events-none"
