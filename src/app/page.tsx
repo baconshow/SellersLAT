@@ -161,7 +161,7 @@ export default function LandingPage() {
           transition={{ duration: 0.6, delay: 0.35 }}
           className="text-white/30 text-sm font-medium tracking-[0.15em] uppercase mb-14 text-center"
         >
-          Sua jornada de Deploy simplificada.
+          Gestão de Projetos de Integração
         </motion.p>
 
         {/* Google Sign In */}

@@ -72,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           { duration: 10000 }
         );
       } else if (error.code === 'auth/popup-closed-by-user') {
+        // Usuário fechou o popup, não é um erro crítico do sistema
         toast.error('Login cancelado pelo usuário.');
       } else {
         toast.error('Erro ao entrar com Google: ' + error.message);
