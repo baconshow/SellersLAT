@@ -125,7 +125,7 @@ export default function LandingPage() {
             style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.06), transparent)' }} />
 
           <h1
-            className="relative text-[min(12vw,9rem)] font-black leading-none text-white"
+            className="relative text-[min(10vw,6.5rem)] font-black leading-none text-white"
             style={{
               fontFamily: "'Conthrax', 'Arial Black', sans-serif",
               letterSpacing: '-0.02em',
