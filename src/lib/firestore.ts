@@ -1,10 +1,10 @@
 import {
-  collection, doc, getDoc, addDoc, updateDoc, deleteDoc,
-  query, where, orderBy, onSnapshot, serverTimestamp,
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+  query, where, orderBy, onSnapshot, serverTimestamp, limit as firestoreLimit,
   type Unsubscribe, Timestamp
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Project, ProjectPhase, WeeklyUpdate, Distributor, DistributorSnapshot, DistributorHistoryEntry } from '@/types'
+import type { Project, ProjectPhase, WeeklyUpdate, Distributor, DistributorSnapshot, DistributorHistoryEntry, DistributorComment } from '@/types'
 import { DEFAULT_PHASES } from '@/types'
 import { differenceInDays, addDays } from 'date-fns'
 
@@ -289,4 +289,347 @@ export async function restoreDistributorsFromHistory(
     distributorHistory: [...history, backupEntry],
     updatedAt:          serverTimestamp(),
   })
+}
+
+// ─── Share / Compartilhamento ────────────────────────────────────────────────
+
+export async function generateShareToken(projectId: string): Promise<string> {
+  const projectRef = doc(db, 'projects', projectId)
+  const snap = await getDoc(projectRef)
+  if (!snap.exists()) throw new Error('Projeto não encontrado')
+
+  const data = snap.data()
+  const token = crypto.randomUUID()
+
+  // Gera slug a partir do clientName se ainda não existir
+  const slug = data.slug || data.clientName
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+
+  await updateDoc(projectRef, {
+    shareToken: token,
+    shareEnabled: true,
+    slug,
+    updatedAt: serverTimestamp(),
+  })
+  return token
+}
+
+export async function toggleShare(projectId: string, enabled: boolean): Promise<void> {
+  await updateDoc(doc(db, 'projects', projectId), {
+    shareEnabled: enabled,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function updateAuthorizedEmails(projectId: string, emails: string[]): Promise<void> {
+  await updateDoc(doc(db, 'projects', projectId), {
+    authorizedEmails: emails,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function getProjectByShareToken(projectId: string, token: string): Promise<Project | null> {
+  const snap = await getDoc(doc(db, 'projects', projectId))
+  if (!snap.exists()) return null
+
+  const data = snap.data()
+  if (data.shareEnabled !== true || data.shareToken !== token) return null
+
+  return { id: snap.id, ...data } as Project
+}
+
+export async function getProjectBySlug(slug: string): Promise<Project | null> {
+  const q = query(
+    collection(db, 'projects'),
+    where('slug', '==', slug),
+    where('shareEnabled', '==', true),
+    firestoreLimit(1),
+  )
+  const snap = await getDocs(q)
+  if (snap.empty) return null
+  const d = snap.docs[0]
+  return { id: d.id, ...d.data() } as Project
+}
+
+// ─── Distributors (subcoleção) ────────────────────────────────────────────────
+
+export function subscribeToDistributorsCollection(
+  projectId: string,
+  cb: (distributors: Distributor[]) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, 'projects', projectId, 'distributors'),
+    orderBy('name', 'asc'),
+  )
+  return onSnapshot(q, snap => {
+    const distributors = snap.docs.map(d => ({ id: d.id, ...d.data() } as Distributor))
+    cb(distributors)
+  })
+}
+
+export async function addDistributorDoc(
+  projectId: string,
+  data: Omit<Distributor, 'id'>
+): Promise<string> {
+  const ref = await addDoc(collection(db, 'projects', projectId, 'distributors'), {
+    ...data,
+    createdAt: serverTimestamp(),
+  })
+  return ref.id
+}
+
+export async function updateDistributorDoc(
+  projectId: string,
+  distributorId: string,
+  data: Partial<Omit<Distributor, 'id'>>
+): Promise<void> {
+  await updateDoc(doc(db, 'projects', projectId, 'distributors', distributorId), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function deleteDistributorDoc(
+  projectId: string,
+  distributorId: string
+): Promise<void> {
+  await deleteDoc(doc(db, 'projects', projectId, 'distributors', distributorId))
+}
+
+// ─── Comments (subcoleção de distributor) ────────────────────────────────────
+
+export async function getDistributorComments(
+  projectId: string,
+  distributorId: string
+): Promise<DistributorComment[]> {
+  const q = query(
+    collection(db, 'projects', projectId, 'distributors', distributorId, 'comments'),
+    orderBy('timestamp', 'asc'),
+  )
+  const snap = await getDocs(q)
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as DistributorComment))
+}
+
+export async function addDistributorCommentDoc(
+  projectId: string,
+  distributorId: string,
+  comment: { name: string; email: string; text: string }
+): Promise<void> {
+  // Adiciona o comentário na subcoleção
+  await addDoc(
+    collection(db, 'projects', projectId, 'distributors', distributorId, 'comments'),
+    {
+      email: comment.email,
+      name: comment.name,
+      text: comment.text,
+      timestamp: new Date().toISOString(),
+    }
+  )
+
+  // Marca hasUnreadComment no doc do distribuidor
+  await updateDoc(
+    doc(db, 'projects', projectId, 'distributors', distributorId),
+    { hasUnreadComment: true }
+  )
+}
+
+export async function markCommentsAsReadCollection(projectId: string): Promise<void> {
+  const snap = await getDocs(collection(db, 'projects', projectId, 'distributors'))
+  const updates = snap.docs
+    .filter(d => d.data().hasUnreadComment === true)
+    .map(d => updateDoc(d.ref, { hasUnreadComment: false }))
+  await Promise.all(updates)
+}
+
+// ─── Comentários de Gestores (legado — array embutido) ──────────────────────
+
+export async function addDistributorComment(
+  projectId: string,
+  distributorId: string,
+  comment: { name: string; email: string; text: string }
+): Promise<void> {
+  const projectRef = doc(db, 'projects', projectId)
+  const snap = await getDoc(projectRef)
+  if (!snap.exists()) throw new Error('Projeto não encontrado')
+
+  const distributors: Distributor[] = snap.data().distributors || []
+  const updated = distributors.map(d => {
+    if (d.id !== distributorId) return d
+
+    const newComment: DistributorComment = {
+      id: crypto.randomUUID(),
+      email: comment.email,
+      name: comment.name,
+      text: comment.text,
+      timestamp: new Date().toISOString(),
+    }
+
+    return {
+      ...d,
+      comments: [...(d.comments || []), newComment],
+      hasUnreadComment: true,
+    }
+  })
+
+  await updateDoc(projectRef, {
+    distributors: updated,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function markCommentsAsRead(projectId: string): Promise<void> {
+  const projectRef = doc(db, 'projects', projectId)
+  const snap = await getDoc(projectRef)
+  if (!snap.exists()) throw new Error('Projeto não encontrado')
+
+  const distributors: Distributor[] = snap.data().distributors || []
+  const updated = distributors.map(d => ({
+    ...d,
+    hasUnreadComment: false,
+  }))
+
+  await updateDoc(projectRef, {
+    distributors: updated,
+    updatedAt: serverTimestamp(),
+  })
+}
+
+// ─── Import CSV Semanal ──────────────────────────────────────────────────────
+
+export async function importWeeklyCSV(
+  projectId: string,
+  distributors: Omit<Distributor, 'id'>[],
+  weekNumber: number
+): Promise<{
+  added: number
+  updated: number
+  integrated: number
+  pending: number
+  blocked: number
+  diff: {
+    newIntegrations: string[]
+    newBlockers: string[]
+    resolved: string[]
+  }
+}> {
+  // 1. Busca distribuidores atuais da subcoleção
+  const currentSnap = await getDocs(
+    collection(db, 'projects', projectId, 'distributors')
+  )
+  const currentDocs = currentSnap.docs.map(d => ({
+    docId: d.id,
+    ...(d.data() as Omit<Distributor, 'id'>),
+  }))
+
+  // Mapa por nome (lowercase) para lookup rápido
+  const currentByName = new Map(
+    currentDocs.map(d => [d.name.toLowerCase(), d])
+  )
+
+  // 2. Processa cada distribuidor do CSV
+  let added = 0
+  let updated = 0
+  const diff = {
+    newIntegrations: [] as string[],
+    newBlockers: [] as string[],
+    resolved: [] as string[],
+  }
+
+  const operations: Promise<void>[] = []
+
+  for (const csvDist of distributors) {
+    const key = csvDist.name.toLowerCase()
+    const existing = currentByName.get(key)
+
+    if (existing) {
+      // Calcula diff de status
+      const oldStatus = existing.status
+      const newStatus = csvDist.status
+
+      if (oldStatus !== 'integrated' && newStatus === 'integrated') {
+        diff.newIntegrations.push(csvDist.name)
+      }
+      if (oldStatus !== 'blocked' && newStatus === 'blocked') {
+        diff.newBlockers.push(csvDist.name)
+      }
+      if (oldStatus === 'blocked' && newStatus !== 'blocked') {
+        diff.resolved.push(csvDist.name)
+      }
+
+      // Update existente
+      operations.push(
+        updateDistributorDoc(projectId, existing.docId, {
+          status: csvDist.status,
+          connectionType: csvDist.connectionType,
+          responsible: csvDist.responsible,
+          notes: csvDist.notes,
+          blockerDescription: csvDist.blockerDescription,
+          solution: csvDist.solution,
+          erp: csvDist.erp,
+          cnpj: csvDist.cnpj,
+          valuePerConnection: csvDist.valuePerConnection,
+          palliative: csvDist.palliative,
+          connectionCategory: csvDist.connectionCategory,
+        })
+      )
+      updated++
+    } else {
+      // Novo distribuidor — todos os novos com status integrated contam como newIntegration
+      if (csvDist.status === 'integrated') {
+        diff.newIntegrations.push(csvDist.name)
+      }
+      if (csvDist.status === 'blocked') {
+        diff.newBlockers.push(csvDist.name)
+      }
+
+      operations.push(
+        addDistributorDoc(projectId, csvDist).then(() => {})
+      )
+      added++
+    }
+  }
+
+  await Promise.all(operations)
+
+  // 3. Recarrega subcoleção para counts finais
+  const finalSnap = await getDocs(
+    collection(db, 'projects', projectId, 'distributors')
+  )
+  const finalDists = finalSnap.docs.map(d => d.data() as Omit<Distributor, 'id'>)
+
+  const integrated = finalDists.filter(d => d.status === 'integrated').length
+  const pending = finalDists.filter(d => d.status === 'pending').length
+  const blocked = finalDists.filter(d => d.status === 'blocked').length
+  const total = finalDists.length
+
+  // 4. Salva weekly update
+  await addWeeklyUpdate(projectId, {
+    weekNumber,
+    date: new Date().toISOString(),
+    distributorsTotal: total,
+    distributorsIntegrated: integrated,
+    distributorsPending: pending,
+    distributorsBlocked: blocked,
+    highlights: diff.newIntegrations.map(n => `${n} integrado com sucesso`),
+    blockers: diff.newBlockers.map(n => `${n} entrou em bloqueio`),
+    nextSteps: [],
+    aiSummary: '',
+  })
+
+  // 5. Marca lastImportAt no projeto
+  await updateDoc(doc(db, 'projects', projectId), {
+    lastImportAt: serverTimestamp(),
+  })
+
+  return {
+    added,
+    updated,
+    integrated,
+    pending,
+    blocked,
+    diff,
+  }
 }

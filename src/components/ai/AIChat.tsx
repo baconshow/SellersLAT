@@ -88,16 +88,16 @@ export default function AIChat({ project, onClose, embedded }: Props) {
   ];
 
   return (
-    <div className={cn("flex flex-col h-full bg-[#0a0a0f]", !embedded && "rounded-md border border-white/10 shadow-2xl overflow-hidden")}>
+    <div className={cn("flex flex-col h-full bg-[#0a0a0f]", !embedded && "rounded border border-white/10 shadow-2xl overflow-hidden")}>
       <header className="px-6 py-4 border-b border-white/5 flex items-center justify-between bg-black/20">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-md bg-brand/20 flex items-center justify-center">
+          <div className="w-8 h-8 rounded bg-brand/20 flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-brand" />
           </div>
           <h3 className="text-sm font-bold text-white">Sellers AI Assistant</h3>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-1.5 hover:bg-white/5 rounded-md transition-colors">
+          <button onClick={onClose} className="p-1.5 hover:bg-white/5 rounded transition-colors">
             <X className="w-4 h-4 text-white/40" />
           </button>
         )}
@@ -106,20 +106,20 @@ export default function AIChat({ project, onClose, embedded }: Props) {
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
         {messages.map((msg, i) => (
           <div key={i} className={cn("flex gap-3", msg.role === 'user' ? "flex-row-reverse" : "")}>
-            <div className={cn("w-8 h-8 rounded-md flex items-center justify-center shrink-0 border border-white/5", msg.role === 'assistant' ? "bg-brand/10" : "bg-white/5")}>
+            <div className={cn("w-8 h-8 rounded flex items-center justify-center shrink-0 border border-white/5", msg.role === 'assistant' ? "bg-brand/10" : "bg-white/5")}>
               {msg.role === 'assistant' ? <Bot className="w-4 h-4 text-brand" /> : <User className="w-4 h-4 text-white/40" />}
             </div>
-            <div className={cn("max-w-[85%] p-4 rounded-md text-xs leading-relaxed", msg.role === 'assistant' ? "bg-white/5 text-white/80" : "bg-brand text-black font-medium")}>
+            <div className={cn("max-w-[85%] p-4 rounded text-xs leading-relaxed", msg.role === 'assistant' ? "bg-white/5 text-white/80" : "bg-brand text-black font-medium")}>
               {msg.content}
             </div>
           </div>
         ))}
         {loading && (
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-md bg-brand/10 flex items-center justify-center shrink-0 animate-pulse">
+            <div className="w-8 h-8 rounded bg-brand/10 flex items-center justify-center shrink-0 animate-pulse">
               <Bot className="w-4 h-4 text-brand" />
             </div>
-            <div className="p-4 rounded-md bg-white/5 border border-white/5">
+            <div className="p-4 rounded bg-white/5 border border-white/5">
               <div className="flex gap-1">
                 <span className="w-1 h-1 bg-brand rounded-full animate-bounce" />
                 <span className="w-1 h-1 bg-brand rounded-full animate-bounce [animation-delay:0.2s]" />
@@ -150,12 +150,12 @@ export default function AIChat({ project, onClose, embedded }: Props) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Pergunte sobre o status, riscos ou próximos passos..."
-            className="w-full bg-white/5 border border-white/10 rounded-md pl-4 pr-12 py-3 text-xs text-white focus:border-brand outline-none transition-all placeholder:text-white/20"
+            className="w-full bg-white/5 border border-white/10 rounded pl-4 pr-12 py-3 text-xs text-white focus:border-brand outline-none transition-all placeholder:text-white/20"
           />
           <button
             onClick={() => handleSend()}
             disabled={loading || !input.trim()}
-            className="absolute right-2 top-1.5 bottom-1.5 w-9 rounded-md bg-brand flex items-center justify-center text-black hover:opacity-90 transition-all disabled:opacity-20"
+            className="absolute right-2 top-1.5 bottom-1.5 w-9 rounded bg-brand flex items-center justify-center text-black hover:opacity-90 transition-all disabled:opacity-20"
           >
             <Send className="w-4 h-4" />
           </button>

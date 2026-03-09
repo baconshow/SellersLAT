@@ -174,7 +174,7 @@ function AIBox({ loading, children, th, motionIndex = 3 }:
   { loading: boolean; children: React.ReactNode; th: typeof DARK_THEME; motionIndex?: number }) {
   return (
     <motion.div variants={T(motionIndex)} initial="hidden" animate="show"
-      className="rounded-xl p-4"
+      className="rounded p-4"
       style={{ background: th.aiBox, border: `1px solid ${th.aiBorder}` }}>
       <div className="flex items-center gap-2 mb-2.5"><AIBadge /></div>
       {loading
@@ -471,7 +471,7 @@ Retorne: {"tagline":"10 palavras máx","statusSummary":"2-3 linhas","nextStepsNa
             {/* Donut */}
             <motion.div variants={T(2)} initial="hidden" animate="show"
               className="p-6 flex flex-col items-center gap-4"
-              style={{ background: th.surface, border: `1px solid ${th.border}`, borderRadius: 10 }}>
+              style={{ background: th.surface, border: `1px solid ${th.border}`, borderRadius: 5 }}>
               <div className="relative" style={{ width: 124, height: 124 }}>
                 <svg viewBox="0 0 124 124" className="-rotate-90"
                      style={{ width: 124, height: 124, position: 'absolute' }}>
@@ -606,7 +606,7 @@ Retorne: {"tagline":"10 palavras máx","statusSummary":"2-3 linhas","nextStepsNa
                 const pc   = prog >= 80 ? '#10B981' : prog >= 50 ? '#F59E0B' : '#EF4444'
                 return (
                   <div key={kpi.id} className="p-5 space-y-3"
-                       style={{ background: th.surface, border: `1px solid ${th.border}`, borderRadius: 10 }}>
+                       style={{ background: th.surface, border: `1px solid ${th.border}`, borderRadius: 5 }}>
                     <p className="text-xs uppercase tracking-wide" style={{ color: th.ghost }}>{kpi.label}</p>
                     <div className="flex items-end gap-2">
                       <span className="text-3xl font-black" style={{ color: th.text, lineHeight: 1 }}>
@@ -632,7 +632,7 @@ Retorne: {"tagline":"10 palavras máx","statusSummary":"2-3 linhas","nextStepsNa
           ) : (
             <motion.div variants={T(2)} initial="hidden" animate="show"
               className="flex flex-col items-center gap-3 py-12 mb-5 text-center"
-              style={{ background: th.surface, border: `1px dashed ${th.border}`, borderRadius: 10 }}>
+              style={{ background: th.surface, border: `1px dashed ${th.border}`, borderRadius: 5 }}>
               <BarChart3 style={{ width: 22, height: 22, color: th.ghost }} />
               <p className="text-sm" style={{ color: th.muted }}>Nenhum KPI cadastrado</p>
             </motion.div>
@@ -640,7 +640,7 @@ Retorne: {"tagline":"10 palavras máx","statusSummary":"2-3 linhas","nextStepsNa
 
           <motion.div variants={T(3)} initial="hidden" animate="show"
             className="p-4 space-y-3"
-            style={{ background: th.surface, border: `1px solid ${th.border}`, borderRadius: 10 }}>
+            style={{ background: th.surface, border: `1px solid ${th.border}`, borderRadius: 5 }}>
             <p className="text-[10px] uppercase tracking-widest mb-3" style={{ color: th.ghost }}>
               distribuição por status
             </p>
@@ -681,7 +681,7 @@ Retorne: {"tagline":"10 palavras máx","statusSummary":"2-3 linhas","nextStepsNa
           {active && (
             <motion.div variants={T(2)} initial="hidden" animate="show"
               className="flex items-center gap-4 p-4 mb-4"
-              style={{ background: isDark ? 'rgba(0,212,170,0.06)' : 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.22)', borderRadius: 10 }}>
+              style={{ background: isDark ? 'rgba(0,212,170,0.06)' : 'rgba(0,212,170,0.1)', border: '1px solid rgba(0,212,170,0.22)', borderRadius: 5 }}>
               <div className="w-10 h-10 flex items-center justify-center shrink-0"
                    style={{ background: 'var(--color-brand,#00D4AA)', borderRadius: 7 }}>
                 <Clock style={{ width: 14, height: 14, color: '#050508' }} />
@@ -836,7 +836,7 @@ Retorne: {"tagline":"10 palavras máx","statusSummary":"2-3 linhas","nextStepsNa
 
         {/* Edit mode hint overlay (top-right, subtle) */}
         {isEditing && (
-          <div className="absolute top-4 right-4 text-xs px-3 py-1.5 rounded-md font-medium pointer-events-none"
+          <div className="absolute top-4 right-4 text-xs px-3 py-1.5 rounded font-medium pointer-events-none"
                style={{ background: 'rgba(0,212,170,0.12)', color: 'var(--color-brand,#00D4AA)', border: '1px solid rgba(0,212,170,0.25)' }}>
             Modo Edição — clique nos textos
           </div>
@@ -955,7 +955,7 @@ Retorne: {"tagline":"10 palavras máx","statusSummary":"2-3 linhas","nextStepsNa
 
       {/* Saving indicator */}
       {saving && (
-        <div className="fixed bottom-20 right-6 text-xs px-3 py-1.5 rounded-md"
+        <div className="fixed bottom-20 right-6 text-xs px-3 py-1.5 rounded"
              style={{ background: 'rgba(0,212,170,0.1)', color: 'var(--color-brand,#00D4AA)', border: '1px solid rgba(0,212,170,0.2)' }}>
           Salvando…
         </div>

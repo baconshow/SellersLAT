@@ -4,11 +4,12 @@ import { usePathname } from 'next/navigation'
 import { AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, GanttChart, Users,
-  Presentation, Settings, Plus, ChevronRight,
+  Presentation, Settings, DollarSign, Plus, ChevronRight,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState } from 'react'
 import type { Project } from '@/types'
+import { markCommentsAsRead } from '@/lib/firestore'
 import WeeklyUpdateDrawer from '@/components/ui/WeeklyUpdateDrawer'
 
 const ClaudeIcon = ({ size = 18, ...props }: any) => (
@@ -34,6 +35,7 @@ const ROUTE_LABELS: Record<string, string> = {
   'slides':         'Slides',
   'settings':       'Settings',
   'distribuidores': 'Distribuidores',
+  'faturamento':    'Faturamento',
 }
 
 export default function TopNav({
@@ -68,6 +70,7 @@ export default function TopNav({
     { icon: Presentation,    label: 'Slides',           href: `/project/${projectId}/slides`,         isLAT: false },
     { icon: Users,           label: 'Distribuidores',   href: `/project/${projectId}/distribuidores`, isLAT: false },
     { icon: Settings,        label: 'Settings',         href: `/project/${projectId}/settings`,       isLAT: false },
+    { icon: DollarSign,      label: 'Faturamento',      href: `/project/${projectId}/faturamento`,    isLAT: false },
     { icon: ClaudeIcon,      label: 'LAT Intelligence', href: '',                                     isLAT: true  },
   ] : []
 
@@ -184,7 +187,7 @@ export default function TopNav({
                     <button
                       key="lat"
                       onClick={onToggleLAT}
-                      className="group relative flex items-center justify-center w-10 h-10 rounded-md transition-all"
+                      className="group relative flex items-center justify-center w-10 h-10 rounded transition-all"
                     >
                       <Icon
                         style={{
@@ -195,7 +198,7 @@ export default function TopNav({
                         }}
                       />
                       <span
-                        className="absolute top-full mt-2 px-2.5 py-1.5 rounded-md text-[10px] font-medium whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
+                        className="absolute top-full mt-2 px-2.5 py-1.5 rounded text-[10px] font-medium whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
                         style={{
                           background: 'rgba(14,14,20,0.96)',
                           border:     '1px solid rgba(255,255,255,0.07)',
@@ -209,11 +212,14 @@ export default function TopNav({
                 }
 
                 const isActive = pathname === item.href
+                const isUsers  = Icon === Users
+                const hasUnread = isUsers && project?.distributors?.some(d => d.hasUnreadComment)
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className="group relative flex items-center justify-center w-10 h-10 rounded-md transition-all"
+                    onClick={isUsers && hasUnread && projectId ? () => markCommentsAsRead(projectId) : undefined}
+                    className="group relative flex items-center justify-center w-10 h-10 rounded transition-all"
                   >
                     <Icon
                       style={{
@@ -224,8 +230,14 @@ export default function TopNav({
                         transition:  'all 150ms',
                       }}
                     />
+                    {hasUnread && (
+                      <span
+                        className="absolute rounded-full"
+                        style={{ width: 8, height: 8, background: '#EF4444', top: 6, right: 6 }}
+                      />
+                    )}
                     <span
-                      className="absolute top-full mt-2 px-2.5 py-1.5 rounded-md text-[10px] font-medium whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
+                      className="absolute top-full mt-2 px-2.5 py-1.5 rounded text-[10px] font-medium whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
                       style={{
                         background: 'rgba(14,14,20,0.96)',
                         border:     '1px solid rgba(255,255,255,0.07)',
@@ -245,7 +257,7 @@ export default function TopNav({
             {!isDashboard && project && (
               <button
                 onClick={() => setDrawerOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold tracking-wide transition-all"
+                className="flex items-center gap-2 px-4 py-2 rounded text-xs font-semibold tracking-wide transition-all"
                 style={{
                   background: `${accent}15`,
                   border:     `1px solid ${accent}30`,

@@ -1,3 +1,35 @@
+@font-face {
+  font-family: 'Conthrax';
+  src: url('/fonts/conthrax-regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Conthrax';
+  src: url('/fonts/conthrax-semi-bold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Conthrax';
+  src: url('/fonts/conthrax-bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Conthrax';
+  src: url('/fonts/conthrax-light.otf') format('opentype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
@@ -31,7 +63,7 @@
   --border: 240 3.7% 15.9%;
   --input: 240 3.7% 15.9%;
   --ring: 168 100% 41.6%;
-  --radius: 6px;
+  --radius: 5px;
 }
 
 /* Tema Claro */

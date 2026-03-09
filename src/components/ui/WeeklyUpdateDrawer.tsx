@@ -102,7 +102,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
             </p>
           </div>
           <button onClick={onClose}
-            className="w-8 h-8 rounded-md flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded flex items-center justify-center transition-colors"
             style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
             onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>
@@ -126,7 +126,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
                 { label: 'Pendentes',  value: autoStats.pending,    color: '#f59e0b',  Icon: Clock         },
                 { label: 'Bloqueados', value: autoStats.blocked,    color: '#ef4444',  Icon: XCircle       },
               ].map(s => (
-                <div key={s.label} className="rounded-md p-3 text-center"
+                <div key={s.label} className="rounded p-3 text-center"
                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                   <p className="text-xl font-black" style={{ color: s.color }}>{s.value}</p>
                   <p className="text-[9px] uppercase tracking-wider mt-0.5"
@@ -152,7 +152,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
                 <p className="text-[10px] font-bold uppercase tracking-widest"
                    style={{ color: 'rgba(255,255,255,0.25)' }}>{label}</p>
                 <button onClick={() => addArrayItem(key)}
-                  className="w-6 h-6 rounded-md flex items-center justify-center transition-all"
+                  className="w-6 h-6 rounded flex items-center justify-center transition-all"
                   style={{ background: `${accent}15`, color: accent }}
                   onMouseEnter={e => (e.currentTarget.style.background = `${accent}25`)}
                   onMouseLeave={e => (e.currentTarget.style.background = `${accent}15`)}>
@@ -170,14 +170,14 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
                       style={{
                         background:   'rgba(255,255,255,0.04)',
                         border:       '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 6,
+                        borderRadius: 5,
                         padding:      '9px 14px',
                       }}
                       onFocus={e  => (e.target.style.border = `1px solid ${accent}50`)}
                       onBlur={e   => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')}
                     />
                     <button onClick={() => removeArrayItem(key, idx)}
-                      className="w-8 h-8 rounded-md flex items-center justify-center transition-colors flex-shrink-0"
+                      className="w-8 h-8 rounded flex items-center justify-center transition-colors flex-shrink-0"
                       style={{ color: 'rgba(255,255,255,0.2)' }}
                       onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
                       onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}>
@@ -195,7 +195,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
                 style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           <button
             onClick={onClose}
-            className="flex-1 py-3 rounded-md text-sm font-semibold transition-all"
+            className="flex-1 py-3 rounded text-sm font-semibold transition-all"
             style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
             onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>
@@ -204,7 +204,7 @@ export default function WeeklyUpdateDrawer({ project, onClose }: Props) {
           <button
             onClick={handleSubmit}
             disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-md text-sm font-bold transition-all disabled:opacity-50"
+            className="flex-1 flex items-center justify-center gap-2 py-3 rounded text-sm font-bold transition-all disabled:opacity-50"
             style={{ background: accent, color: '#050508' }}>
             {loading
               ? <Loader2 style={{ width: 15, height: 15 }} className="animate-spin" />

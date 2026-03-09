@@ -3,6 +3,8 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Palette, Building2, Users, Calendar, ArrowRight } from 'lucide-react'
 import { createProject } from '@/lib/firestore'
+import DatePicker from '@/components/ui/DatePicker'
+import ColorPickerField from '@/components/ui/ColorPickerField'
 import { hexToRgb } from '@/lib/theme'
 import { useAuth } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
@@ -60,7 +62,7 @@ function generatePhases(startDate: string, distributorCount: number) {
 const FIELD_STYLE = {
   background: 'rgba(255,255,255,0.04)',
   border:     '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 6,
+  borderRadius: 5,
 }
 
 const FOCUS_STYLE = '1px solid rgba(255,255,255,0.22)'
@@ -159,7 +161,7 @@ export default function NewProjectModal({ onClose, onCreated }: Props) {
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-md flex items-center justify-center transition-all"
+              className="w-8 h-8 rounded flex items-center justify-center transition-all"
               style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}
               onMouseEnter={e => {
                 e.currentTarget.style.background = 'rgba(255,255,255,0.09)'
@@ -204,36 +206,16 @@ export default function NewProjectModal({ onClose, onCreated }: Props) {
                 Identidade Visual
               </label>
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { key: 'clientColor',          label: 'Cor Primária'   },
-                  { key: 'clientColorSecondary', label: 'Cor Secundária' },
-                ].map(f => (
-                  <div key={f.key}
-                    className="flex items-center gap-3 px-4 py-3"
-                    style={FIELD_STYLE}
-                  >
-                    <div className="relative">
-                      <div
-                        className="w-7 h-7 rounded-md"
-                        style={{ background: form[f.key as keyof typeof form] as string }}
-                      />
-                      <input
-                        type="color"
-                        value={form[f.key as keyof typeof form] as string}
-                        onChange={set(f.key as keyof typeof form)}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                      />
-                    </div>
-                    <div>
-                      <p className="text-[10px] mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                        {f.label}
-                      </p>
-                      <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                        {form[f.key as keyof typeof form]}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                <ColorPickerField
+                  value={form.clientColor}
+                  onChange={v => setForm(f => ({ ...f, clientColor: v }))}
+                  label="Cor Primária"
+                />
+                <ColorPickerField
+                  value={form.clientColorSecondary}
+                  onChange={v => setForm(f => ({ ...f, clientColorSecondary: v }))}
+                  label="Cor Secundária"
+                />
               </div>
             </div>
 
@@ -266,35 +248,29 @@ export default function NewProjectModal({ onClose, onCreated }: Props) {
                 Período
               </label>
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { key: 'startDate', label: 'Início',  min: undefined,       required: true  },
-                  { key: 'endDate',   label: 'Término', min: form.startDate,  required: false },
-                ].map(f => (
-                  <div key={f.key}>
-                    <p className="text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                      {f.label}
-                      {!f.required && (
-                        <span className="ml-1.5" style={{ color: 'rgba(255,255,255,0.15)' }}>opcional</span>
-                      )}
-                    </p>
-                    <input
-                      type="date"
-                      value={form[f.key as keyof typeof form] as string}
-                      onChange={set(f.key as keyof typeof form)}
-                      min={f.min}
-                      className="w-full px-4 py-3 text-sm text-white outline-none transition-all"
-                      style={{ ...FIELD_STYLE, colorScheme: 'dark' }}
-                      onFocus={e  => (e.target.style.border = FOCUS_STYLE)}
-                      onBlur={e   => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')}
-                    />
-                  </div>
-                ))}
+                <div>
+                  <p className="text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>Início</p>
+                  <DatePicker
+                    value={form.startDate}
+                    onChange={v => setForm(f => ({ ...f, startDate: v }))}
+                  />
+                </div>
+                <div>
+                  <p className="text-[10px] mb-2" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                    Término
+                    <span className="ml-1.5" style={{ color: 'rgba(255,255,255,0.15)' }}>opcional</span>
+                  </p>
+                  <DatePicker
+                    value={form.endDate}
+                    onChange={v => setForm(f => ({ ...f, endDate: v }))}
+                  />
+                </div>
               </div>
             </div>
 
             {/* Estimativa */}
             <div
-              className="rounded-md px-5 py-4"
+              className="rounded px-5 py-4"
               style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
             >
               <div className="flex items-center justify-between mb-3">
@@ -337,7 +313,7 @@ export default function NewProjectModal({ onClose, onCreated }: Props) {
           >
             <button
               onClick={onClose}
-              className="flex-1 py-3.5 rounded-md text-sm font-medium transition-all"
+              className="flex-1 py-3.5 rounded text-sm font-medium transition-all"
               style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.09)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
@@ -347,7 +323,7 @@ export default function NewProjectModal({ onClose, onCreated }: Props) {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="flex-1 py-3.5 rounded-md text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40"
+              className="flex-1 py-3.5 rounded text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40"
               style={{
                 background: `linear-gradient(135deg, ${form.clientColor}, ${form.clientColorSecondary})`,
                 color: '#050508',

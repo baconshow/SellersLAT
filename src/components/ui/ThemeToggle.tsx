@@ -27,7 +27,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="flex items-center justify-center w-7 h-7 rounded-md transition-all"
+      className="flex items-center justify-center w-7 h-7 rounded transition-all"
       style={{ color: 'rgba(255,255,255,0.18)' }}
       onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.55)')}
       onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.18)')}

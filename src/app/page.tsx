@@ -115,7 +115,7 @@ export default function LandingPage() {
         >
           <button
             onClick={signInWithGoogle}
-            className="group relative flex items-center gap-4 px-8 py-4 rounded-md transition-all duration-300"
+            className="group relative flex items-center gap-4 px-8 py-4 rounded transition-all duration-300"
             style={{
               background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.1)',

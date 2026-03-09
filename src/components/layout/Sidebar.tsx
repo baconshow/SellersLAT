@@ -98,7 +98,7 @@ export default function Sidebar({
               className="mx-auto"
             >
               <div
-                className="w-8 h-8 rounded-md flex items-center justify-center"
+                className="w-8 h-8 rounded flex items-center justify-center"
                 style={{
                   background: `linear-gradient(135deg, ${brandColor}, ${brandColorSecondary})`,
                 }}
@@ -115,7 +115,7 @@ export default function Sidebar({
               className="flex items-center gap-2.5 flex-1 min-w-0"
             >
               <div
-                className="w-7 h-7 rounded-md flex items-center justify-center shrink-0"
+                className="w-7 h-7 rounded flex items-center justify-center shrink-0"
                 style={{ background: `linear-gradient(135deg, ${brandColor}, ${brandColorSecondary})` }}
               >
                 <Briefcase className="w-4 h-4 text-black" />
@@ -129,7 +129,7 @@ export default function Sidebar({
 
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors"
+          className="w-7 h-7 rounded flex items-center justify-center shrink-0 transition-colors"
           style={{
             background: 'rgba(255,255,255,0.06)',
             color:      'rgba(255,255,255,0.4)',
@@ -220,7 +220,7 @@ export default function Sidebar({
                   </p>
                 </div>
                 <button onClick={logout}
-                  className="p-1.5 rounded-md shrink-0 transition-colors"
+                  className="p-1.5 rounded shrink-0 transition-colors"
                   style={{ color: 'rgba(255,255,255,0.2)' }}>
                   <LogOut className="w-3.5 h-3.5" />
                 </button>
@@ -244,7 +244,7 @@ function NavLink({
   return (
     <Link
       href={item.href}
-      className={`relative flex items-center gap-3 py-2.5 px-3 rounded-md text-sm
+      className={`relative flex items-center gap-3 py-2.5 px-3 rounded text-sm
         font-medium transition-all duration-150 group
         ${collapsed ? 'justify-center' : ''}`}
       style={{
@@ -279,7 +279,7 @@ function NavLink({
       {/* Tooltip quando collapsed */}
       {collapsed && (
         <span
-          className="absolute left-full ml-2.5 px-2.5 py-1.5 rounded-md text-xs
+          className="absolute left-full ml-2.5 px-2.5 py-1.5 rounded text-xs
                      font-medium whitespace-nowrap z-50
                      opacity-0 group-hover:opacity-100 pointer-events-none
                      transition-opacity duration-100"

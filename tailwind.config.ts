@@ -45,6 +45,7 @@ const config: Config = {
         brand: "var(--color-brand, #00D4AA)",
       },
       borderRadius: {
+        DEFAULT: "5px",
         lg: "calc(var(--radius) + 2px)",
         md: "var(--radius)",
         sm: "calc(var(--radius) - 2px)",

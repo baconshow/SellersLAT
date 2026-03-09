@@ -11,26 +11,41 @@ export interface ProjectPhase {
   description?: string
 }
 
+export interface DistributorComment {
+  id: string
+  email: string
+  name: string
+  text: string
+  timestamp: string
+}
+
 export interface Distributor {
   id: string
   name: string
   status: DistributorStatus
-  connectionType?: string        // 'FTP' | 'Ello' | 'API' | 'Manual'
-  responsible?: string           // pessoa de contato na distribuidora
-  notes?: string                 // observações gerais
-  blockerDescription?: string    // o que está travando
-  solution?: string              // como foi resolvido
-  integratedAt?: string          // data de integração
-  weekAdded?: number             // semana em que foi adicionado
+  connectionType?: string
+  responsible?: string
+  notes?: string
+  blockerDescription?: string
+  solution?: string
+  integratedAt?: string
+  weekAdded?: number
+  comments?: DistributorComment[]
+  hasUnreadComment?: boolean
+  erp?: string
+  cnpj?: string
+  valuePerConnection?: number
+  palliative?: string
+  connectionCategory?: string
 }
 
 export interface DistributorSnapshot {
-  id:             string
-  name:           string
-  status:         DistributorStatus
-  notes?:         string
+  id:              string
+  name:            string
+  status:          DistributorStatus
+  notes?:          string
   connectionType?: string
-  responsible?:   string
+  responsible?:    string
   blockerDescription?: string
 }
 
@@ -58,7 +73,7 @@ export interface WeeklyUpdate {
   blockers: string[]
   nextSteps: string[]
   aiSummary?: string
-  distributorSnapshots?: DistributorSnapshot[]  // snapshot dos distribuidores nessa semana
+  distributorSnapshots?: DistributorSnapshot[]
 }
 
 export interface ProjectKPI {
@@ -86,13 +101,18 @@ export interface Project {
   currentPhaseId?: string
   phases: ProjectPhase[]
   weeklyUpdates: WeeklyUpdate[]
-  distributors?: Distributor[]   // lista de distribuidores do projeto
+  distributors?: Distributor[]
   distributorHistory?: DistributorHistoryEntry[]
   createdAt: string
   updatedAt: string
   description?: string
   objective?:   string
   kpis?:        ProjectKPI[]
+  slug?: string
+  shareToken?: string
+  shareEnabled?: boolean
+  authorizedEmails?: string[]
+  showRevenueToClient?: boolean
 }
 
 export interface AIMessage {
@@ -104,45 +124,75 @@ export interface AIMessage {
 
 export const DEFAULT_PHASES: Omit<ProjectPhase, 'id' | 'startDate' | 'endDate'>[] = [
   {
-    name: 'Reunião de Boas-Vindas',
+    name: 'KickOff',
     order: 0,
     status: 'pending',
-    description: 'Kickoff e alinhamento inicial com o cliente',
+    description: 'Reunião de boas-vindas e alinhamento inicial com o cliente',
   },
   {
-    name: 'Coleta de Dados',
+    name: 'Levantamento de Requisitos',
     order: 1,
     status: 'pending',
     description: 'Catálogo de Produtos, Unidades de Medida e Lista de Distribuidores',
   },
   {
-    name: 'PIC — Plano de Impacto Conjunto',
+    name: 'PIC Interno',
     order: 2,
     status: 'pending',
-    description: 'Apresentação para o Time Comercial',
+    description: 'Elaboração do Plano de Impacto Conjunto',
   },
   {
-    name: 'Entrega Lista de Distribuidores',
+    name: 'PIC com Cliente',
     order: 3,
     status: 'pending',
-    description: 'Lista completa com dados de contato',
+    description: 'Apresentação do PIC ao time comercial do cliente',
   },
   {
-    name: 'Implementação',
+    name: 'Apresentação Comercial',
     order: 4,
     status: 'pending',
-    description: 'Integração de distribuidores, montagem de painéis BI e entrega de telas',
+    description: 'Apresentação ao time comercial e distribuidores',
   },
   {
-    name: 'Onboarding',
+    name: 'Apresentação aos Distribuidores',
     order: 5,
     status: 'pending',
-    description: 'Treinamento sobre BI, ferramentas e boas práticas',
+    description: 'Onboarding dos distribuidores na plataforma',
   },
   {
-    name: 'On Going',
+    name: 'Processo de Integração',
     order: 6,
     status: 'pending',
-    description: 'Consultoria estratégica sobre melhorias de vendas, mix, campanhas e oportunidades',
+    description: 'Integração técnica dos distribuidores — FTP, API, Ello ou Manual',
+  },
+  {
+    name: 'Status Report',
+    order: 7,
+    status: 'pending',
+    description: 'Acompanhamento contínuo durante todo o projeto',
+  },
+  {
+    name: 'Alinhamento Semanal',
+    order: 8,
+    status: 'pending',
+    description: 'Reuniões semanais — novas solicitações e customizações',
+  },
+  {
+    name: 'BI Showtime',
+    order: 9,
+    status: 'pending',
+    description: 'Apresentação dos painéis de BI e entrega de telas ao cliente',
+  },
+  {
+    name: 'Go-Live',
+    order: 10,
+    status: 'pending',
+    description: 'Ativação oficial da plataforma com todos os distribuidores integrados',
+  },
+  {
+    name: 'Handover',
+    order: 11,
+    status: 'pending',
+    description: 'Transição para On Going — consultoria estratégica e melhorias contínuas',
   },
 ]

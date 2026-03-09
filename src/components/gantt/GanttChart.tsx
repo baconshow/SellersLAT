@@ -1,58 +1,113 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { differenceInDays, format, eachMonthOfInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CheckCircle2, Clock, AlertCircle, Circle, Edit2, Check, X, Trash2 } from 'lucide-react'
+import { CheckCircle2, Clock, AlertCircle, Circle, X, Trash2, Check, CalendarIcon } from 'lucide-react'
 import type { Project, ProjectPhase, PhaseStatus } from '@/types'
 import { updateProject } from '@/lib/firestore'
+import { Calendar } from '@/components/ui/calendar'
 import toast from 'react-hot-toast'
 
 interface Props { project: Project }
 
 const STATUS_CONFIG: Record<PhaseStatus, { color: string; icon: React.ElementType; label: string }> = {
-  completed:   { color: '#10B981', icon: CheckCircle2, label: 'Concluída'     },
-  in_progress: { color: 'var(--color-brand, #00D4AA)', icon: Clock, label: 'Em Andamento' },
-  blocked:     { color: '#EF4444', icon: AlertCircle,  label: 'Bloqueada'     },
-  pending:     { color: '#64748B', icon: Circle,       label: 'Pendente'      },
+  completed:   { color: '#10B981',                     icon: CheckCircle2, label: 'Concluída'    },
+  in_progress: { color: 'var(--color-brand, #00D4AA)', icon: Clock,        label: 'Em Andamento' },
+  blocked:     { color: '#EF4444',                     icon: AlertCircle,  label: 'Bloqueada'    },
+  pending:     { color: 'rgba(255,255,255,0.22)',       icon: Circle,       label: 'Pendente'     },
 }
 
+const BAR_STYLE: Record<PhaseStatus, React.CSSProperties> = {
+  completed:   { background: 'linear-gradient(90deg,#10B981cc,#10B98155)', borderRadius: 5 },
+  in_progress: { background: 'linear-gradient(90deg,var(--color-brand,#00D4AA),var(--color-brand-secondary,#8B5CF6))', boxShadow: '0 0 20px var(--color-brand-glow,rgba(0,212,170,0.28))', borderRadius: 5 },
+  blocked:     { background: 'linear-gradient(90deg,#EF4444bb,#EF444455)', boxShadow: '0 0 12px rgba(239,68,68,0.28)', borderRadius: 5 },
+  pending:     { background: 'linear-gradient(90deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 5 },
+}
+
+interface EditPanel { phase: ProjectPhase; x: number; y: number }
+
 export default function GanttChart({ project }: Props) {
-  const [hoveredPhase, setHoveredPhase] = useState<string | null>(null)
-  const [editingPhase, setEditingPhase] = useState<string | null>(null)
-  const [editValue,    setEditValue]    = useState('')
+  const [editPanel,      setEditPanel]      = useState<EditPanel | null>(null)
+  const [editName,       setEditName]       = useState('')
+  const [editStart,      setEditStart]      = useState('')
+  const [editEnd,        setEditEnd]        = useState('')
+  const [saved,          setSaved]          = useState(false)
+  const [calendarTarget, setCalendarTarget] = useState<'start' | 'end' | null>(null)
+  const panelRef  = useRef<HTMLDivElement>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   if (!project?.startDate || !project?.endDate) return null
 
-  const projectStart    = new Date(project.startDate)
-  const projectEnd      = new Date(project.endDate)
-  const totalDays       = differenceInDays(projectEnd, projectStart) || 1
-  const today           = new Date()
-  const months          = eachMonthOfInterval({ start: projectStart, end: projectEnd })
-  const isActiveProject = today >= projectStart && today <= projectEnd
-  const LABEL_WIDTH     = 200
+  const projectStart = new Date(project.startDate)
+  const projectEnd   = new Date(project.endDate)
+  const totalDays    = differenceInDays(projectEnd, projectStart) || 1
+  const today        = new Date()
+  const months       = eachMonthOfInterval({ start: projectStart, end: projectEnd })
+  const isActive     = today >= projectStart && today <= projectEnd
+  const LABEL_W      = 220
 
   const pct      = (d: Date) => Math.min(100, Math.max(0, (differenceInDays(d, projectStart) / totalDays) * 100))
-  const widthPct = (s: Date, e: Date) => Math.max(1, (differenceInDays(e, s) / totalDays) * 100)
+  const widthPct = (s: Date, e: Date) => Math.max(1.5, (differenceInDays(e, s) / totalDays) * 100)
   const todayPct = pct(today)
 
-  const startEdit = (phase: ProjectPhase) => {
-    setEditingPhase(phase.id)
-    setEditValue(phase.name)
+  const phaseProgress = (phase: ProjectPhase): number => {
+    if (phase.status === 'completed') return 100
+    if (phase.status === 'pending')   return 0
+    const total   = differenceInDays(new Date(phase.endDate), new Date(phase.startDate)) || 1
+    const elapsed = differenceInDays(today, new Date(phase.startDate))
+    return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)))
   }
 
-  const saveEdit = async (phaseId: string) => {
-    if (!editValue.trim()) { setEditingPhase(null); return }
-    const updated = project.phases.map(p => p.id === phaseId ? { ...p, name: editValue.trim() } : p)
-    try { await updateProject(project.id, { phases: updated }); toast.success('Fase renomeada') }
-    catch { toast.error('Erro ao salvar') }
-    setEditingPhase(null)
+  // Fecha ao clicar fora
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setEditPanel(null)
+      }
+    }
+    if (editPanel) document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [editPanel])
+
+  // Fecha com ESC
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setEditPanel(null) }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [])
+
+  // Auto-save com debounce 800ms
+  const triggerAutoSave = (name: string, start: string, end: string, phaseId: string) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(async () => {
+      if (!name.trim()) return
+      const updated = project.phases.map(p =>
+        p.id === phaseId ? { ...p, name: name.trim(), startDate: start, endDate: end } : p
+      )
+      try {
+        await updateProject(project.id, { phases: updated })
+        setSaved(true)
+        setTimeout(() => setSaved(false), 2000)
+      } catch {
+        toast.error('Erro ao salvar')
+      }
+    }, 800)
   }
 
-  const deletePhase = async (phaseId: string) => {
-    const updated = project.phases.filter(p => p.id !== phaseId)
-    try { await updateProject(project.id, { phases: updated }); toast.success('Fase removida') }
-    catch { toast.error('Erro ao remover') }
+  const openEditPanel = (e: React.MouseEvent, phase: ProjectPhase) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setEditName(phase.name)
+    setEditStart(phase.startDate.slice(0, 10))
+    setEditEnd(phase.endDate.slice(0, 10))
+    setSaved(false)
+    setCalendarTarget(null)
+    const panelW = 280
+    const panelH = 280
+    const x = Math.min(e.clientX + 8, window.innerWidth  - panelW - 16)
+    const y = Math.min(e.clientY + 8, window.innerHeight - panelH - 16)
+    setEditPanel({ phase, x, y })
   }
 
   const changeStatus = async (phaseId: string, status: PhaseStatus) => {
@@ -62,291 +117,291 @@ export default function GanttChart({ project }: Props) {
         phases: updated,
         ...(status === 'in_progress' ? { currentPhaseId: phaseId } : {}),
       })
-    } catch { toast.error('Erro ao atualizar status') }
+      if (editPanel?.phase.id === phaseId) {
+        setEditPanel(prev => prev ? { ...prev, phase: { ...prev.phase, status } } : null)
+      }
+    } catch { toast.error('Erro ao atualizar') }
+  }
+
+  const deletePhase = async (phaseId: string) => {
+    const updated = project.phases.filter(p => p.id !== phaseId)
+    try { await updateProject(project.id, { phases: updated }); toast.success('Fase removida') }
+    catch { toast.error('Erro ao remover') }
+    setEditPanel(null)
   }
 
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="min-w-[700px]">
+    <>
+      <div className="w-full overflow-x-auto select-none">
+        <div style={{ minWidth: 700 }}>
 
-        {/* Legend */}
-        <div className="flex items-center justify-end gap-5 mb-4 px-1">
-          {Object.entries(STATUS_CONFIG).map(([s, cfg]) => (
-            <span key={s} className="flex items-center gap-1.5 text-xs"
-                  style={{ color: 'rgba(255,255,255,0.35)' }}>
-              <cfg.icon style={{ width: 11, height: 11, color: cfg.color }} />
-              {cfg.label}
-            </span>
-          ))}
-        </div>
+          {/* Legend */}
+          <div className="flex items-center justify-end gap-5 mb-5 px-1">
+            {Object.entries(STATUS_CONFIG).map(([s, cfg]) => (
+              <span key={s} className="flex items-center gap-1.5 text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <cfg.icon style={{ width: 11, height: 11, color: cfg.color }} />
+                {cfg.label}
+              </span>
+            ))}
+            <span className="text-[10px] ml-1" style={{ color: 'rgba(255,255,255,0.15)' }}>· clique direito para editar</span>
+          </div>
 
-        {/* Month labels */}
-        <div className="relative mb-4 h-5" style={{ marginLeft: `${LABEL_WIDTH}px` }}>
-          {months.map(month => (
-            <span
-              key={month.toISOString()}
-              className="absolute text-[11px] uppercase tracking-widest font-semibold"
-              style={{
-                left:  `${pct(month < projectStart ? projectStart : month)}%`,
-                color: 'rgba(255,255,255,0.2)',
-              }}
-            >
-              {format(month, 'MMM', { locale: ptBR })}
-            </span>
-          ))}
-        </div>
+          {/* Month labels */}
+          <div className="relative mb-3 h-5" style={{ marginLeft: LABEL_W }}>
+            {months.map(month => (
+              <span key={month.toISOString()} className="absolute text-[10px] uppercase tracking-[0.2em] font-bold"
+                    style={{ left: `${pct(month < projectStart ? projectStart : month)}%`, color: 'rgba(255,255,255,0.15)' }}>
+                {format(month, 'MMM', { locale: ptBR })}
+              </span>
+            ))}
+          </div>
 
-        {/* Phase rows */}
-        <div className="space-y-2 relative">
+          {/* Phase rows */}
+          <div className="space-y-1.5 relative">
 
-          {/* Today line */}
-          {isActiveProject && (
-            <div
-              className="absolute top-0 bottom-0 w-px pointer-events-none"
-              style={{
-                left:       `calc(${LABEL_WIDTH}px + ${todayPct / 100} * (100% - ${LABEL_WIDTH}px))`,
-                background: 'var(--color-brand, #00D4AA)',
-                opacity:    0.7,
-                zIndex:     10,
-              }}
-            >
-              <div
-                className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black px-2 py-0.5 rounded whitespace-nowrap"
-                style={{ background: 'var(--color-brand, #00D4AA)', color: '#050508', borderRadius: 6 }}
-              >
-                HOJE
+            {/* Grid lines */}
+            {months.map(month => (
+              <div key={month.toISOString()} className="absolute top-0 bottom-0 w-px pointer-events-none"
+                   style={{ left: `calc(${LABEL_W}px + ${pct(month < projectStart ? projectStart : month) / 100} * (100% - ${LABEL_W}px))`, background: 'rgba(255,255,255,0.04)' }} />
+            ))}
+
+            {/* Today line */}
+            {isActive && (
+              <div className="absolute top-0 bottom-0 w-px pointer-events-none"
+                   style={{ left: `calc(${LABEL_W}px + ${todayPct / 100} * (100% - ${LABEL_W}px))`, background: 'var(--color-brand,#00D4AA)', opacity: 0.55, zIndex: 10 }}>
+                <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-black px-2 py-0.5 rounded whitespace-nowrap"
+                     style={{ background: 'var(--color-brand,#00D4AA)', color: '#050508' }}>HOJE</div>
               </div>
-            </div>
-          )}
+            )}
 
-          {project.phases.map((phase, index) => {
-            const pStart   = new Date(phase.startDate)
-            const pEnd     = new Date(phase.endDate)
-            const left     = pct(pStart)
-            const width    = widthPct(pStart, pEnd)
-            const isActive = phase.status === 'in_progress'
-            const cfg      = STATUS_CONFIG[phase.status]
+            {project.phases.map((phase, index) => {
+              const pStart   = new Date(phase.startDate)
+              const pEnd     = new Date(phase.endDate)
+              const left     = pct(pStart)
+              const width    = widthPct(pStart, pEnd)
+              const isNow    = phase.status === 'in_progress'
+              const cfg      = STATUS_CONFIG[phase.status]
+              const progress = phaseProgress(phase)
 
-            const barStyle = (() => {
-              switch (phase.status) {
-                case 'completed':
-                  return { background: `linear-gradient(90deg, ${cfg.color}cc, ${cfg.color}55)`, borderRadius: 6 }
-                case 'in_progress':
-                  return {
-                    background: 'linear-gradient(90deg, var(--color-brand,#00D4AA), var(--color-brand-secondary,#8B5CF6))',
-                    boxShadow:  '0 0 18px var(--color-brand-glow, rgba(0,212,170,0.35))',
-                    borderRadius: 6
-                  }
-                case 'blocked':
-                  return {
-                    background: `linear-gradient(90deg, ${cfg.color}bb, ${cfg.color}66)`,
-                    boxShadow:  `0 0 10px ${cfg.color}44`,
-                    borderRadius: 6
-                  }
-                default:
-                  return {
-                    background: `linear-gradient(90deg, ${cfg.color}55, ${cfg.color}25)`,
-                    border:     `1px solid ${cfg.color}60`,
-                    borderRadius: 6
-                  }
-              }
-            })()
+              return (
+                <motion.div
+                  key={phase.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.035 }}
+                  className="flex items-center relative group"
+                  style={{ height: 40, cursor: 'context-menu' }}
+                  onContextMenu={e => openEditPanel(e, phase)}
+                >
+                  <div className="flex-shrink-0 flex items-center gap-2 pr-4" style={{ width: LABEL_W }}>
+                    <cfg.icon style={{ width: 13, height: 13, color: cfg.color, flexShrink: 0 }} />
+                    <span className="text-xs flex-1"
+                          style={{ color: isNow ? '#fff' : 'rgba(255,255,255,0.55)', fontWeight: isNow ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                          title={phase.name}>
+                      {phase.name}
+                    </span>
+                  </div>
 
-            return (
-              <motion.div
-                key={phase.id}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0  }}
-                transition={{ delay: index * 0.04 }}
-                className="flex items-center h-11 relative group"
-                onMouseEnter={() => setHoveredPhase(phase.id)}
-                onMouseLeave={() => setHoveredPhase(null)}
-              >
-                {/* Label */}
-                <div className="flex-shrink-0 flex items-center gap-2 pr-4" style={{ width: LABEL_WIDTH }}>
-                  {editingPhase === phase.id ? (
-                    <div className="flex items-center gap-1 flex-1">
-                      <input
-                        value={editValue}
-                        onChange={e => setEditValue(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter')  saveEdit(phase.id)
-                          if (e.key === 'Escape') setEditingPhase(null)
-                        }}
-                        autoFocus
-                        className="flex-1 px-2 py-1 text-sm text-white outline-none min-w-0"
-                        style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6 }}
-                      />
-                      <button onClick={() => saveEdit(phase.id)}
-                        className="p-1 rounded-md text-emerald-400 hover:bg-white/10">
-                        <Check style={{ width: 12, height: 12 }} />
-                      </button>
-                      <button onClick={() => setEditingPhase(null)}
-                        className="p-1 rounded-md text-red-400 hover:bg-white/10">
-                        <X style={{ width: 12, height: 12 }} />
-                      </button>
-                    </div>
-                  ) : (
-                    <>
-                      <cfg.icon style={{ width: 14, height: 14, color: cfg.color, flexShrink: 0 }} />
-                      <span
-                        className="text-sm truncate flex-1"
-                        style={{
-                          color:      isActive ? '#fff' : 'rgba(255,255,255,0.55)',
-                          fontWeight: isActive ? 600 : 400,
-                        }}
-                      >
-                        {phase.name}
-                      </span>
-                      <button
-                        onClick={() => startEdit(phase)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-white/10"
-                        style={{ color: 'rgba(255,255,255,0.3)' }}
-                      >
-                        <Edit2 style={{ width: 11, height: 11 }} />
-                      </button>
-                      <button
-                        onClick={() => deletePhase(phase.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-red-500/20"
-                        style={{ color: 'rgba(255,255,255,0.2)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.2)')}
-                      >
-                        <Trash2 style={{ width: 11, height: 11 }} />
-                      </button>
-                    </>
-                  )}
-                </div>
-
-                {/* Bar track */}
-                <div className="flex-1 relative h-full flex items-center">
-                  <motion.div
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ delay: index * 0.04 + 0.1, duration: 0.45, ease: 'easeOut' }}
-                    style={{
-                      position:     'absolute',
-                      left:         `${left}%`,
-                      width:        `${width}%`,
-                      originX:      0,
-                      height:       34,
-                      borderRadius: 6,
-                      overflow:     'hidden',
-                      cursor:       'pointer',
-                      zIndex:       5,
-                    }}
-                  >
-                    <div className="w-full h-full relative" style={barStyle}>
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.15)' }} />
-
-                      {isActive && (
-                        <div style={{
-                          position: 'absolute', inset: 0,
-                          background: 'linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.1) 50%,transparent 100%)',
-                          backgroundSize: '200% 100%',
-                          animation: 'shimmer 2s linear infinite',
-                        }} />
+                  <div className="flex-1 relative h-full flex items-center">
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ delay: index * 0.035 + 0.1, duration: 0.4, ease: 'easeOut' }}
+                      style={{ position: 'absolute', left: `${left}%`, width: `${width}%`, originX: 0, height: 32, zIndex: 5, overflow: 'hidden', ...BAR_STYLE[phase.status] }}
+                    >
+                      {isNow && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)', backgroundSize: '200% 100%', animation: 'shimmer 2s linear infinite' }} />}
+                      {(isNow || phase.status === 'completed') && (
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, width: `${progress}%`, height: 3, background: isNow ? 'rgba(255,255,255,0.35)' : 'rgba(16,185,129,0.5)', transition: 'width 0.5s ease' }} />
                       )}
-                      {isActive && (
-                        <div style={{
-                          position: 'absolute', bottom: 0, left: 0, right: 0, height: 2,
-                          background: 'linear-gradient(90deg, var(--color-brand,#00D4AA), transparent)',
-                          animation: 'pulse-glow 2.5s ease-in-out infinite',
-                        }} />
-                      )}
-
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.12)' }} />
                       {width > 8 && (
-                        <div className="absolute inset-0 flex items-center justify-between px-2.5">
-                          <span style={{ fontSize: 11, fontWeight: 500, color: isActive ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.55)' }}>
-                            {format(pStart, 'dd/MM')}
-                          </span>
-                          {width > 15 && (
-                            <span style={{ fontSize: 11, fontWeight: 500, color: isActive ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.55)' }}>
-                              {format(pEnd, 'dd/MM')}
-                            </span>
-                          )}
+                        <div className="absolute inset-0 flex items-center justify-between px-2.5" style={{ pointerEvents: 'none' }}>
+                          <span style={{ fontSize: 10, color: isNow ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.45)' }}>{format(pStart, 'dd/MM')}</span>
+                          {width > 14 && <span style={{ fontSize: 10, color: isNow ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.45)' }}>{format(pEnd, 'dd/MM')}</span>}
                         </div>
                       )}
-                    </div>
-
-                    {isActive && (
-                      <motion.div
-                        animate={{ y: [0, -4, 0] }}
-                        transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-                        style={{
-                          position: 'absolute', top: -26, left: '50%', transform: 'translateX(-50%)',
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none',
-                        }}
-                      >
-                        <div style={{
-                          fontSize: 9, fontWeight: 900, padding: '2px 8px', borderRadius: 6,
-                          background: 'var(--color-brand,#00D4AA)', color: '#050508', whiteSpace: 'nowrap',
-                        }}>
-                          📍 ESTAMOS AQUI
-                        </div>
-                        <div style={{ width: 1, height: 6, background: 'var(--color-brand,#00D4AA)', marginTop: 2 }} />
-                      </motion.div>
-                    )}
-                  </motion.div>
-
-                  {/* Tooltip */}
-                  <AnimatePresence>
-                    {hoveredPhase === phase.id && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 6 }}
-                        style={{
-                          position:     'fixed',
-                          zIndex:       9999,
-                          background:   'rgba(14,14,22,0.98)',
-                          border:       '1px solid rgba(255,255,255,0.12)',
-                          borderRadius: 6,
-                          padding:      '10px 14px',
-                          minWidth:     200,
-                          pointerEvents: 'none',
-                        }}
-                        ref={(el) => {
-                          if (!el) return
-                          const row = el.closest('.group') as HTMLElement
-                          if (!row) return
-                          const rect = row.getBoundingClientRect()
-                          el.style.top  = `${rect.top - el.offsetHeight - 12}px`
-                          el.style.left = `${rect.left + LABEL_WIDTH}px`
-                        }}
-                      >
-                        <p className="font-semibold text-white text-sm mb-1">{phase.name}</p>
-                        <p className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-                          {format(pStart, 'd MMM', { locale: ptBR })} → {format(pEnd, 'd MMM yyyy', { locale: ptBR })}
-                        </p>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <cfg.icon style={{ width: 11, height: 11, color: cfg.color }} />
-                          <span className="text-xs" style={{ color: cfg.color }}>{cfg.label}</span>
-                        </div>
-                        <div
-                          className="flex gap-1 mt-2 pt-2"
-                          style={{ borderTop: '1px solid rgba(255,255,255,0.07)', pointerEvents: 'auto' }}
-                        >
-                          {(['pending', 'in_progress', 'completed', 'blocked'] as PhaseStatus[]).map(s => {
-                            const c = STATUS_CONFIG[s]
-                            return (
-                              <button key={s} onClick={() => changeStatus(phase.id, s)} title={c.label}
-                                className="p-1.5 rounded-md transition-all hover:scale-110"
-                                style={{ background: phase.status === s ? `${c.color}33` : 'rgba(255,255,255,0.04)' }}>
-                                <c.icon style={{ width: 12, height: 12, color: c.color }} />
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
-            )
-          })}
+                      {isNow && (
+                        <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                          style={{ position: 'absolute', top: -24, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
+                          <div style={{ fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 5, background: 'var(--color-brand,#00D4AA)', color: '#050508', whiteSpace: 'nowrap' }}>📍 ESTAMOS AQUI</div>
+                          <div style={{ width: 1, height: 5, background: 'var(--color-brand,#00D4AA)', marginTop: 1 }} />
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  </div>
+                </motion.div>
+              )
+            })}
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Edit Panel */}
+      <AnimatePresence>
+        {editPanel && (
+          <motion.div
+            ref={panelRef}
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1,    y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 8 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'fixed', top: editPanel.y, left: editPanel.x, zIndex: 9999, width: 280,
+              background: 'rgba(10,10,16,0.98)',
+              border: `1px solid ${STATUS_CONFIG[editPanel.phase.status].color}35`,
+              borderRadius: 5,
+              padding: '14px 16px',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.04)',
+            }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.25)' }}>Editar Fase</span>
+                <AnimatePresence>
+                  {saved && (
+                    <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
+                      className="flex items-center gap-1 text-[10px]" style={{ color: '#10B981' }}>
+                      <Check style={{ width: 10, height: 10 }} /> salvo
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+              <button onClick={() => setEditPanel(null)} className="p-1 rounded hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.3)', borderRadius: 5 }}>
+                <X style={{ width: 13, height: 13 }} />
+              </button>
+            </div>
+
+            {/* Name */}
+            <div className="mb-3">
+              <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Nome</label>
+              <input
+                value={editName}
+                onChange={e => { setEditName(e.target.value); triggerAutoSave(e.target.value, editStart, editEnd, editPanel.phase.id) }}
+                autoFocus
+                className="w-full text-sm text-white outline-none px-3 py-2"
+                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 5 }}
+              />
+            </div>
+
+            {/* Dates */}
+            <div className="flex gap-2 mb-3">
+              <div className="flex-1">
+                <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Início</label>
+                <button
+                  onClick={() => setCalendarTarget(prev => prev === 'start' ? null : 'start')}
+                  className="w-full flex items-center gap-2 text-xs text-white px-3 py-2"
+                  style={{
+                    background: 'rgba(255,255,255,0.07)',
+                    border: `1px solid ${calendarTarget === 'start' ? 'var(--color-brand, #00D4AA)' : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: 5,
+                    transition: 'border-color 150ms',
+                  }}
+                >
+                  <CalendarIcon style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
+                  {editStart ? format(new Date(editStart + 'T00:00'), "dd MMM yyyy", { locale: ptBR }) : '—'}
+                </button>
+              </div>
+              <div className="flex-1">
+                <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Fim</label>
+                <button
+                  onClick={() => setCalendarTarget(prev => prev === 'end' ? null : 'end')}
+                  className="w-full flex items-center gap-2 text-xs text-white px-3 py-2"
+                  style={{
+                    background: 'rgba(255,255,255,0.07)',
+                    border: `1px solid ${calendarTarget === 'end' ? 'var(--color-brand, #00D4AA)' : 'rgba(255,255,255,0.1)'}`,
+                    borderRadius: 5,
+                    transition: 'border-color 150ms',
+                  }}
+                >
+                  <CalendarIcon style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
+                  {editEnd ? format(new Date(editEnd + 'T00:00'), "dd MMM yyyy", { locale: ptBR }) : '—'}
+                </button>
+              </div>
+            </div>
+
+            {/* Inline Calendar */}
+            <AnimatePresence>
+              {calendarTarget && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.15 }}
+                  style={{ overflow: 'hidden' }}
+                  className="mb-3"
+                >
+                  <Calendar
+                    mode="single"
+                    selected={calendarTarget === 'start' ? new Date(editStart + 'T00:00') : new Date(editEnd + 'T00:00')}
+                    onSelect={(date) => {
+                      if (!date) return
+                      const iso = date.toISOString().slice(0, 10)
+                      if (calendarTarget === 'start') setEditStart(iso)
+                      else setEditEnd(iso)
+                      setCalendarTarget(null)
+                      triggerAutoSave(
+                        editName,
+                        calendarTarget === 'start' ? iso : editStart,
+                        calendarTarget === 'end' ? iso : editEnd,
+                        editPanel.phase.id
+                      )
+                    }}
+                    locale={ptBR}
+                    className="rounded-none border-0 p-0"
+                    classNames={{
+                      caption_label: "text-xs font-semibold text-white",
+                      nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 text-white border border-white/10 rounded flex items-center justify-center",
+                      head_cell: "text-[10px] text-white/30 w-8 font-normal",
+                      cell: "h-8 w-8 text-center text-xs p-0",
+                      day: "h-8 w-8 p-0 font-normal text-white/60 hover:bg-white/10 rounded flex items-center justify-center",
+                      day_selected: "bg-[var(--color-brand,#00D4AA)] text-[#050508] hover:bg-[var(--color-brand,#00D4AA)] font-bold",
+                      day_today: "bg-white/10 text-white font-semibold",
+                      day_outside: "text-white/15",
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Status chips — largura igual com grid */}
+            <div className="mb-3">
+              <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Status</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {(Object.entries(STATUS_CONFIG) as [PhaseStatus, typeof STATUS_CONFIG[PhaseStatus]][]).map(([s, cfg]) => {
+                  const isSelected = editPanel.phase.status === s
+                  return (
+                    <button key={s} onClick={() => changeStatus(editPanel.phase.id, s)}
+                      style={{
+                        padding: '6px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
+                        cursor: 'pointer', transition: 'all 150ms',
+                        background: isSelected ? `${cfg.color}22` : 'rgba(255,255,255,0.04)',
+                        border: `1px solid ${isSelected ? cfg.color + '55' : 'rgba(255,255,255,0.07)'}`,
+                        color: isSelected ? cfg.color : 'rgba(255,255,255,0.3)',
+                      }}>
+                      <cfg.icon style={{ width: 11, height: 11 }} />
+                      {cfg.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Delete */}
+            <div className="pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+              <button onClick={() => deletePhase(editPanel.phase.id)}
+                className="w-full flex items-center justify-center gap-1.5 py-2 text-xs transition-all"
+                style={{ color: 'rgba(255,255,255,0.2)', borderRadius: 5 }}
+                onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)'; e.currentTarget.style.background = 'transparent' }}>
+                <Trash2 style={{ width: 12, height: 12 }} />
+                Remover fase
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

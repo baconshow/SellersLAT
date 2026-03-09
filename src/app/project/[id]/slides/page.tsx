@@ -141,7 +141,7 @@ function CoverSlide({ project }: { project: Project }) {
 
       <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center">
+          <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center">
             <span className="text-white/60 text-xs font-black">S</span>
           </div>
           <span className="text-white/30 text-xs font-semibold tracking-wider">SELLERS</span>
@@ -191,7 +191,7 @@ function TogetherSlide({ project }: { project: Project }) {
 
       <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center">
+          <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center">
             <span className="text-white/60 text-xs font-black">S</span>
           </div>
           <span className="text-white/30 text-xs font-semibold tracking-wider">SELLERS</span>
@@ -223,7 +223,7 @@ function PhasesSlide({ project }: { project: Project }) {
             <motion.div key={phase.id}
               initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.04 }}
-              className="flex items-center gap-4 px-5 py-3 rounded-md border transition-all flex-shrink-0"
+              className="flex items-center gap-4 px-5 py-3 rounded border transition-all flex-shrink-0"
               style={isActive
                 ? { background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 35%, transparent)` }
                 : { background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.06)' }}>
@@ -310,7 +310,7 @@ function KPIsSlide({
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.08 + 0.3 }}
               onClick={() => s.key && onDrilldown(s.key)}
-              className="rounded-md p-5 text-center transition-all group"
+              className="rounded p-5 text-center transition-all group"
               style={{
                 background:    s.bg,
                 border:        `1px solid ${s.border}`,
@@ -374,7 +374,7 @@ function DrilldownSlide({
         </div>
         <button
           onClick={onBack}
-          className="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-all"
+          className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium transition-all"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
           onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
           onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
@@ -396,7 +396,7 @@ function DrilldownSlide({
               <motion.div key={d.id}
                 initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
-                className="flex items-center gap-4 px-5 py-3 rounded-md"
+                className="flex items-center gap-4 px-5 py-3 rounded"
                 style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
 
                 {/* Index */}
@@ -476,7 +476,7 @@ function ListSlide({ project, type }: { project: Project; type: 'highlights' | '
               initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
               transition={{ delay: idx * 0.1 }}
               className="flex items-start gap-5">
-              <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5"
+              <div className="w-8 h-8 rounded flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5"
                    style={{ background: `color-mix(in srgb, ${cfg.accent} 18%, transparent)`, color: cfg.accent }}>
                 {type === 'nextsteps' ? idx + 1 : cfg.icon}
               </div>
@@ -512,12 +512,12 @@ function RetroSlide({ project }: { project: Project }) {
       <div className="relative z-10 flex-1 grid grid-cols-2 gap-5">
         <div className="space-y-3">
           <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4">Semana {prev.weekNumber}</p>
-          <div className="rounded-md p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="rounded p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <p className="text-xs text-white/40 font-medium">Integrações</p>
             <p className="text-2xl font-black text-white">{prev.distributorsIntegrated} <span className="text-sm font-normal text-white/30">/ {prev.distributorsTotal}</span></p>
           </div>
           {prev.blockers?.length > 0 && (
-            <div className="rounded-md p-4 space-y-2" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+            <div className="rounded p-4 space-y-2" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
               <p className="text-xs font-medium" style={{ color: '#ef444480' }}>Bloqueios ativos</p>
               <div className="space-y-1.5">
                 {prev.blockers.map((b, i) => (
@@ -532,7 +532,7 @@ function RetroSlide({ project }: { project: Project }) {
         </div>
         <div className="space-y-3">
           <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--color-brand)' }}>Semana {curr.weekNumber}</p>
-          <div className="rounded-md p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="rounded p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <p className="text-xs text-white/40 font-medium">Integrações</p>
             <div className="flex items-end gap-2">
               <p className="text-2xl font-black text-white">{curr.distributorsIntegrated} <span className="text-sm font-normal text-white/30">/ {curr.distributorsTotal}</span></p>
@@ -545,19 +545,19 @@ function RetroSlide({ project }: { project: Project }) {
             </div>
           </div>
           {resolvedBlockers.length > 0 && (
-            <div className="rounded-md p-4 space-y-2" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
+            <div className="rounded p-4 space-y-2" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
               <p className="text-xs font-medium" style={{ color: '#22c55e80' }}>✅ Bloqueios resolvidos</p>
               {resolvedBlockers.map((b, i) => <p key={i} className="text-xs text-white/50 line-through">{b}</p>)}
             </div>
           )}
           {newBlockers.length > 0 && (
-            <div className="rounded-md p-4 space-y-2" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+            <div className="rounded p-4 space-y-2" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
               <p className="text-xs font-medium" style={{ color: '#ef444480' }}>🆕 Novos bloqueios</p>
               {newBlockers.map((b, i) => <p key={i} className="text-xs text-white/50">{b}</p>)}
             </div>
           )}
           {persistingBlockers.length > 0 && (
-            <div className="rounded-md p-4 space-y-2" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
+            <div className="rounded p-4 space-y-2" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
               <p className="text-xs font-medium" style={{ color: '#f59e0b80' }}>⏳ Em acompanhamento</p>
               {persistingBlockers.map((b, i) => <p key={i} className="text-xs text-white/50">{b}</p>)}
             </div>
@@ -597,7 +597,7 @@ function ThumbnailStrip({ slides, current, onSelect }: {
     <div className="flex items-center justify-center gap-2 px-8 py-3 border-t border-white/5 flex-shrink-0 flex-wrap">
       {slides.map((slide, idx) => (
         <button key={slide.id} onClick={() => onSelect(idx)} className="flex flex-col items-center gap-1 group transition-all">
-          <div className="w-[72px] h-10 rounded-md border flex items-center justify-center text-[9px] font-bold uppercase tracking-wider transition-all"
+          <div className="w-[72px] h-10 rounded border flex items-center justify-center text-[9px] font-bold uppercase tracking-wider transition-all"
                style={idx === current
                  ? { borderColor: 'var(--color-brand)', background: 'color-mix(in srgb, var(--color-brand) 12%, transparent)', color: 'var(--color-brand)' }
                  : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.25)' }}>
@@ -703,12 +703,12 @@ export default function SlidesPage() {
              style={{ background: 'var(--color-brand)' }} />
 
         <button onClick={() => go(-1)} disabled={currentSlide === 0}
-          className="w-10 h-10 rounded-md flex-shrink-0 flex items-center justify-center transition-all disabled:opacity-0 disabled:pointer-events-none"
+          className="w-10 h-10 rounded flex-shrink-0 flex items-center justify-center transition-all disabled:opacity-0 disabled:pointer-events-none"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <div className="relative flex-1 max-w-5xl overflow-hidden rounded-md border border-white/[0.07]"
+        <div className="relative flex-1 max-w-5xl overflow-hidden rounded border border-white/[0.07]"
              style={{
                aspectRatio:    '16/9',
                background:     'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
@@ -737,7 +737,7 @@ export default function SlidesPage() {
         </div>
 
         <button onClick={() => go(1)} disabled={currentSlide === slides.length - 1}
-          className="w-10 h-10 rounded-md flex-shrink-0 flex items-center justify-center transition-all disabled:opacity-0 disabled:pointer-events-none"
+          className="w-10 h-10 rounded flex-shrink-0 flex items-center justify-center transition-all disabled:opacity-0 disabled:pointer-events-none"
           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
           <ChevronRight className="w-5 h-5" />
         </button>
@@ -747,7 +747,7 @@ export default function SlidesPage() {
         onSelect={i => goTo(i)} />
 
       <button onClick={toggleFullscreen}
-        className="fixed bottom-6 right-6 w-9 h-9 rounded-md flex items-center justify-center transition-all z-50"
+        className="fixed bottom-6 right-6 w-9 h-9 rounded flex items-center justify-center transition-all z-50"
         style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}
         title={isFullscreen ? 'Sair do fullscreen (F)' : 'Fullscreen (F)'}>
         {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}

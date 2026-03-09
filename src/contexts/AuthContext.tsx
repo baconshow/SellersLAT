@@ -58,6 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       const result = await signInWithPopup(firebase.auth, provider);
+
+      if (!result.user.email?.endsWith('@sellers.com.br')) {
+        await signOut(firebase.auth);
+        toast.error('Acesso restrito a contas @sellers.com.br', { duration: 6000 });
+        setLoading(false);
+        return;
+      }
+
       setUser(result.user);
       toast.success(`Bem-vindo, ${result.user.displayName}!`);
     } catch (error: any) {

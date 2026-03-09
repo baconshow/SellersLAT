@@ -1,9 +1,11 @@
 'use client'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { CheckCircle2, Clock, AlertCircle, TrendingUp, Calendar } from 'lucide-react'
 import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
-import type { Project } from '@/types'
+import type { Project, Distributor } from '@/types'
 import { differenceInDays } from 'date-fns'
+import { subscribeToDistributorsCollection } from '@/lib/firestore'
 
 const ClaudeIcon = ({ size = 18, ...props }: any) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 50 50" {...props}>
@@ -14,7 +16,13 @@ const ClaudeIcon = ({ size = 18, ...props }: any) => (
 interface Props { project: Project }
 
 export default function KPICards({ project }: Props) {
-  const distributors = project.distributors ?? []
+  const [distributors, setDistributors] = useState<Distributor[]>([])
+
+  useEffect(() => {
+    if (!project?.id) return
+    return subscribeToDistributorsCollection(project.id, setDistributors)
+  }, [project?.id])
+
   const total      = distributors.length
   const integrated = distributors.filter(d => d.status === 'integrated').length
   const pending    = distributors.filter(d => d.status === 'pending').length
@@ -58,7 +66,7 @@ export default function KPICards({ project }: Props) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06 }}
-            className="rounded-md p-5 relative overflow-hidden"
+            className="rounded p-5 relative overflow-hidden"
             style={{
               background: 'rgba(255,255,255,0.03)',
               border: '1px solid rgba(255,255,255,0.07)',
@@ -67,7 +75,7 @@ export default function KPICards({ project }: Props) {
             <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full blur-2xl opacity-15"
                  style={{ background: kpi.color }} />
             <div className="relative z-10">
-              <div className="w-9 h-9 rounded-md flex items-center justify-center mb-3"
+              <div className="w-9 h-9 rounded flex items-center justify-center mb-3"
                    style={{ background: kpi.bg }}>
                 <kpi.icon style={{ width: 18, height: 18, color: kpi.color }} />
               </div>
@@ -83,7 +91,7 @@ export default function KPICards({ project }: Props) {
         {/* Area chart */}
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
-          className="lg:col-span-2 rounded-md p-5"
+          className="lg:col-span-2 rounded p-5"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           <div className="flex items-center justify-between mb-4">
@@ -120,7 +128,7 @@ export default function KPICards({ project }: Props) {
                   contentStyle={{
                     background: 'rgba(22,22,34,0.97)',
                     border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 6, fontSize: 12,
+                    borderRadius: 5, fontSize: 12,
                   }}
                   labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
                 />
@@ -140,7 +148,7 @@ export default function KPICards({ project }: Props) {
         {/* Project status */}
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
-          className="rounded-md p-5 flex flex-col gap-4"
+          className="rounded p-5 flex flex-col gap-4"
           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
         >
           <h3 className="text-sm font-semibold text-white">Status do Projeto</h3>
@@ -185,7 +193,7 @@ function ProgressBar({ label, icon: Icon, value, color }: {
 
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between py-2 px-3 rounded-md"
+    <div className="flex items-center justify-between py-2 px-3 rounded"
          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
       <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>
       <span className="text-xs font-semibold text-white truncate ml-2">{value}</span>

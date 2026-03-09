@@ -5,8 +5,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "@/components/ui/toaster";
 
 export const metadata: Metadata = {
-  title: "Sellers Pulse",
-  description: "Gerenciamento de Implantação de Projetos",
+  title: 'LAT — Live Autonomous Tracker',
+  description: 'Autônomo por design. Presente em cada etapa.',
 };
 
 export default function RootLayout({

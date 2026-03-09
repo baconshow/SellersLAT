@@ -6,11 +6,16 @@ import {
   AlertTriangle, ArrowLeft, Palette, History,
   Target, Trash2, RotateCcw, Upload,
   CheckCircle2, Clock, XCircle, Circle, ChevronDown,
+  Link, Copy, Plus, X, Share2,
 } from 'lucide-react'
-import { subscribeToProject, updateProject, deleteProject, restoreDistributorsFromHistory } from '@/lib/firestore'
+import {
+  subscribeToProject, updateProject, deleteProject, restoreDistributorsFromHistory,
+  generateShareToken, toggleShare, updateAuthorizedEmails,
+} from '@/lib/firestore'
 import { useAuth } from '@/contexts/AuthContext'
 import { applyTheme } from '@/lib/theme'
 import type { Project, DistributorHistoryEntry, DistributorStatus } from '@/types'
+import ColorPickerField from '@/components/ui/ColorPickerField'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -18,7 +23,7 @@ import { ptBR } from 'date-fns/locale'
 const FIELD = {
   background:   'rgba(255,255,255,0.04)',
   border:       '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 6,
+  borderRadius: 5,
   color:        'rgba(255,255,255,0.85)',
   fontSize:     13,
   padding:      '10px 14px',
@@ -54,6 +59,8 @@ export default function SettingsPage() {
   const [activeTab,         setActiveTab]         = useState<Tab>('config')
   const [restoringId,       setRestoringId]       = useState<string | null>(null)
   const [expandedEntry,     setExpandedEntry]     = useState<string | null>(null)
+  const [newEmail,           setNewEmail]          = useState('')
+  const [shareLoading,       setShareLoading]      = useState(false)
 
   const [form, setForm] = useState({
     clientName:           '',
@@ -151,7 +158,7 @@ export default function SettingsPage() {
 
   if (loading) return (
     <div className="p-8 space-y-4">
-      {[...Array(4)].map((_, i) => <div key={i} className="h-20 rounded-md shimmer" />)}
+      {[...Array(4)].map((_, i) => <div key={i} className="h-20 rounded shimmer" />)}
     </div>
   )
 
@@ -172,7 +179,7 @@ export default function SettingsPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => router.back()}
-            className="w-8 h-8 rounded-md flex items-center justify-center transition-all"
+            className="w-8 h-8 rounded flex items-center justify-center transition-all"
             style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
             onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
@@ -187,7 +194,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 mb-6 p-1 rounded-md"
+      <div className="flex items-center gap-1 mb-6 p-1 rounded"
            style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', width: 'fit-content' }}>
         {([
           { key: 'config',  label: 'Configurações', Icon: Palette },
@@ -197,7 +204,7 @@ export default function SettingsPage() {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
-            className="flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold transition-all"
+            className="flex items-center gap-2 px-4 py-2 rounded text-xs font-semibold transition-all"
             style={activeTab === tab.key
               ? { background: accent, color: '#050508' }
               : { color: 'rgba(255,255,255,0.4)' }}
@@ -230,31 +237,23 @@ export default function SettingsPage() {
               </Field>
               <div className="grid grid-cols-2 gap-4">
                 <Field label="Cor Primária">
-                  <div className="flex items-center gap-3 px-3 py-2 rounded-md"
-                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <input type="color" value={form.clientColor}
-                      onChange={e => updateForm({ clientColor: e.target.value })}
-                      className="w-7 h-7 rounded cursor-pointer bg-transparent border-none" />
-                    <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                      {form.clientColor}
-                    </span>
-                  </div>
+                  <ColorPickerField
+                    value={form.clientColor}
+                    onChange={v => updateForm({ clientColor: v })}
+                    label="Cor Primária"
+                  />
                 </Field>
                 <Field label="Cor Secundária">
-                  <div className="flex items-center gap-3 px-3 py-2 rounded-md"
-                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                    <input type="color" value={form.clientColorSecondary}
-                      onChange={e => updateForm({ clientColorSecondary: e.target.value })}
-                      className="w-7 h-7 rounded cursor-pointer bg-transparent border-none" />
-                    <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.5)' }}>
-                      {form.clientColorSecondary}
-                    </span>
-                  </div>
+                  <ColorPickerField
+                    value={form.clientColorSecondary}
+                    onChange={v => updateForm({ clientColorSecondary: v })}
+                    label="Cor Secundária"
+                  />
                 </Field>
               </div>
-              <div className="flex items-center gap-3 px-4 py-3 rounded-md"
+              <div className="flex items-center gap-3 px-4 py-3 rounded"
                    style={{ background: `${accent}08`, border: `1px solid ${accent}20` }}>
-                <div className="w-8 h-8 rounded-md flex items-center justify-center text-sm font-bold"
+                <div className="w-8 h-8 rounded flex items-center justify-center text-sm font-bold"
                      style={{ background: accent, color: '#050508' }}>
                   {form.clientName?.[0]?.toUpperCase() ?? '?'}
                 </div>
@@ -292,8 +291,163 @@ export default function SettingsPage() {
             </div>
           </Section>
 
+          {/* Compartilhamento */}
+          <Section icon={<Share2 style={{ width: 14, height: 14 }} />} title="Compartilhamento" accent={accent}>
+            <div className="space-y-4">
+              {/* Toggle + Gerar link */}
+              {!project.shareToken ? (
+                <button
+                  onClick={async () => {
+                    setShareLoading(true)
+                    try {
+                      await generateShareToken(id)
+                      toast.success('Link gerado!')
+                    } catch { toast.error('Erro ao gerar link.') }
+                    finally { setShareLoading(false) }
+                  }}
+                  disabled={shareLoading}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded text-xs font-bold transition-all disabled:opacity-50"
+                  style={{ background: `${accent}15`, border: `1px solid ${accent}30`, color: accent }}
+                  onMouseEnter={e => (e.currentTarget.style.background = `${accent}25`)}
+                  onMouseLeave={e => (e.currentTarget.style.background = `${accent}15`)}
+                >
+                  <Link style={{ width: 13, height: 13 }} />
+                  {shareLoading ? 'Gerando...' : 'Gerar link de compartilhamento'}
+                </button>
+              ) : (
+                <>
+                  {/* Toggle ativo/inativo */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-semibold text-white">Link {project.shareEnabled ? 'ativo' : 'inativo'}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        {project.shareEnabled ? 'Gestores autorizados podem acessar.' : 'O link está desativado.'}
+                      </p>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await toggleShare(id, !project.shareEnabled)
+                          toast.success(project.shareEnabled ? 'Link desativado.' : 'Link ativado.')
+                        } catch { toast.error('Erro ao alterar.') }
+                      }}
+                      className="relative w-10 h-5 rounded-full transition-all"
+                      style={{ background: project.shareEnabled ? accent : 'rgba(255,255,255,0.1)' }}
+                    >
+                      <div
+                        className="absolute top-0.5 w-4 h-4 rounded-full transition-all"
+                        style={{
+                          background: '#fff',
+                          left: project.shareEnabled ? 22 : 2,
+                        }}
+                      />
+                    </button>
+                  </div>
+
+                  {/* URL copiável */}
+                  {project.shareEnabled && (
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="flex-1 px-3 py-2.5 rounded text-xs font-mono truncate"
+                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}
+                      >
+                        sellers.lat/{project.slug ?? id}
+                      </div>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(`https://sellers.lat/${project.slug ?? id}`)
+                          toast.success('Link copiado!')
+                        }}
+                        className="flex items-center gap-1.5 px-3 py-2.5 rounded text-xs font-bold transition-all shrink-0"
+                        style={{ background: `${accent}15`, border: `1px solid ${accent}30`, color: accent }}
+                        onMouseEnter={e => (e.currentTarget.style.background = `${accent}25`)}
+                        onMouseLeave={e => (e.currentTarget.style.background = `${accent}15`)}
+                      >
+                        <Copy style={{ width: 12, height: 12 }} />
+                        Copiar
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Emails autorizados */}
+              <div className="space-y-2">
+                <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  Emails autorizados
+                </p>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={e => setNewEmail(e.target.value)}
+                    placeholder="gestor@empresa.com.br"
+                    style={FIELD}
+                    onKeyDown={async e => {
+                      if (e.key === 'Enter' && newEmail.trim()) {
+                        e.preventDefault()
+                        const emails = [...(project.authorizedEmails || []), newEmail.trim().toLowerCase()]
+                        try {
+                          await updateAuthorizedEmails(id, emails)
+                          setNewEmail('')
+                          toast.success('Email adicionado.')
+                        } catch { toast.error('Erro ao adicionar email.') }
+                      }
+                    }}
+                    onFocus={e => (e.target.style.border = `1px solid ${accent}60`)}
+                    onBlur={e => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!newEmail.trim()) return
+                      const emails = [...(project.authorizedEmails || []), newEmail.trim().toLowerCase()]
+                      try {
+                        await updateAuthorizedEmails(id, emails)
+                        setNewEmail('')
+                        toast.success('Email adicionado.')
+                      } catch { toast.error('Erro ao adicionar email.') }
+                    }}
+                    className="flex items-center justify-center w-10 h-10 rounded shrink-0 transition-all"
+                    style={{ background: `${accent}15`, border: `1px solid ${accent}30`, color: accent }}
+                    onMouseEnter={e => (e.currentTarget.style.background = `${accent}25`)}
+                    onMouseLeave={e => (e.currentTarget.style.background = `${accent}15`)}
+                  >
+                    <Plus style={{ width: 14, height: 14 }} />
+                  </button>
+                </div>
+                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                  Apenas esses emails têm acesso ao link compartilhado.
+                </p>
+
+                {/* Lista de emails */}
+                {(project.authorizedEmails || []).length > 0 && (
+                  <div className="space-y-1 mt-2">
+                    {project.authorizedEmails!.map((email, i) => (
+                      <div key={email} className="flex items-center justify-between px-3 py-2 rounded"
+                           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>{email}</span>
+                        <button
+                          onClick={async () => {
+                            const emails = project.authorizedEmails!.filter((_, idx) => idx !== i)
+                            try {
+                              await updateAuthorizedEmails(id, emails)
+                              toast.success('Email removido.')
+                            } catch { toast.error('Erro ao remover email.') }
+                          }}
+                          className="text-white/30 hover:text-red-400 transition-colors"
+                        >
+                          <X style={{ width: 13, height: 13 }} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Section>
+
           {/* Zona de perigo */}
-          <div className="rounded-md p-5 space-y-4"
+          <div className="rounded p-5 space-y-4"
                style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}>
             <div className="flex items-center gap-2">
               <AlertTriangle style={{ width: 14, height: 14, color: '#EF4444' }} />
@@ -309,7 +463,7 @@ export default function SettingsPage() {
               {!showDeleteConfirm ? (
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="px-4 py-2 rounded-md text-xs font-bold transition-all flex items-center gap-2 shrink-0"
+                  className="px-4 py-2 rounded text-xs font-bold transition-all flex items-center gap-2 shrink-0"
                   style={{ border: '1px solid rgba(239,68,68,0.3)', color: '#EF4444' }}
                   onMouseEnter={e => { e.currentTarget.style.background = '#EF4444'; e.currentTarget.style.color = '#fff' }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#EF4444' }}
@@ -320,12 +474,12 @@ export default function SettingsPage() {
               ) : (
                 <div className="flex items-center gap-2 shrink-0">
                   <button onClick={() => setShowDeleteConfirm(false)}
-                    className="px-4 py-2 rounded-md text-xs font-bold"
+                    className="px-4 py-2 rounded text-xs font-bold"
                     style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
                     Cancelar
                   </button>
                   <button onClick={handleDelete}
-                    className="px-4 py-2 rounded-md text-xs font-bold transition-all"
+                    className="px-4 py-2 rounded text-xs font-bold transition-all"
                     style={{ background: '#EF4444', color: '#fff' }}
                     onMouseEnter={e => (e.currentTarget.style.background = '#DC2626')}
                     onMouseLeave={e => (e.currentTarget.style.background = '#EF4444')}>
@@ -383,11 +537,11 @@ export default function SettingsPage() {
                 <motion.div key={entry.id}
                   initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
-                  className="rounded-md overflow-hidden"
+                  className="rounded overflow-hidden"
                   style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
                 >
                   <div className="flex items-center gap-4 px-4 py-3">
-                    <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
+                    <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
                          style={{ background: `${cfg.color}15` }}>
                       <Icon style={{ width: 14, height: 14, color: cfg.color }} />
                     </div>
@@ -428,7 +582,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button onClick={() => setExpandedEntry(isExpand ? null : entry.id)}
-                        className="flex items-center gap-1 px-2.5 py-1.5 rounded-md text-[10px] font-medium transition-all"
+                        className="flex items-center gap-1 px-2.5 py-1.5 rounded text-[10px] font-medium transition-all"
                         style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
                         onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
                         onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>
@@ -436,7 +590,7 @@ export default function SettingsPage() {
                         Ver
                       </button>
                       <button onClick={() => handleRestore(entry.id)} disabled={restoringId === entry.id}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[10px] font-bold transition-all disabled:opacity-50"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[10px] font-bold transition-all disabled:opacity-50"
                         style={{ background: `${accent}15`, border: `1px solid ${accent}30`, color: accent }}
                         onMouseEnter={e => (e.currentTarget.style.background = `${accent}25`)}
                         onMouseLeave={e => (e.currentTarget.style.background = `${accent}15`)}>
@@ -487,7 +641,7 @@ function Section({ icon, title, accent, children }: {
   icon: React.ReactNode; title: string; accent: string; children: React.ReactNode
 }) {
   return (
-    <div className="rounded-md p-5 space-y-4"
+    <div className="rounded p-5 space-y-4"
          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
       <div className="flex items-center gap-2 pb-3"
            style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>

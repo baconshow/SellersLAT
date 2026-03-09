@@ -20,7 +20,7 @@ O usuário acordava na segunda-feira sabendo que tinha que:
 
 Isso para **um** cliente. Multiplicado por dez, vinte, trinta projetos simultâneos.
 
-O resultado era horas gastas em trabalho operacional sem valor. Documentos desatualizados chegando para a indústria. Contexto perdido entre semanas. Sensação constante de estar apagando incêndio. Burnout real.
+O resultado era horas gastas em trabalho operacional sem valor. Documentos desatualizados chegando para a indústria. Contexto perdido entre semanas. Burnout real.
 
 ---
 
@@ -28,16 +28,19 @@ O resultado era horas gastas em trabalho operacional sem valor. Documentos desat
 
 - **Apresentações geradas automaticamente** — o SlidesDeck monta os slides com dados reais. Sem PowerPoint. Sem Google Slides. Sem exportar nada manualmente.
 - **Gantt em tempo real** — configurado uma vez, atualiza sozinho conforme o projeto avança.
-- **Link de compartilhamento para a indústria** — em vez de enviar arquivo por email, o usuário gera um link público somente leitura. A indústria acessa sempre a versão mais atual, direto no browser.
+- **Link de compartilhamento para a indústria** — em vez de enviar arquivo por email, o usuário gera um link público com login Google. O gestor acessa sempre a versão mais atual, direto no browser.
+- **Interação direta na página** — gestores comentam em distribuidores bloqueados/pendentes. O usuário Sellers recebe notificação no LAT.
 - **Histórico automático** — cada importação CSV e cada snapshot semanal ficam salvos. Nada se perde.
 - **IA integrada** — analisa o projeto, detecta riscos, sugere próximos passos e preenche apresentações. O usuário revisa, não cria do zero.
-- **Multi-cliente desde o início** — cada projeto tem identidade visual própria (cores do cliente), tudo no mesmo lugar.
+- **Multi-cliente desde o início** — cada projeto tem identidade visual própria, tudo no mesmo lugar.
 
 ---
 
 ## Sobre o Produto
 
 **Sellers LAT** (Live Autonomous Tracker) é uma aplicação B2B de gerenciamento de projetos de implantação para a empresa Sellers. Gerencia projetos de clientes industriais (Bombril, BIC, Peccin, Fruki, Ambev), rastreando fases, KPIs, atualizações semanais, integrações com distribuidores e análise via API da Anthropic. UI inteiramente em **pt-BR**.
+
+**Acesso restrito a emails @sellers.com.br** — verificação feita no AuthContext após login Google.
 
 ---
 
@@ -46,7 +49,7 @@ O resultado era horas gastas em trabalho operacional sem valor. Documentos desat
 - **Next.js 15** (App Router, Turbopack)
 - **TypeScript** — strict
 - **Tailwind CSS** — utilitários core apenas, sem compiler customizado
-- **Firebase Auth + Firestore** — autenticação Google + modo guest anônimo
+- **Firebase Auth + Firestore** — autenticação Google
 - **Framer Motion** — animações
 - **Recharts** — gráficos
 - **Anthropic API** — análise proativa e chat
@@ -57,8 +60,8 @@ O resultado era horas gastas em trabalho operacional sem valor. Documentos desat
 
 ```bash
 npm run dev      # porta 9002 com Turbopack
-npm run build    # build de produção
-npm run lint     # ESLint
+npm run build
+npm run lint
 ```
 
 ---
@@ -68,29 +71,33 @@ npm run lint     # ESLint
 ```
 src/
 ├── app/
-│   ├── dashboard/               # lista de projetos do usuário
+│   ├── dashboard/
 │   ├── project/[id]/
-│   │   ├── layout.tsx           # async — passa projectId para ProjectLayoutClient
-│   │   ├── ProjectLayoutClient  # client — busca projeto, injeta tema, renderiza TopNav
-│   │   ├── page.tsx             # dashboard do projeto (fases, KPIs)
-│   │   ├── gantt/               # visualização Gantt
-│   │   ├── distribuidores/      # gestão de distribuidores + importação CSV
-│   │   ├── updates/             # histórico de atualizações semanais
-│   │   ├── slides/              # SlidesDeck — apresentação para o cliente
-│   │   ├── settings/            # configurações + histórico de distribuidores
-│   │   └── share/[token]/       # ← NOVA: visão pública somente leitura
+│   │   ├── layout.tsx
+│   │   ├── ProjectLayoutClient.tsx
+│   │   ├── page.tsx                    # dashboard (fases, KPIs)
+│   │   ├── gantt/
+│   │   ├── distribuidores/             # gestão + importação CSV
+│   │   ├── updates/
+│   │   ├── slides/                     # SlidesDeck
+│   │   └── settings/                  # config + compartilhamento
+│   ├── share/
+│   │   └── [token]/
+│   │       ├── layout.tsx             # layout limpo sem TopNav
+│   │       └── page.tsx               # página do gestor (read-only)
 │   └── api/
-│       └── chat/route.ts        # endpoint Anthropic (modo análise + chat)
+│       └── chat/route.ts
 ├── components/
-│   ├── TopNav.tsx               # navegação principal — header fixo no topo
-│   ├── ThemeHandler.tsx         # injeta CSS variables de tema
-│   ├── KPICards.tsx             # cards de KPI com drilldown
-│   ├── SlidesDeck.tsx           # apresentação com 6+ slides
+│   ├── layout/
+│   │   └── TopNav.tsx
+│   ├── kpi/
+│   │   └── KPICards.tsx
+│   ├── SlidesDeck.tsx
 │   └── ui/
 │       └── WeeklyUpdateDrawer.tsx
 ├── lib/
-│   ├── firestore.ts             # CRUD — SEMPRE usar subscribeToProject, nunca getProject
-│   └── theme.ts                 # applyTheme() — CSS variables dinâmicas por projeto
+│   ├── firestore.ts
+│   └── theme.ts
 ├── contexts/
 │   └── AuthContext.tsx
 └── types/
@@ -101,43 +108,17 @@ src/
 
 ## Navegação
 
-**Não existe sidebar.** A navegação é feita pelo `TopNav` — um header fixo no topo com duas zonas:
+**Não existe sidebar.** Navegação feita pelo `TopNav` — header fixo no topo.
 
-**Esquerda — Logo + Breadcrumb:**
-- `LAT` (fonte Conthrax, cor accent do projeto) → link para /dashboard
-- Separador vertical
-- `SELLERS` → link para /dashboard
-- `>` NOME DO CLIENTE → link para o projeto
-- `>` PÁGINA ATUAL (accent)
-- Separador + `SEMANA N`
+**Esquerda:** `LAT` (Conthrax, cor accent) → `SELLERS` → `CLIENTE` → `PÁGINA` → `SEMANA N`
 
-**Centro — Nav Icons:**
-Ícones sem label (tooltip no hover). Itens:
-- LayoutDashboard → `/project/[id]`
-- GanttChart → `/project/[id]/gantt`
-- Presentation → `/project/[id]/slides`
-- Users → `/project/[id]/distribuidores`
-- Settings → `/project/[id]/settings`
-- ClaudeIcon → toggle do painel LAT Intelligence (não é uma rota)
+**Centro:** ícones sem label (tooltip no hover)
+- LayoutDashboard, GanttChart, Presentation, Users, Settings, ClaudeIcon (toggle LAT Intelligence)
+- Badge de notificação no ícone Users quando há comentários não lidos de gestores
 
-Ícone ativo: cor accent do projeto, strokeWidth 2. Inativo: `rgba(255,255,255,0.25)`, strokeWidth 1.5.
+**Direita:** botão "Atualizar Semana"
 
-**Direita:**
-- Botão "Atualizar Semana" (abre WeeklyUpdateDrawer)
-
-**No dashboard** (isDashboard=true): centro vazio, breadcrumb mostra `SELLERS > PROJETOS`.
-
----
-
-## Design System
-
-- **Fundo:** `#050508` (pitch black)
-- **Header:** gradiente `rgba(5,5,8,0.97)` → transparente + tint da cor accent
-- **Glassmorphism:** `backdrop-filter: blur(20px) saturate(160%)`
-- **Cards:** `background: rgba(255,255,255,0.02)`, `border: 1px solid rgba(255,255,255,0.06)`
-- **Campos de input:** `background: rgba(255,255,255,0.04)`, border sutil
-- **Accent por projeto:** injetado via CSS variables por `applyTheme()` / `ThemeHandler`
-- **Fonte do logo LAT:** Conthrax (fallback: Orbitron, Share Tech Mono, monospace)
+**No dashboard** (isDashboard=true): centro vazio.
 
 ---
 
@@ -148,19 +129,47 @@ Coleção única: `projects/{id}`
 ```typescript
 {
   clientName: string
-  clientColor: string           // cor primária (hex)
+  clientColor: string
   clientColorSecondary: string
-  clientColorRgb: string        // para CSS variables
+  clientColorRgb: string
   objective: string
   description: string
   startDate?: string
-  phases: Phase[]               // array embutido, não subcoleção
+  endDate?: string
+  phases: Phase[]
   kpis: ProjectKPI[]
   weeklyUpdates: WeeklyUpdate[]
   distributors: Distributor[]
   distributorHistory: DistributorHistoryEntry[]
-  shareToken?: string           // ← token público para compartilhamento
-  shareEnabled?: boolean        // ← liga/desliga o link público
+
+  // Compartilhamento
+  shareToken?: string           // UUID gerado uma vez, nunca muda
+  shareEnabled?: boolean        // liga/desliga o link
+  authorizedEmails?: string[]   // ex: ["joao@bombril.com.br"]
+}
+```
+
+```typescript
+// Distribuidor — campos novos para comentários
+interface Distributor {
+  id: string
+  name: string
+  status: DistributorStatus
+  connectionType?: string
+  responsible?: string
+  notes?: string
+  blockerDescription?: string
+  solution?: string
+  comments?: DistributorComment[]      // ← NOVO
+  hasUnreadComment?: boolean           // ← NOVO flag para badge
+}
+
+interface DistributorComment {
+  id: string
+  email: string
+  name: string
+  text: string
+  timestamp: string
 }
 ```
 
@@ -168,45 +177,126 @@ Coleção única: `projects/{id}`
 
 ---
 
+## Design System
+
+- **Fundo:** `#050508` (pitch black)
+- **Header:** gradiente `rgba(5,5,8,0.97)` → transparente + tint accent
+- **Glassmorphism:** `backdrop-filter: blur(20px) saturate(160%)`
+- **Cards:** `background: rgba(255,255,255,0.02)`, `border: 1px solid rgba(255,255,255,0.06)`
+- **Accent por projeto:** injetado via CSS variables por `applyTheme()` / `ThemeHandler`
+- **Fonte do logo LAT:** Conthrax (fallback: Orbitron, Share Tech Mono, monospace)
+
+---
+
+## Feature: Link Compartilhável com Acesso Autorizado
+
+### Conceito
+Em vez de enviar PDF por email, o usuário Sellers gera um link permanente do projeto. O gestor da indústria (ex: Bombril) acessa via login Google. Apenas emails cadastrados na lista `authorizedEmails` do projeto têm acesso.
+
+### Fluxo completo
+
+```
+1. Em Settings → seção "Compartilhamento"
+   → Usuário clica "Gerar link"
+   → shareToken (UUID) é salvo no Firestore
+   → Link copiável: sellers.lat/share/[token]
+   → Campo para adicionar/remover emails autorizados
+
+2. Gestor abre o link
+   → Token inválido ou shareEnabled=false → tela "Link inativo"
+   → Token válido → tela de login Google
+
+3. Gestor faz login com Google
+   → Email não está em authorizedEmails → tela "Acesso não autorizado"
+   → Email autorizado → página do gestor ✓
+
+4. Página do gestor (scroll único, sem edição):
+   ┌─────────────────────────────────┐
+   │ LAT · BOMBRIL   👁 Visualização │
+   ├─────────────────────────────────┤
+   │ KPIs (total, integrados, etc.)  │
+   ├─────────────────────────────────┤
+   │ GANTT                           │
+   ├─────────────────────────────────┤
+   │ DISTRIBUIDORES                  │
+   │ ✓ integrados (sem interação)    │
+   │ ⏳⚠ pendentes/bloqueados → [→] │
+   │   └ campo de comentário         │
+   ├─────────────────────────────────┤
+   │ SLIDES (lock mode)              │
+   └─────────────────────────────────┘
+
+5. Gestor comenta num distribuidor bloqueado
+   → Comentário salvo em distributors[].comments[]
+   → hasUnreadComment = true
+   → Badge aparece no ícone Users da TopNav para o usuário Sellers
+```
+
+### Arquivos a criar/modificar (nessa ordem)
+
+```
+1. types/index.ts
+   → adicionar shareToken, shareEnabled, authorizedEmails ao Project
+   → adicionar DistributorComment interface
+   → adicionar comments[], hasUnreadComment ao Distributor
+
+2. lib/firestore.ts
+   → generateShareToken(projectId): salva UUID como shareToken
+   → toggleShare(projectId, enabled): liga/desliga shareEnabled
+   → updateAuthorizedEmails(projectId, emails): atualiza array
+   → getProjectByShareToken(token): busca projeto pelo token (sem auth)
+   → addDistributorComment(projectId, distributorId, comment): adiciona comentário
+   → markCommentsAsRead(projectId): seta hasUnreadComment=false em todos
+
+3. app/project/[id]/settings/page.tsx
+   → nova seção "Compartilhamento" com:
+     - toggle liga/desliga link
+     - campo copiável com a URL
+     - lista de emails autorizados com add/remove
+
+4. app/share/[token]/layout.tsx
+   → layout limpo: sem TopNav de projeto, sem edição
+   → mantém tema/cores do projeto
+   → badge "👁 Somente visualização" fixo
+
+5. app/share/[token]/page.tsx
+   → busca projeto pelo token
+   → verifica shareEnabled
+   → exige login Google
+   → verifica email em authorizedEmails
+   → renderiza: KPIs + Gantt + lista distribuidores + Slides
+   → apenas distribuidores blocked/pending têm campo de comentário
+
+6. components/layout/TopNav.tsx
+   → badge vermelho no ícone Users quando
+     project.distributors.some(d => d.hasUnreadComment)
+
+7. Firestore security rules
+   → permitir get em projects/{id} se shareEnabled==true
+     (validação de token e email feita no Next.js)
+```
+
+---
+
 ## Componentes-Chave
 
 ### SlidesDeck (6 slides)
-1. **Capa** — nome do cliente, "Semana X · N dias juntos"
-2. **Status Geral**
-3. **Timeline/Fases** — scrollável, inclui Go Live e Handover
-4. **KPIs** — cards clicáveis com drilldown de distribuidores por status
-5. **Próximos Passos**
-6. **Retrospectiva** — blockers semana anterior vs atual
+1. Capa — "Semana X · N dias juntos"
+2. Status Geral
+3. Timeline/Fases — scrollável
+4. KPIs — com drilldown
+5. Próximos Passos
+6. Retrospectiva — blockers semana anterior vs atual
 
-Comportamento: scroll → depois teclado. Edição inline com lock/unlock. F11 fullscreen. Tema claro/escuro. IA preenche conteúdo no mount via Anthropic API.
+Comportamento: scroll → teclado. Lock/unlock. F11 fullscreen. Tema claro/escuro. IA preenche no mount.
+
+### KPICards
+Lê de `project.distributors[]` diretamente (não de weeklyUpdates). Atualiza em tempo real após importação CSV.
 
 ### Distribuidores
 - Status: `integrated | pending | blocked | not_started`
 - Conexão: Ello, FTP, API, Manual
 - Importação CSV salva snapshot em `distributorHistory`
-- Histórico em Settings permite restaurar estado anterior
-
----
-
-## Features em Desenvolvimento
-
-### 1. Compartilhamento de Link com a Indústria
-- Em Settings: botão "Gerar link de compartilhamento"
-- Gera `shareToken` (UUID) salvo no Firestore (`shareToken`, `shareEnabled: true`)
-- Rota pública: `app/project/[id]/share/[token]/page.tsx`
-- **Sem AuthContext** — valida apenas pelo token
-- Firestore rule: permitir `get` se token bater
-- Botão para revogar (`shareEnabled: false`)
-- Link copiável para enviar por WhatsApp/email
-
-### 2. Modo Somente Leitura
-- Rota `/share/[token]` é sempre read-only por natureza
-- Prop `readOnly?: boolean` nos componentes principais
-- Quando `readOnly`:
-  - TopNav sem botão "Atualizar Semana" e sem nav icons de edição
-  - SlidesDeck sempre em lock mode
-  - Sem botões de importar CSV, editar fase, adicionar distribuidor
-  - Gráficos e visualizações funcionam normalmente
 
 ---
 
@@ -214,8 +304,8 @@ Comportamento: scroll → depois teclado. Edição inline com lock/unlock. F11 f
 
 ### Entrega
 - **Um arquivo por vez**, completo, pronto para colar
-- Mudanças cirúrgicas (< 5 linhas): fornecer old/new com número de linha
-- Mudanças espalhadas por muitos lugares: reescrever o arquivo inteiro
+- Mudanças cirúrgicas: fornecer old/new com número de linha
+- Mudanças espalhadas: reescrever o arquivo inteiro
 
 ### Commits
 ```
@@ -226,10 +316,9 @@ chore: descrição em português
 
 ### Proibido
 - Nunca usar Firebase Studio AI para gerar código
-- Nunca criar prompts para o Gemini — sempre entregar o código diretamente
+- Nunca criar prompts para o Gemini
 - Nunca escrever "Alexandre Sellers" — o usuário é **Bacon**
 - Nunca usar `getProject` — usar `subscribeToProject`
-- Nunca adicionar efeitos visuais desnecessários em camadas
 - Nunca perder funcionalidades existentes ao modificar componentes
 
 ### Firestore
@@ -244,4 +333,3 @@ chore: descrição em português
 - Gantt bars de fases pendentes sem cor distinta
 - Tooltip atrás do header sticky (z-index)
 - Badge e nome da fase somem em certos breakpoints
-- Cards de distribuidores não atualizam após importação CSV

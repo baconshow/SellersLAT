@@ -1,14 +1,26 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Search, CheckCircle2, Clock, XCircle, Circle,
   Pencil, Trash2, X, Wifi, HardDrive, Globe, FileText, Upload, AlertTriangle,
+  ChevronRight, MessageSquare,
 } from 'lucide-react'
-import { subscribeToProject, addDistributor, updateDistributor, deleteDistributor, addDistributorHistory } from '@/lib/firestore'
+import {
+  subscribeToProject,
+  subscribeToDistributorsCollection,
+  addDistributorDoc,
+  updateDistributorDoc,
+  deleteDistributorDoc,
+  getDistributorComments,
+  addDistributorHistory,
+  importWeeklyCSV,
+} from '@/lib/firestore'
 import { useAuth } from '@/contexts/AuthContext'
-import type { Project, Distributor, DistributorStatus } from '@/types'
+import type { Project, Distributor, DistributorStatus, DistributorComment } from '@/types'
+import { format, differenceInDays } from 'date-fns'
+import { ptBR } from 'date-fns/locale'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -63,6 +75,11 @@ function parseCSV(text: string): Omit<Distributor, 'id'>[] {
   const iStatus     = idx('Status')
   const iMode       = idx('Modo de Integração')
   const iPhase      = idx('Fase de Integração')
+  const iERP        = idx('ERP')
+  const iCNPJ       = idx('CNPJ')
+  const iValue      = idx('Valor')
+  const iPalliative = idx('Paliativo')
+  const iCategory   = idx('Categoria')
 
   return lines.slice(1).map(line => {
     // Parse respeitando campos com vírgulas dentro de aspas
@@ -95,24 +112,47 @@ function parseCSV(text: string): Omit<Distributor, 'id'>[] {
       notes,
       blockerDescription: blockerDesc,
       solution: '',
+      erp:                get(iERP),
+      cnpj:               get(iCNPJ),
+      valuePerConnection: parseFloat(get(iValue).replace(/[^0-9.]/g, '')) / 100 || 0,
+      palliative:         get(iPalliative),
+      connectionCategory: get(iCategory),
     } as Omit<Distributor, 'id'>
   }).filter(Boolean) as Omit<Distributor, 'id'>[]
 }
 
 // ─── Import Modal ─────────────────────────────────────────────────────────────
 
+interface ImportResult {
+  added: number
+  updated: number
+  integrated: number
+  pending: number
+  blocked: number
+  diff: {
+    newIntegrations: string[]
+    newBlockers: string[]
+    resolved: string[]
+  }
+  previousIntegrated: number
+}
+
 function ImportModal({
   projectId,
+  project,
   onClose,
 }: {
   projectId: string
+  project: Project
   onClose: () => void
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
   const [preview,   setPreview]   = useState<Omit<Distributor, 'id'>[]>([])
   const [importing, setImporting] = useState(false)
-  const [done,      setDone]      = useState(false)
+  const [result,    setResult]    = useState<ImportResult | null>(null)
   const [error,     setError]     = useState('')
+
+  const weekNumber = (project.weeklyUpdates?.length ?? 0) + 1
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -127,25 +167,119 @@ function ImportModal({
     }
     reader.readAsText(file, 'utf-8')
   }
+
   const handleImport = async () => {
     setImporting(true)
     try {
-      for (const d of preview) {
-        await addDistributor(projectId, d)
-      }
+      const previousIntegrated = (project.distributors ?? []).filter(d => d.status === 'integrated').length
+
+      const res = await importWeeklyCSV(projectId, preview, weekNumber)
+
       await addDistributorHistory(projectId, {
         type:         'import',
         source:       'clickup_csv',
         distributors: preview.map(d => ({ ...d, id: Math.random().toString(36).substring(2) })),
-        note:         `Importação de ${preview.length} distribuidores via CSV`,
+        note:         `Semana ${weekNumber} — ${preview.length} distribuidores via CSV`,
       })
-      setDone(true)
-      setTimeout(onClose, 1200)
+
+      setResult({ ...res, previousIntegrated })
+      setTimeout(onClose, 3000)
     } catch (e: any) {
       setError(e.message)
     } finally {
       setImporting(false)
     }
+  }
+
+  // ── Result screen ──
+  if (result) {
+    const integrationPct = (result.integrated + result.pending + result.blocked) > 0
+      ? Math.round((result.integrated / (result.integrated + result.pending + result.blocked + (preview.length - result.integrated - result.pending - result.blocked))) * 100)
+      : 0
+    const totalAfter = result.integrated + result.pending + result.blocked + (preview.length - result.integrated - result.pending - result.blocked)
+    const pct = totalAfter > 0 ? Math.round((result.integrated / totalAfter) * 100) : 0
+
+    return (
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }}
+      >
+        <motion.div
+          initial={{ scale: 0.96, y: 16 }} animate={{ scale: 1, y: 0 }}
+          className="w-full max-w-md rounded p-6 space-y-5"
+          style={{ background: '#0e0e16', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <div className="text-center space-y-1">
+            <p className="text-lg font-bold text-white flex items-center justify-center gap-2">
+              <CheckCircle2 style={{ width: 18, height: 18, color: '#22c55e' }} />
+              Importação concluída
+            </p>
+            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Semana {weekNumber}
+            </p>
+          </div>
+
+          {/* Progress bar */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <span>Integração</span>
+              <span style={{ color: 'var(--color-brand)' }}>{pct}%</span>
+            </div>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+                className="h-full rounded-full"
+                style={{ background: 'linear-gradient(90deg, var(--color-brand, #00D4AA), var(--color-brand-secondary, #8B5CF6))' }}
+              />
+            </div>
+          </div>
+
+          {/* Diff badges */}
+          <div className="space-y-2">
+            {result.diff.newIntegrations.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded"
+                   style={{ background: STATUS_CFG.integrated.bg, border: `1px solid ${STATUS_CFG.integrated.color}30` }}>
+                <CheckCircle2 style={{ width: 12, height: 12, color: STATUS_CFG.integrated.color }} />
+                <span className="text-xs font-medium" style={{ color: STATUS_CFG.integrated.color }}>
+                  +{result.diff.newIntegrations.length} {result.diff.newIntegrations.length === 1 ? 'nova integração' : 'novas integrações'}
+                </span>
+              </div>
+            )}
+            {result.diff.newBlockers.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded"
+                   style={{ background: STATUS_CFG.blocked.bg, border: `1px solid ${STATUS_CFG.blocked.color}30` }}>
+                <XCircle style={{ width: 12, height: 12, color: STATUS_CFG.blocked.color }} />
+                <span className="text-xs font-medium" style={{ color: STATUS_CFG.blocked.color }}>
+                  +{result.diff.newBlockers.length} {result.diff.newBlockers.length === 1 ? 'novo bloqueio' : 'novos bloqueios'}
+                </span>
+              </div>
+            )}
+            {result.diff.resolved.length > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded"
+                   style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)' }}>
+                <CheckCircle2 style={{ width: 12, height: 12, color: '#10B981' }} />
+                <span className="text-xs font-medium" style={{ color: '#10B981' }}>
+                  {result.diff.resolved.length} {result.diff.resolved.length === 1 ? 'bloqueio resolvido' : 'bloqueios resolvidos'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Before/after comparison */}
+          <div className="text-center text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            Semana anterior: {result.previousIntegrated} integrados → Agora: {result.integrated} integrados
+          </div>
+
+          {/* Auto-close indicator */}
+          <div className="flex justify-center">
+            <div className="w-4 h-4 border-2 border-white/10 border-t-white/40 rounded-full animate-spin" />
+          </div>
+        </motion.div>
+      </motion.div>
+    )
   }
 
   return (
@@ -157,14 +291,16 @@ function ImportModal({
     >
       <motion.div
         initial={{ scale: 0.96, y: 16 }} animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-2xl rounded-md overflow-hidden"
+        className="w-full max-w-2xl rounded overflow-hidden"
         style={{ background: '#0e0e16', border: '1px solid rgba(255,255,255,0.08)' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4"
              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div>
-            <p className="text-sm font-bold text-white">Importar CSV do ClickUp</p>
+            <p className="text-sm font-bold text-white">
+              Importar CSV do ClickUp — Semana {weekNumber}
+            </p>
             <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
               Campos mapeados: Nome, Status, Responsável, Modo de Integração, Fase
             </p>
@@ -175,11 +311,33 @@ function ImportModal({
         </div>
 
         <div className="p-5 space-y-4">
+          {/* Instruction box */}
+          <div
+            className="rounded"
+            style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: 5,
+              padding: '12px 14px',
+            }}
+          >
+            <p className="text-[11px] font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Como funciona
+            </p>
+            <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              Exporte a lista de distribuidores do ClickUp toda segunda-feira e importe aqui.
+              O LAT compara com a semana anterior e atualiza o relatório automaticamente.
+            </p>
+            <p className="text-[11px] mt-1.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              Enquanto a gente não conecta direto com o ClickUp... é assim que rola. 🥲
+            </p>
+          </div>
+
           {/* Upload zone */}
           {!preview.length && (
             <div
               onClick={() => fileRef.current?.click()}
-              className="flex flex-col items-center justify-center py-10 rounded-md cursor-pointer transition-all"
+              className="flex flex-col items-center justify-center py-10 rounded cursor-pointer transition-all"
               style={{ border: '2px dashed rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}
               onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
               onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
@@ -192,7 +350,7 @@ function ImportModal({
           )}
 
           {error && (
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md"
+            <div className="flex items-center gap-2 px-3 py-2 rounded"
                  style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)' }}>
               <AlertTriangle style={{ width: 13, height: 13, color: '#ef4444' }} />
               <p className="text-xs" style={{ color: '#ef4444' }}>{error}</p>
@@ -222,7 +380,7 @@ function ImportModal({
                   if (!count) return null
                   const cfg = STATUS_CFG[s]
                   return (
-                    <span key={s} className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-md font-medium"
+                    <span key={s} className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded font-medium"
                           style={{ background: cfg.bg, color: cfg.color }}>
                       <cfg.Icon style={{ width: 11, height: 11 }} />
                       {count} {cfg.label}
@@ -232,7 +390,7 @@ function ImportModal({
               </div>
 
               {/* Table */}
-              <div className="rounded-md overflow-hidden max-h-60 overflow-y-auto"
+              <div className="rounded overflow-hidden max-h-60 overflow-y-auto"
                    style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
                 <table className="w-full text-xs">
                   <thead>
@@ -269,17 +427,17 @@ function ImportModal({
           {/* Actions */}
           {preview.length > 0 && (
             <div className="flex justify-end gap-2 pt-1">
-              <button onClick={onClose} className="px-4 py-2 rounded-md text-xs"
+              <button onClick={onClose} className="px-4 py-2 rounded text-xs"
                       style={{ color: 'rgba(255,255,255,0.35)' }}>
                 Cancelar
               </button>
               <button
                 onClick={handleImport}
-                disabled={importing || done}
-                className="flex items-center gap-2 px-5 py-2 rounded-md text-xs font-semibold transition-all disabled:opacity-60"
+                disabled={importing}
+                className="flex items-center gap-2 px-5 py-2 rounded text-xs font-semibold transition-all disabled:opacity-60"
                 style={{ background: 'var(--color-brand)', color: '#050508' }}
               >
-                {done ? '✓ Importado!' : importing ? 'Importando...' : `Importar ${preview.length} distribuidores`}
+                {importing ? 'Importando...' : `Importar ${preview.length} distribuidores`}
               </button>
             </div>
           )}
@@ -307,6 +465,7 @@ function DistributorModal({
     notes:              distributor?.notes              ?? '',
     blockerDescription: distributor?.blockerDescription ?? '',
     solution:           distributor?.solution           ?? '',
+    erp:                distributor?.erp                ?? '',
   })
   const [saving, setSaving] = useState(false)
   const set = (k: keyof typeof form, v: any) => setForm(f => ({ ...f, [k]: v }))
@@ -315,8 +474,8 @@ function DistributorModal({
     if (!form.name.trim()) return
     setSaving(true)
     try {
-      if (isEdit && distributor) await updateDistributor(projectId, distributor.id, form)
-      else await addDistributor(projectId, form)
+      if (isEdit && distributor) await updateDistributorDoc(projectId, distributor.id, form)
+      else await addDistributorDoc(projectId, form)
       onClose()
     } catch (e) { console.error(e) }
     finally { setSaving(false) }
@@ -331,7 +490,7 @@ function DistributorModal({
     >
       <motion.div
         initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }}
-        className="w-full max-w-lg rounded-md p-6 space-y-5"
+        className="w-full max-w-lg rounded p-6 space-y-5"
         style={{ background: '#0e0e16', border: '1px solid rgba(255,255,255,0.08)' }}
       >
         <div className="flex items-center justify-between">
@@ -348,7 +507,7 @@ function DistributorModal({
             value={form.name}
             onChange={e => set('name', e.target.value)}
             placeholder="Ex: Distribuidora Sul Minas"
-            className="w-full px-3 py-2.5 rounded-md text-sm text-white placeholder-white/20 outline-none"
+            className="w-full px-3 py-2.5 rounded text-sm text-white placeholder-white/20 outline-none"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
           />
         </Field>
@@ -361,7 +520,7 @@ function DistributorModal({
                 const active = form.status === s
                 return (
                   <button key={s} onClick={() => set('status', s)}
-                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all"
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-all"
                     style={active
                       ? { background: cfg.bg, border: `1px solid ${cfg.color}40`, color: cfg.color }
                       : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)' }}>
@@ -379,7 +538,7 @@ function DistributorModal({
                 const active = form.connectionType === ct
                 return (
                   <button key={ct} onClick={() => set('connectionType', ct)}
-                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all"
+                    className="flex items-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-all"
                     style={active
                       ? { background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }
                       : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)' }}>
@@ -396,7 +555,17 @@ function DistributorModal({
             value={form.responsible ?? ''}
             onChange={e => set('responsible', e.target.value)}
             placeholder="Nome do contato"
-            className="w-full px-3 py-2.5 rounded-md text-sm text-white placeholder-white/20 outline-none"
+            className="w-full px-3 py-2.5 rounded text-sm text-white placeholder-white/20 outline-none"
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+          />
+        </Field>
+
+        <Field label="ERP">
+          <input
+            value={form.erp ?? ''}
+            onChange={e => set('erp', e.target.value)}
+            placeholder="Ex: SAP, Sankhya, Winthor..."
+            className="w-full px-3 py-2.5 rounded text-sm text-white placeholder-white/20 outline-none"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
           />
         </Field>
@@ -407,7 +576,7 @@ function DistributorModal({
             onChange={e => set('notes', e.target.value)}
             rows={2}
             placeholder="Status atual, observações gerais..."
-            className="w-full px-3 py-2.5 rounded-md text-sm text-white placeholder-white/20 outline-none resize-none"
+            className="w-full px-3 py-2.5 rounded text-sm text-white placeholder-white/20 outline-none resize-none"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
           />
         </Field>
@@ -419,19 +588,19 @@ function DistributorModal({
               onChange={e => set('blockerDescription', e.target.value)}
               rows={2}
               placeholder="O que está impedindo a integração?"
-              className="w-full px-3 py-2.5 rounded-md text-sm text-white placeholder-white/20 outline-none resize-none"
+              className="w-full px-3 py-2.5 rounded text-sm text-white placeholder-white/20 outline-none resize-none"
               style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)' }}
             />
           </Field>
         )}
 
         <div className="flex justify-end gap-2 pt-1">
-          <button onClick={onClose} className="px-4 py-2 rounded-md text-xs"
+          <button onClick={onClose} className="px-4 py-2 rounded text-xs"
                   style={{ color: 'rgba(255,255,255,0.35)' }}>
             Cancelar
           </button>
           <button onClick={handleSave} disabled={saving || !form.name.trim()}
-            className="px-5 py-2 rounded-md text-xs font-semibold transition-all disabled:opacity-40"
+            className="px-5 py-2 rounded text-xs font-semibold transition-all disabled:opacity-40"
             style={{ background: 'var(--color-brand)', color: '#050508' }}>
             {saving ? 'Salvando...' : isEdit ? 'Salvar' : 'Adicionar'}
           </button>
@@ -452,79 +621,176 @@ function DistributorRow({
 }) {
   const cfg      = STATUS_CFG[distributor.status]
   const ConnIcon = distributor.connectionType ? (CONNECTION_ICONS[distributor.connectionType] ?? FileText) : null
-  const [deleting, setDeleting] = useState(false)
+  const [deleting, setDeleting]   = useState(false)
+  const [expanded, setExpanded]   = useState(false)
+  const [comments, setComments]   = useState<DistributorComment[]>([])
+  const [loadingComments, setLoadingComments] = useState(false)
 
   const handleDelete = async () => {
     if (!confirm(`Remover "${distributor.name}"?`)) return
     setDeleting(true)
-    await deleteDistributor(projectId, distributor.id)
+    await deleteDistributorDoc(projectId, distributor.id)
   }
+
+  const toggleExpand = useCallback(async () => {
+    const next = !expanded
+    setExpanded(next)
+    if (next) {
+      setLoadingComments(true)
+      try {
+        const c = await getDistributorComments(projectId, distributor.id)
+        setComments(c)
+      } catch { setComments([]) }
+      finally { setLoadingComments(false) }
+    }
+  }, [expanded, projectId, distributor.id])
+
+  const hasComments = distributor.hasUnreadComment || (distributor.comments?.length ?? 0) > 0
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: deleting ? 0 : 1, y: 0 }}
-      className="flex items-center gap-4 px-4 py-3 rounded-md group"
+      className="rounded overflow-hidden"
       style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
     >
-      {/* Status dot + icon */}
-      <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0"
-           style={{ background: cfg.bg }}>
-        <cfg.Icon style={{ width: 14, height: 14, color: cfg.color }} />
-      </div>
+      <div className="flex items-center gap-4 px-4 py-3 group">
+        {/* Status icon */}
+        <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
+             style={{ background: cfg.bg }}>
+          <cfg.Icon style={{ width: 14, height: 14, color: cfg.color }} />
+        </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white truncate">{distributor.name}</p>
-        <div className="flex items-center gap-3 mt-0.5">
-          {distributor.connectionType && ConnIcon && (
-            <span className="text-[10px] flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              <ConnIcon style={{ width: 10, height: 10 }} />
-              {distributor.connectionType}
-            </span>
-          )}
-          {distributor.responsible && (
-            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
-              {distributor.responsible}
-            </span>
-          )}
-          {distributor.notes && (
-            <span className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>
-              {distributor.notes}
-            </span>
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-white truncate">{distributor.name}</p>
+          <div className="flex items-center gap-3 mt-0.5">
+            {distributor.connectionType && ConnIcon && (
+              <span className="text-[10px] flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <ConnIcon style={{ width: 10, height: 10 }} />
+                {distributor.connectionType}
+              </span>
+            )}
+            {distributor.erp && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded font-medium"
+                    style={{ background: 'rgba(139,92,246,0.12)', color: 'rgba(139,92,246,0.7)' }}>
+                {distributor.erp}
+              </span>
+            )}
+            {distributor.responsible && (
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                {distributor.responsible}
+              </span>
+            )}
+            {distributor.notes && (
+              <span className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                {distributor.notes}
+              </span>
+            )}
+          </div>
+          {distributor.status === 'blocked' && distributor.blockerDescription && (
+            <p className="text-[10px] mt-0.5 truncate" style={{ color: '#ef444470' }}>
+              ⚠ {distributor.blockerDescription}
+            </p>
           )}
         </div>
-        {distributor.status === 'blocked' && distributor.blockerDescription && (
-          <p className="text-[10px] mt-0.5 truncate" style={{ color: '#ef444470' }}>
-            ⚠ {distributor.blockerDescription}
-          </p>
+
+        {/* Status label */}
+        <span className="text-xs font-medium flex-shrink-0 flex items-center gap-1.5"
+              style={{ color: cfg.color }}>
+          <cfg.Icon style={{ width: 11, height: 11 }} />
+          {cfg.label}
+        </span>
+
+        {/* Comments toggle */}
+        <button
+          onClick={toggleExpand}
+          className="relative flex items-center gap-1 px-2 py-1.5 rounded text-[10px] font-medium transition-all flex-shrink-0"
+          style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)' }}
+        >
+          <ChevronRight
+            style={{
+              width: 10, height: 10,
+              transform: expanded ? 'rotate(90deg)' : 'none',
+              transition: 'transform 150ms',
+            }}
+          />
+          <MessageSquare style={{ width: 10, height: 10 }} />
+          {distributor.hasUnreadComment && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ background: '#EF4444' }} />
+          )}
+        </button>
+
+        {/* Actions */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          <button onClick={() => onEdit(distributor)}
+            className="w-7 h-7 rounded flex items-center justify-center transition-colors"
+            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
+            <Pencil style={{ width: 11, height: 11 }} />
+          </button>
+          <button onClick={handleDelete}
+            className="w-7 h-7 rounded flex items-center justify-center transition-colors"
+            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
+            <Trash2 style={{ width: 11, height: 11 }} />
+          </button>
+        </div>
+      </div>
+
+      {/* Comments panel */}
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ borderTop: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}
+          >
+            <div className="px-4 py-3">
+              {loadingComments ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="w-4 h-4 border-2 border-white/10 border-t-white/40 rounded-full animate-spin" />
+                </div>
+              ) : comments.length === 0 ? (
+                <p className="text-[11px] text-center py-4" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                  Nenhum comentário de gestores.
+                </p>
+              ) : (
+                <div className="space-y-2 max-h-56 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
+                  {comments.map(c => (
+                    <div
+                      key={c.id}
+                      className="flex items-start gap-3 px-3 py-2.5 rounded"
+                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 5 }}
+                    >
+                      {/* Avatar */}
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold"
+                        style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+                      >
+                        {c.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-semibold text-white/70">{c.name}</span>
+                          <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                            {format(new Date(c.timestamp), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                          </span>
+                        </div>
+                        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{c.text}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
         )}
-      </div>
-
-      {/* Status inline (texto, sem cápsula) */}
-      <span className="text-xs font-medium flex-shrink-0 flex items-center gap-1.5"
-            style={{ color: cfg.color }}>
-        <cfg.Icon style={{ width: 11, height: 11 }} />
-        {cfg.label}
-      </span>
-
-      {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
-        <button onClick={() => onEdit(distributor)}
-          className="w-7 h-7 rounded-md flex items-center justify-center transition-colors"
-          style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
-          <Pencil style={{ width: 11, height: 11 }} />
-        </button>
-        <button onClick={handleDelete}
-          className="w-7 h-7 rounded-md flex items-center justify-center transition-colors"
-          style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
-          <Trash2 style={{ width: 11, height: 11 }} />
-        </button>
-      </div>
+      </AnimatePresence>
     </motion.div>
   )
 }
@@ -536,12 +802,14 @@ export default function DistribuidoresPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
 
-  const [project,     setProject]     = useState<Project | null>(null)
-  const [search,      setSearch]      = useState('')
+  const [project,      setProject]      = useState<Project | null>(null)
+  const [distributors, setDistributors] = useState<Distributor[]>([])
+  const [search,       setSearch]       = useState('')
   const [filterStatus, setFilterStatus] = useState<DistributorStatus | 'all'>('all')
-  const [modalOpen,   setModalOpen]   = useState(false)
-  const [importOpen,  setImportOpen]  = useState(false)
-  const [editTarget,  setEditTarget]  = useState<Distributor | undefined>()
+  const [modalOpen,        setModalOpen]        = useState(false)
+  const [importOpen,       setImportOpen]       = useState(false)
+  const [editTarget,       setEditTarget]       = useState<Distributor | undefined>()
+  const [bannerDismissed,  setBannerDismissed]  = useState(false)
 
   useEffect(() => {
     if (!loading && !user) router.replace('/')
@@ -552,9 +820,23 @@ export default function DistribuidoresPage() {
     return subscribeToProject(id, setProject)
   }, [id])
 
+  useEffect(() => {
+    if (!id) return
+    return subscribeToDistributorsCollection(id, setDistributors)
+  }, [id])
+
   if (!project) return null
 
-  const distributors = project.distributors ?? []
+  const shouldRemind = (() => {
+    const today = new Date()
+    const isMonday = today.getDay() === 1
+    const lastImport = (project as any).lastImportAt
+    const daysSince = lastImport
+      ? differenceInDays(today, new Date(lastImport.seconds * 1000))
+      : 999
+    return isMonday || daysSince > 6
+  })()
+
   const filtered = distributors.filter(d => {
     const matchSearch = d.name.toLowerCase().includes(search.toLowerCase())
     const matchStatus = filterStatus === 'all' || d.status === filterStatus
@@ -575,6 +857,50 @@ export default function DistribuidoresPage() {
   return (
     <div className="flex-1 px-8 pt-4 pb-12">
 
+      {/* Import reminder banner */}
+      <AnimatePresence>
+        {shouldRemind && !bannerDismissed && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.25 }}
+            className="mb-5 flex items-start gap-3 relative"
+            style={{
+              background: 'rgba(var(--color-brand-rgb, 0,212,170), 0.06)',
+              borderLeft: '3px solid var(--color-brand, #00D4AA)',
+              borderRadius: 4,
+              padding: '14px 16px',
+            }}
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <Upload style={{ width: 12, height: 12, color: 'var(--color-brand)' }} />
+                Hora de importar o CSV do ClickUp!
+              </p>
+              <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Mantenha o relatório atualizado — leva menos de 1 min.
+              </p>
+            </div>
+            <button
+              onClick={() => setImportOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-semibold transition-all flex-shrink-0"
+              style={{ background: 'var(--color-brand)', color: '#050508' }}
+            >
+              Importar agora
+              <ChevronRight style={{ width: 11, height: 11 }} />
+            </button>
+            <button
+              onClick={() => setBannerDismissed(true)}
+              className="absolute top-2 right-2 flex-shrink-0"
+              style={{ color: 'rgba(255,255,255,0.2)' }}
+            >
+              <X style={{ width: 12, height: 12 }} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
@@ -586,7 +912,7 @@ export default function DistribuidoresPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setImportOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-all"
+            className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium transition-all"
             style={{
               background: 'rgba(255,255,255,0.05)',
               border:     '1px solid rgba(255,255,255,0.08)',
@@ -600,7 +926,7 @@ export default function DistribuidoresPage() {
           </button>
           <button
             onClick={() => { setEditTarget(undefined); setModalOpen(true) }}
-            className="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-semibold transition-all"
+            className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold transition-all"
             style={{ background: 'var(--color-brand)', color: '#050508' }}
           >
             <Plus style={{ width: 12, height: 12 }} />
@@ -621,7 +947,7 @@ export default function DistribuidoresPage() {
             style={{
               background: 'rgba(255,255,255,0.04)',
               border:     '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 6,
+              borderRadius: 5,
               padding:    '7px 12px 7px 30px',
               color:      'rgba(255,255,255,0.8)',
             }}
@@ -634,7 +960,7 @@ export default function DistribuidoresPage() {
             const active = filterStatus === s
             return (
               <button key={s} onClick={() => setFilterStatus(s)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all"
                 style={active
                   ? { background: cfg ? cfg.bg : 'rgba(255,255,255,0.08)', color: cfg ? cfg.color : '#fff', border: `1px solid ${cfg ? cfg.color + '30' : 'rgba(255,255,255,0.15)'}` }
                   : { background: 'transparent', color: 'rgba(255,255,255,0.3)', border: '1px solid transparent' }}>
@@ -669,7 +995,7 @@ export default function DistribuidoresPage() {
           <DistributorModal projectId={id} distributor={editTarget} onClose={handleClose} />
         )}
         {importOpen && (
-          <ImportModal projectId={id} onClose={() => setImportOpen(false)} />
+          <ImportModal projectId={id} project={project} onClose={() => setImportOpen(false)} />
         )}
       </AnimatePresence>
     </div>

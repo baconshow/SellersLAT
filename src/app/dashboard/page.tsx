@@ -74,7 +74,7 @@ export default function DashboardPage() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
-              className="rounded-md p-5 relative overflow-hidden"
+              className="rounded p-5 relative overflow-hidden"
               style={{
                 background: 'rgba(255,255,255,0.03)',
                 border:     '1px solid rgba(255,255,255,0.06)',
@@ -86,7 +86,7 @@ export default function DashboardPage() {
               />
               <div className="relative z-10">
                 <div
-                  className="w-9 h-9 rounded-md flex items-center justify-center mb-3"
+                  className="w-9 h-9 rounded flex items-center justify-center mb-3"
                   style={{ background: `${kpi.color}18`, border: `1px solid ${kpi.color}28` }}
                 >
                   <kpi.icon style={{ color: kpi.color, width: 18, height: 18 }} />
@@ -111,7 +111,7 @@ export default function DashboardPage() {
               animate={{ opacity: 1 }}
               transition={{ delay: projects.length * 0.07 }}
               onClick={() => setShowModal(true)}
-              className="rounded-md flex flex-col items-center justify-center gap-3 py-12
+              className="rounded flex flex-col items-center justify-center gap-3 py-12
                          cursor-pointer transition-all group"
               style={{
                 background: 'rgba(255,255,255,0.02)',
@@ -121,7 +121,7 @@ export default function DashboardPage() {
               onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
             >
               <div
-                className="w-12 h-12 rounded-md flex items-center justify-center transition-transform group-hover:scale-110"
+                className="w-12 h-12 rounded flex items-center justify-center transition-transform group-hover:scale-110"
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
               >
                 <Plus className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors" />
@@ -147,7 +147,7 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       className="flex flex-col items-center justify-center py-24 text-center"
     >
       <div
-        className="w-20 h-20 rounded-md flex items-center justify-center mb-6"
+        className="w-20 h-20 rounded flex items-center justify-center mb-6"
         style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
       >
         <FolderOpen className="w-9 h-9 text-white/25" />
@@ -158,7 +158,7 @@ function EmptyState({ onNew }: { onNew: () => void }) {
       </p>
       <button
         onClick={onNew}
-        className="flex items-center gap-2 px-6 py-3 rounded-md font-semibold text-sm transition-all"
+        className="flex items-center gap-2 px-6 py-3 rounded font-semibold text-sm transition-all"
         style={{
           background: 'rgba(255,255,255,0.05)',
           border:     '1px solid rgba(255,255,255,0.10)',

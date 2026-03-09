@@ -32,7 +32,7 @@ export default function ProjectDashboardPage() {
   if (projectLoading) return (
     <div className="p-8 space-y-4">
       {[...Array(3)].map((_, i) => (
-        <div key={i} className="h-32 rounded-md shimmer" />
+        <div key={i} className="h-32 rounded shimmer" />
       ))}
     </div>
   )

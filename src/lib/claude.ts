@@ -21,15 +21,26 @@ export interface LATAnalysis {
   motivationalNote: string
 }
 
+interface UserContext {
+  userName:         string
+  authorizedEmails: string[]
+}
+
 export async function analyzeProject(
   project: Project,
-  trigger: string
+  trigger: string,
+  userContext?: UserContext
 ): Promise<LATAnalysis | null> {
   try {
     const res = await fetch('/api/claude', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ project, trigger }),
+      body:    JSON.stringify({
+        project,
+        trigger,
+        userName:         userContext?.userName,
+        authorizedEmails: userContext?.authorizedEmails,
+      }),
     })
     const json = await res.json()
     if (!json.ok) throw new Error(json.error)
@@ -42,13 +53,19 @@ export async function analyzeProject(
 
 export async function chatWithClaude(
   project: Project,
-  messages: { role: 'user' | 'assistant'; content: string }[]
+  messages: { role: 'user' | 'assistant'; content: string }[],
+  userContext?: UserContext
 ): Promise<string | null> {
   try {
     const res = await fetch('/api/claude', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ project, messages }),
+      body:    JSON.stringify({
+        project,
+        messages,
+        userName:         userContext?.userName,
+        authorizedEmails: userContext?.authorizedEmails,
+      }),
     })
     const json = await res.json()
     if (!json.ok) throw new Error(json.error)
