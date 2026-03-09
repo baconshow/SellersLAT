@@ -14,11 +14,11 @@ const ClaudeIcon = ({ size = 18, ...props }: any) => (
 interface Props { project: Project }
 
 export default function KPICards({ project }: Props) {
-  const latest = project.weeklyUpdates?.[project.weeklyUpdates.length - 1]
-  const total      = latest?.distributorsTotal      ?? 0
-  const integrated = latest?.distributorsIntegrated ?? 0
-  const pending    = latest?.distributorsPending    ?? 0
-  const blocked    = latest?.distributorsBlocked    ?? 0
+  const distributors = project.distributors ?? []
+  const total      = distributors.length
+  const integrated = distributors.filter(d => d.status === 'integrated').length
+  const pending    = distributors.filter(d => d.status === 'pending').length
+  const blocked    = distributors.filter(d => d.status === 'blocked').length
   const integrationPct = total > 0 ? Math.round((integrated / total) * 100) : 0
 
   const daysTotal  = differenceInDays(new Date(project.endDate), new Date(project.startDate)) || 1
