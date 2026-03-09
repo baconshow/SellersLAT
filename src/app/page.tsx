@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
@@ -9,75 +9,10 @@ import Image from 'next/image'
 export default function LandingPage() {
   const { user, loading, signInWithGoogle } = useAuth()
   const router = useRouter()
-  const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
     if (!loading && user) router.push('/dashboard')
   }, [user, loading, router])
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const resize = () => {
-      canvas.width  = window.innerWidth
-      canvas.height = window.innerHeight
-    }
-    resize()
-    window.addEventListener('resize', resize)
-
-    let frame = 0
-    let raf: number
-
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      const cols = 14
-      const rows = 10
-      const cw = canvas.width  / cols
-      const ch = canvas.height / rows
-
-      for (let i = 0; i <= cols; i++) {
-        const alpha = 0.025 + (Math.sin(frame * 0.008 + i * 0.4) * 0.012)
-        ctx.strokeStyle = `rgba(255,255,255,${alpha})`
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(i * cw, 0)
-        ctx.lineTo(i * cw, canvas.height)
-        ctx.stroke()
-      }
-
-      for (let j = 0; j <= rows; j++) {
-        const alpha = 0.025 + (Math.sin(frame * 0.008 + j * 0.6) * 0.012)
-        ctx.strokeStyle = `rgba(255,255,255,${alpha})`
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(0, j * ch)
-        ctx.lineTo(canvas.width, j * ch)
-        ctx.stroke()
-      }
-
-      for (let i = 0; i <= cols; i++) {
-        for (let j = 0; j <= rows; j++) {
-          const alpha = 0.06 + Math.sin(frame * 0.01 + i * 0.5 + j * 0.7) * 0.04
-          ctx.fillStyle = `rgba(255,255,255,${alpha})`
-          ctx.beginPath()
-          ctx.arc(i * cw, j * ch, 1, 0, Math.PI * 2)
-          ctx.fill()
-        }
-      }
-
-      frame++
-      raf = requestAnimationFrame(draw)
-    }
-
-    draw()
-    return () => {
-      cancelAnimationFrame(raf)
-      window.removeEventListener('resize', resize)
-    }
-  }, [])
 
   if (loading) return (
     <div className="min-h-screen bg-[#050508] flex items-center justify-center">
@@ -88,15 +23,22 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen bg-[#050508] overflow-hidden flex flex-col select-none">
 
-      <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
+      {/* ─── Vídeo de Fundo ──────────────────────────────── */}
+      <video
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0 opacity-40"
+      >
+        <source src="/videos/Plexus_Nexaya.mp4" type="video/mp4" />
+      </video>
 
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(255,255,255,0.025) 0%, transparent 70%)' }} />
-      <div className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.015) 0%, transparent 70%)', filter: 'blur(60px)' }} />
-      <div className="absolute -bottom-40 -right-40 w-[400px] h-[400px] rounded-full pointer-events-none"
-        style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.012) 0%, transparent 70%)', filter: 'blur(80px)' }} />
-      <div className="absolute inset-0 pointer-events-none opacity-[0.025]"
+      {/* Overlays para garantir contraste */}
+      <div className="absolute inset-0 pointer-events-none z-1"
+        style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(5,5,8,0.4) 0%, #050508 100%)' }} />
+      
+      <div className="absolute inset-0 pointer-events-none opacity-[0.025] z-2"
         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
 
       {/* ─── Header ─────────────────────────────────────── */}
@@ -114,7 +56,7 @@ export default function LandingPage() {
       {/* ─── Main ───────────────────────────────────────── */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 -mt-8">
 
-        {/* Sellers badge — Agora acima do LAT */}
+        {/* Sellers badge */}
         <motion.div
           initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
@@ -165,7 +107,7 @@ export default function LandingPage() {
           </span>
         </motion.div>
 
-        {/* Tagline / Slogan melhorado */}
+        {/* Tagline / Slogan */}
         <motion.p
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
