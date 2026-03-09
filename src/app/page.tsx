@@ -23,24 +23,11 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen w-full bg-[#050508] overflow-hidden flex flex-col select-none">
 
-      {/* ─── Vídeo de Fundo (Tela Cheia) ───────────────────── */}
-      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
-        <video
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="w-full h-full object-cover opacity-40"
-        >
-          <source src="/videos/Plexus_Nexaya.mp4" type="video/mp4" />
-        </video>
-      </div>
-
-      {/* Overlays para garantir contraste */}
+      {/* Overlays para profundidade no preto */}
       <div className="absolute inset-0 pointer-events-none z-1"
-        style={{ background: 'radial-gradient(ellipse 60% 50% at 50% 50%, rgba(5,5,8,0.2) 0%, #050508 100%)' }} />
+        style={{ background: 'radial-gradient(circle at 50% 50%, rgba(255,255,255,0.02) 0%, transparent 100%)' }} />
       
-      <div className="absolute inset-0 pointer-events-none opacity-[0.025] z-2"
+      <div className="absolute inset-0 pointer-events-none opacity-[0.02] z-2"
         style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
 
       {/* ─── Header ─────────────────────────────────────── */}
@@ -56,7 +43,7 @@ export default function LandingPage() {
       </header>
 
       {/* ─── Main ───────────────────────────────────────── */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 -mt-8">
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 -mt-12">
 
         {/* Sellers badge */}
         <motion.div
@@ -78,7 +65,7 @@ export default function LandingPage() {
           className="relative mb-2"
         >
           <div className="absolute inset-0 blur-[80px] scale-150 pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.06), transparent)' }} />
+            style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.05), transparent)' }} />
 
           <h1
             className="relative text-[min(10vw,6.5rem)] font-black leading-none text-white"
