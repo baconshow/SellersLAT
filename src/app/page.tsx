@@ -114,12 +114,24 @@ export default function LandingPage() {
       {/* ─── Main ───────────────────────────────────────── */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 -mt-8">
 
+        {/* Sellers badge — Agora acima do LAT */}
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="flex items-center gap-2 mb-2"
+        >
+          <span className="font-mono text-[10px] tracking-[0.4em] text-white/30 uppercase font-bold">
+            Sellers
+          </span>
+        </motion.div>
+
         {/* LAT wordmark */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
-          className="relative mb-3"
+          transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="relative mb-2"
         >
           <div className="absolute inset-0 blur-[80px] scale-150 pointer-events-none"
             style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.06), transparent)' }} />
@@ -136,39 +148,39 @@ export default function LandingPage() {
             LAT
           </h1>
 
-          <div className="absolute -bottom-2 left-0 right-0">
+          <div className="absolute -bottom-1 left-0 right-0">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
           </div>
         </motion.div>
 
-        {/* Sellers badge — logo abaixo do LAT */}
+        {/* Significado do Acrônimo */}
         <motion.div
-          initial={{ opacity: 0, y: 6 }}
+          initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="flex items-center gap-2 mb-10"
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mb-12"
         >
-          
-          <span className="font-mono text-[10px] tracking-[0.35em] text-white/30 uppercase">
-            Sellers
+          <span className="font-mono text-[9px] tracking-[0.25em] text-white/20 uppercase">
+            Live Autonomous Tracker
           </span>
         </motion.div>
 
-        {/* Tagline */}
+        {/* Tagline / Slogan melhorado */}
         <motion.p
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.35 }}
-          className="text-white/30 text-sm font-medium tracking-[0.15em] uppercase mb-14 text-center"
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="text-white/40 text-sm font-medium tracking-[0.1em] mb-14 text-center max-w-sm leading-relaxed"
         >
-          Sua jornada de Deploy simplificada.
+          Autônomo por design.<br />
+          Presente em cada etapa.
         </motion.p>
 
         {/* Google Sign In */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.5 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
         >
           <button
             onClick={signInWithGoogle}
