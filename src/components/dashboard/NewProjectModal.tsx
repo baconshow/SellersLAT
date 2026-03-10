@@ -108,7 +108,7 @@ export default function NewProjectModal({ onClose, onCreated }: Props) {
         startDate:            form.startDate,
         endDate,
         phases,
-      })
+      }, user.email ?? undefined)
       toast.success(`Projeto ${form.clientName} criado!`)
       if (onCreated) onCreated(id)
       else { onClose(); router.push(`/project/${id}`) }

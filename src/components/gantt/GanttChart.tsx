@@ -3,10 +3,10 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { differenceInDays, format, eachMonthOfInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { CheckCircle2, Clock, AlertCircle, Circle, X, Trash2, Check, CalendarIcon } from 'lucide-react'
+import { CheckCircle2, Clock, AlertCircle, Circle, X, Trash2, Check } from 'lucide-react'
 import type { Project, ProjectPhase, PhaseStatus } from '@/types'
 import { updateProject } from '@/lib/firestore'
-import { Calendar } from '@/components/ui/calendar'
+import DatePicker from '@/components/ui/DatePicker'
 import toast from 'react-hot-toast'
 
 interface Props { project: Project }
@@ -28,12 +28,11 @@ const BAR_STYLE: Record<PhaseStatus, React.CSSProperties> = {
 interface EditPanel { phase: ProjectPhase; x: number; y: number }
 
 export default function GanttChart({ project }: Props) {
-  const [editPanel,      setEditPanel]      = useState<EditPanel | null>(null)
-  const [editName,       setEditName]       = useState('')
-  const [editStart,      setEditStart]      = useState('')
-  const [editEnd,        setEditEnd]        = useState('')
-  const [saved,          setSaved]          = useState(false)
-  const [calendarTarget, setCalendarTarget] = useState<'start' | 'end' | null>(null)
+  const [editPanel, setEditPanel] = useState<EditPanel | null>(null)
+  const [editName,  setEditName]  = useState('')
+  const [editStart, setEditStart] = useState('')
+  const [editEnd,   setEditEnd]   = useState('')
+  const [saved,     setSaved]     = useState(false)
   const panelRef  = useRef<HTMLDivElement>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -102,7 +101,6 @@ export default function GanttChart({ project }: Props) {
     setEditStart(phase.startDate.slice(0, 10))
     setEditEnd(phase.endDate.slice(0, 10))
     setSaved(false)
-    setCalendarTarget(null)
     const panelW = 280
     const panelH = 280
     const x = Math.min(e.clientX + 8, window.innerWidth  - panelW - 16)
@@ -284,85 +282,29 @@ export default function GanttChart({ project }: Props) {
               />
             </div>
 
-            {/* Dates */}
+            {/* Dates — DatePicker com Popover */}
             <div className="flex gap-2 mb-3">
               <div className="flex-1">
                 <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Início</label>
-                <button
-                  onClick={() => setCalendarTarget(prev => prev === 'start' ? null : 'start')}
-                  className="w-full flex items-center gap-2 text-xs text-white px-3 py-2"
-                  style={{
-                    background: 'rgba(255,255,255,0.07)',
-                    border: `1px solid ${calendarTarget === 'start' ? 'var(--color-brand, #00D4AA)' : 'rgba(255,255,255,0.1)'}`,
-                    borderRadius: 5,
-                    transition: 'border-color 150ms',
+                <DatePicker
+                  value={editStart}
+                  onChange={v => {
+                    setEditStart(v)
+                    triggerAutoSave(editName, v, editEnd, editPanel.phase.id)
                   }}
-                >
-                  <CalendarIcon style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
-                  {editStart ? format(new Date(editStart + 'T00:00'), "dd MMM yyyy", { locale: ptBR }) : '—'}
-                </button>
+                />
               </div>
               <div className="flex-1">
                 <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Fim</label>
-                <button
-                  onClick={() => setCalendarTarget(prev => prev === 'end' ? null : 'end')}
-                  className="w-full flex items-center gap-2 text-xs text-white px-3 py-2"
-                  style={{
-                    background: 'rgba(255,255,255,0.07)',
-                    border: `1px solid ${calendarTarget === 'end' ? 'var(--color-brand, #00D4AA)' : 'rgba(255,255,255,0.1)'}`,
-                    borderRadius: 5,
-                    transition: 'border-color 150ms',
+                <DatePicker
+                  value={editEnd}
+                  onChange={v => {
+                    setEditEnd(v)
+                    triggerAutoSave(editName, editStart, v, editPanel.phase.id)
                   }}
-                >
-                  <CalendarIcon style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }} />
-                  {editEnd ? format(new Date(editEnd + 'T00:00'), "dd MMM yyyy", { locale: ptBR }) : '—'}
-                </button>
+                />
               </div>
             </div>
-
-            {/* Inline Calendar */}
-            <AnimatePresence>
-              {calendarTarget && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.15 }}
-                  style={{ overflow: 'hidden' }}
-                  className="mb-3"
-                >
-                  <Calendar
-                    mode="single"
-                    selected={calendarTarget === 'start' ? new Date(editStart + 'T00:00') : new Date(editEnd + 'T00:00')}
-                    onSelect={(date) => {
-                      if (!date) return
-                      const iso = date.toISOString().slice(0, 10)
-                      if (calendarTarget === 'start') setEditStart(iso)
-                      else setEditEnd(iso)
-                      setCalendarTarget(null)
-                      triggerAutoSave(
-                        editName,
-                        calendarTarget === 'start' ? iso : editStart,
-                        calendarTarget === 'end' ? iso : editEnd,
-                        editPanel.phase.id
-                      )
-                    }}
-                    locale={ptBR}
-                    className="rounded-none border-0 p-0"
-                    classNames={{
-                      caption_label: "text-xs font-semibold text-white",
-                      nav_button: "h-6 w-6 bg-transparent p-0 opacity-50 hover:opacity-100 text-white border border-white/10 rounded flex items-center justify-center",
-                      head_cell: "text-[10px] text-white/30 w-8 font-normal",
-                      cell: "h-8 w-8 text-center text-xs p-0",
-                      day: "h-8 w-8 p-0 font-normal text-white/60 hover:bg-white/10 rounded flex items-center justify-center",
-                      day_selected: "bg-[var(--color-brand,#00D4AA)] text-[#050508] hover:bg-[var(--color-brand,#00D4AA)] font-bold",
-                      day_today: "bg-white/10 text-white font-semibold",
-                      day_outside: "text-white/15",
-                    }}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             {/* Status chips — largura igual com grid */}
             <div className="mb-3">

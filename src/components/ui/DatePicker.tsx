@@ -51,6 +51,7 @@ export default function DatePicker({ value, onChange, label }: DatePickerProps) 
         className="w-auto p-0"
         side="right"
         align="start"
+        onInteractOutside={(e) => e.preventDefault()}
         style={{
           zIndex: 99999,
           background: '#0e0e16',

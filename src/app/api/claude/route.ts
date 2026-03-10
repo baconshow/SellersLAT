@@ -195,6 +195,33 @@ ESTRUTURA INTERNA SELLERS:
   `.trim()
 }
 
+async function buildCompactContext(project: Project): Promise<string> {
+  const distributors = await fetchDistributors(project.id)
+
+  const integrated  = distributors.filter(d => d.status === 'integrated').length
+  const pending     = distributors.filter(d => d.status === 'pending').length
+  const blocked     = distributors.filter(d => d.status === 'blocked').length
+  const total       = distributors.length
+  const pct         = total > 0 ? Math.round((integrated / total) * 100) : 0
+
+  const currentPhase = project.phases.find(p => p.status === 'in_progress')
+  const lastUpdate   = project.weeklyUpdates?.slice(-1)[0]
+
+  const blockedList  = distributors
+    .filter(d => d.status === 'blocked')
+    .map(d => `- ${d.name}: ${d.blockerDescription || 'sem motivo registrado'}`)
+    .join('\n')
+
+  return `
+PROJETO: ${project.clientName}
+INTEGRAÇÃO: ${pct}% (${integrated}/${total})
+Pendentes: ${pending} | Bloqueados: ${blocked}
+FASE ATUAL: ${currentPhase?.name ?? 'Nenhuma em andamento'}
+${blockedList ? `BLOQUEADOS:\n${blockedList}` : 'Nenhum bloqueado.'}
+${lastUpdate ? `ÚLTIMA SEMANA (${lastUpdate.weekNumber}): integrados ${lastUpdate.distributorsIntegrated}/${lastUpdate.distributorsTotal} | destaques: ${lastUpdate.highlights?.join('; ') || 'nenhum'} | bloqueios: ${lastUpdate.blockers?.join('; ') || 'nenhum'}` : 'Sem atualização semanal.'}
+`.trim()
+}
+
 function tryParseJSON(raw: string): Record<string, unknown> {
   const clean = raw.replace(/^```json\n?/, '').replace(/^```\n?/, '').replace(/\n?```$/, '').trim()
 
@@ -233,7 +260,37 @@ export async function POST(req: Request) {
     const userName         = rawUserName || 'time Sellers'
     const authorizedEmails = rawEmails ?? project.authorizedEmails ?? []
     const gestores         = authorizedEmails.length > 0 ? authorizedEmails.join(', ') : 'nenhum cadastrado'
-    const context          = await buildProjectContext(project, userName, authorizedEmails)
+
+    // ── Modo dashboard_insight — contexto compacto, resposta leve ──
+    if (trigger === 'dashboard_insight') {
+      const compactCtx = await buildCompactContext(project)
+      const response = await anthropic.messages.create({
+        model:      'claude-haiku-4-5-20251001',
+        max_tokens: 512,
+        system: `Você é o LAT Intelligence. Retorne APENAS JSON válido, sem texto extra.
+
+{
+  "summary": "1 frase direta sobre o estado geral do projeto",
+  "status": "ok" | "attention" | "critical",
+  "attentionPoints": [
+    { "title": "string curto", "description": "1 frase" }
+  ],
+  "winOfTheWeek": "1 conquista recente para celebrar (ou null)"
+}
+
+Máximo 3 attentionPoints. Seja direto. Sem jargões.
+
+CONTEXTO:
+${compactCtx}`,
+        messages: [{ role: 'user', content: 'Analise e retorne o JSON.' }],
+      })
+
+      const raw  = response.content[0].type === 'text' ? response.content[0].text.trim() : '{}'
+      const json = tryParseJSON(raw)
+      return Response.json({ ok: true, data: json })
+    }
+
+    const context = await buildProjectContext(project, userName, authorizedEmails)
 
     // ── Modo proativo — retorna JSON ──────────────────────────
     if (trigger && !messages) {

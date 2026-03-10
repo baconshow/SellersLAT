@@ -18,21 +18,21 @@ const ClaudeIcon = ({ size = 18, ...props }: any) => (
   </svg>
 )
 
-/* \u2500\u2500 Loading messages generator \u2500\u2500 */
+/* ── Loading messages generator ── */
 
 const GENERIC_MESSAGES = [
-  'Fazendo fotoss\u00edntese dos dados...',
-  'Montando o quebra-cabe\u00e7a...',
+  'Fazendo fotossíntese dos dados...',
+  'Montando o quebra-cabeça...',
   'Deixando o pomodoro pra depois...',
   'Investigando os culpados...',
-  'Verificando se o Miguel j\u00e1 aprovou o or\u00e7amento...',
-  'Apontando os respons\u00e1veis com o dedo...',
-  'Consultando o or\u00e1culo de vendas...',
-  'Aguardando o Miguel terminar a reuni\u00e3o que era pra ser r\u00e1pida...',
-  'Ignorando as desculpas e focando nos n\u00fameros...',
-  'O Miguel disse que resolve amanh\u00e3. Registrando a promessa...',
-  'Traduzindo "t\u00e1 quase" para datas reais...',
-  'Checando se o Miguel leu o email enviado h\u00e1 3 dias...',
+  'Verificando se o Miguel já aprovou o orçamento...',
+  'Apontando os responsáveis com o dedo...',
+  'Consultando o oráculo de vendas...',
+  'Aguardando o Miguel terminar a reunião que era pra ser rápida...',
+  'Ignorando as desculpas e focando nos números...',
+  'O Miguel disse que resolve amanhã. Registrando a promessa...',
+  'Traduzindo "tá quase" para datas reais...',
+  'Checando se o Miguel leu o email enviado há 3 dias...',
 ]
 
 function shuffle<T>(arr: T[]): T[] {
@@ -72,7 +72,7 @@ function getLoadingMessages(project: Project, userName: string): string[] {
 
   if (blocked.length > 0) {
     const pick = blocked[Math.floor(Math.random() * blocked.length)]
-    contextual.push(`Perguntando por que ${pick.name} ainda n\u00e3o respondeu...`)
+    contextual.push(`Perguntando por que ${pick.name} ainda não respondeu...`)
     if (pick.responsible) {
       contextual.push(`Verificando o que a ${pick.responsible} fez com o ${pick.name}...`)
       contextual.push(`${pick.responsible} foi avisada sobre o ${pick.name}? Checando...`)
@@ -80,23 +80,23 @@ function getLoadingMessages(project: Project, userName: string): string[] {
   }
   if (emails.length > 0) {
     const pick = emails[Math.floor(Math.random() * emails.length)]
-    contextual.push(`Verificando quantas liga\u00e7\u00f5es foram feitas para ${firstName(pick)}...`)
+    contextual.push(`Verificando quantas ligações foram feitas para ${firstName(pick)}...`)
   }
   const blockedPhase = project.phases.find(p => p.status === 'blocked')
   if (blockedPhase) {
     contextual.push(`Tentando entender o que travou o ${blockedPhase.name}...`)
   }
   if (weekNumber > 3) {
-    contextual.push(`Calculando quantos caf\u00e9s o ${userName} j\u00e1 tomou nesse projeto...`)
+    contextual.push(`Calculando quantos cafés o ${userName} já tomou nesse projeto...`)
   }
   if (progress < 30 && total > 0) {
-    contextual.push('Respirando fundo antes de mostrar os n\u00fameros...')
+    contextual.push('Respirando fundo antes de mostrar os números...')
   }
   if (progress > 80) {
-    contextual.push('Preparando os fogos de artif\u00edcio...')
+    contextual.push('Preparando os fogos de artifício...')
   }
   if (daysToEnd < 14 && daysToEnd > 0) {
-    contextual.push('Contando os dias. E ficando nervoso junto com voc\u00ea...')
+    contextual.push('Contando os dias. E ficando nervoso junto com você...')
   }
 
   // Distribuidores parados
@@ -107,13 +107,13 @@ function getLoadingMessages(project: Project, userName: string): string[] {
       : undefined
     const days = daysSinceStr(lastComment || d.integratedAt)
     if (days !== null && days > 7) {
-      contextual.push(`${d.name} parado h\u00e1 ${days} dias. Isso n\u00e3o \u00e9 normal...`)
+      contextual.push(`${d.name} parado há ${days} dias. Isso não é normal...`)
     }
   }
 
   // Henrique
-  contextual.push('Calculando o que contar pro Henrique na pr\u00f3xima reuni\u00e3o...')
-  contextual.push('Preparando o relat\u00f3rio que o Henrique vai pedir amanh\u00e3...')
+  contextual.push('Calculando o que contar pro Henrique na próxima reunião...')
+  contextual.push('Preparando o relatório que o Henrique vai pedir amanhã...')
 
   const shuffled = shuffle(GENERIC_MESSAGES)
   const mixed: string[] = []
@@ -129,9 +129,9 @@ function getLoadingMessages(project: Project, userName: string): string[] {
   return mixed
 }
 
-const DONE_MESSAGE = 'Pronto. Pode culpar algu\u00e9m agora.'
+const DONE_MESSAGE = 'Pronto. Pode culpar alguém agora.'
 
-/* \u2500\u2500 Terminal Log component \u2500\u2500 */
+/* ── Terminal Log component ── */
 
 interface TerminalLogProps {
   messages: string[]
@@ -286,7 +286,7 @@ function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalL
                   animate={{ opacity: [1, 0, 1] }}
                   transition={{ duration: 0.8, repeat: Infinity, times: [0, 0.5, 1], ease: 'linear' }}
                 >
-                  {'\u2588'}
+                  {'█'}
                 </motion.span>
               )}
             </motion.div>
@@ -297,7 +297,7 @@ function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalL
   )
 }
 
-/* \u2500\u2500 Intro Screen \u2500\u2500 */
+/* ── Intro Screen ── */
 
 interface IntroScreenProps {
   messages: string[]
@@ -436,7 +436,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
       setTerminalActive(false)
       setFinalMsg(DONE_MESSAGE)
     } else if (analysisDoneRef.current && !analysisResultRef.current) {
-      // Analysis failed \u2014 show immediately
+      // Analysis failed — show immediately
       setShowIntro(false)
     }
   }, [])
@@ -513,7 +513,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
       }
     } catch (err: any) {
       console.error('[LAT chat error]', err)
-      setMessages(m => [...m, { role: 'assistant', content: `Erro de conex\u00e3o: ${err.message}` }])
+      setMessages(m => [...m, { role: 'assistant', content: `Erro de conexão: ${err.message}` }])
     } finally {
       setSending(false)
     }
@@ -528,7 +528,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
       transition={{ duration: 0.25, ease: 'easeOut' }}
     >
 
-      {/* \u2500\u2500 Intro overlay \u2500\u2500 */}
+      {/* ── Intro overlay ── */}
       <AnimatePresence>
         {showIntro && (
           <IntroScreen
@@ -580,7 +580,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
       <div className="flex px-5 pt-3 gap-1"
            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         {[
-          { id: 'actions', label: 'A\u00e7\u00f5es & Riscos', icon: ClaudeIcon       },
+          { id: 'actions', label: 'Ações & Riscos', icon: ClaudeIcon       },
           { id: 'chat',    label: 'Conversar',       icon: MessageSquare },
         ].map(t => (
           <button
@@ -602,7 +602,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
       {/* Body */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* \u2500\u2500 A\u00e7\u00f5es & Riscos \u2500\u2500 */}
+        {/* ── Ações & Riscos ── */}
         {tab === 'actions' && (
           <div className="p-5 space-y-5">
 
@@ -645,7 +645,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
                   <div>
                     <p className="text-[10px] uppercase tracking-widest mb-2.5 font-semibold"
                        style={{ color: 'rgba(255,255,255,0.3)' }}>
-                      A\u00e7\u00f5es Necess\u00e1rias
+                      Ações Necessárias
                     </p>
                     <div className="space-y-2">
                       {analysis.urgentActions.map((action, i) => (
@@ -701,7 +701,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
                                   }}
                                 >
                                   <MessageSquare style={{ width: 10, height: 10 }} />
-                                  Pedir ajuda \u00e0 IA
+                                  Pedir ajuda à IA
                                 </button>
                               </motion.div>
                             )}
@@ -770,7 +770,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
                   </div>
                 )}
 
-                {/* Pr\u00f3xima semana */}
+                {/* Próxima semana */}
                 {analysis.nextWeekPreview && (
                   <motion.div
                     className="rounded px-4 py-3"
@@ -783,7 +783,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
                       <ArrowRight style={{ width: 11, height: 11, color: 'var(--color-brand,#00D4AA)' }} />
                       <p className="text-[10px] uppercase tracking-widest font-semibold"
                          style={{ color: 'var(--color-brand,#00D4AA)' }}>
-                        Pr\u00f3xima semana
+                        Próxima semana
                       </p>
                     </div>
                     <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
@@ -798,7 +798,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
             {!loading && !analysis && !showIntro && (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
                 <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
-                  N\u00e3o foi poss\u00edvel carregar a an\u00e1lise.
+                  Não foi possível carregar a análise.
                 </p>
                 <button onClick={runAnalysis}
                   className="text-xs px-4 py-2 rounded"
@@ -810,7 +810,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
           </div>
         )}
 
-        {/* \u2500\u2500 Chat \u2500\u2500 */}
+        {/* ── Chat ── */}
         {tab === 'chat' && (
           <div className="flex flex-col h-full">
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
@@ -848,10 +848,10 @@ export default function LATIntelligence({ project, onClose }: Props) {
                         </p>
                       </>
                     )}
-                    {/* Sugest\u00f5es r\u00e1pidas */}
+                    {/* Sugestões rápidas */}
                     <div className="flex flex-col gap-1.5 mt-2 w-full">
                       {[
-                        'O que est\u00e1 atrasado?',
+                        'O que está atrasado?',
                         'Gere o email de KickOff',
                         'Qual o risco maior agora?',
                         'Recalcule o Go-Live',

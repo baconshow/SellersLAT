@@ -6,11 +6,12 @@ import {
   AlertTriangle, ArrowLeft, Palette, History,
   Target, Trash2, RotateCcw, Upload,
   CheckCircle2, Clock, XCircle, Circle, ChevronDown,
-  Link, Copy, Plus, X, Share2,
+  Link, Copy, Plus, X, Share2, Users,
 } from 'lucide-react'
 import {
   subscribeToProject, updateProject, deleteProject, restoreDistributorsFromHistory,
   generateShareToken, toggleShare, updateAuthorizedEmails,
+  addProjectMember, removeProjectMember,
 } from '@/lib/firestore'
 import { useAuth } from '@/contexts/AuthContext'
 import { applyTheme } from '@/lib/theme'
@@ -60,6 +61,7 @@ export default function SettingsPage() {
   const [restoringId,       setRestoringId]       = useState<string | null>(null)
   const [expandedEntry,     setExpandedEntry]     = useState<string | null>(null)
   const [newEmail,           setNewEmail]          = useState('')
+  const [newMemberEmail,     setNewMemberEmail]    = useState('')
   const [shareLoading,       setShareLoading]      = useState(false)
 
   const [form, setForm] = useState({
@@ -442,6 +444,104 @@ export default function SettingsPage() {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          </Section>
+
+          {/* Gestores do Projeto */}
+          <Section icon={<Users style={{ width: 14, height: 14 }} />} title="Gestores do Projeto" accent={accent}>
+            <div className="space-y-3">
+              <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                Todos os gestores podem editar este projeto.
+              </p>
+
+              {/* Lista de membros */}
+              {(project.members ?? []).length > 0 && (
+                <div className="space-y-1">
+                  {project.members!.map(email => {
+                    const isOwner = user?.email === email && project.ownerId === user?.uid
+                    return (
+                      <div key={email} className="flex items-center justify-between px-3 py-2 rounded"
+                           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>✉</span>
+                          <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>{email}</span>
+                        </div>
+                        {isOwner ? (
+                          <span className="text-[9px] px-2 py-0.5 rounded-full font-bold"
+                                style={{ background: `${accent}20`, color: accent }}>
+                            owner
+                          </span>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              try {
+                                await removeProjectMember(id, email)
+                                toast.success('Gestor removido.')
+                              } catch { toast.error('Erro ao remover gestor.') }
+                            }}
+                            className="text-white/30 hover:text-red-400 transition-colors"
+                          >
+                            <X style={{ width: 13, height: 13 }} />
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Adicionar membro */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="email"
+                  value={newMemberEmail}
+                  onChange={e => setNewMemberEmail(e.target.value)}
+                  placeholder="email do novo gestor..."
+                  style={FIELD}
+                  onKeyDown={async e => {
+                    if (e.key === 'Enter' && newMemberEmail.trim()) {
+                      e.preventDefault()
+                      const email = newMemberEmail.trim().toLowerCase()
+                      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        toast.error('Email inválido.'); return
+                      }
+                      if (project.members?.includes(email)) {
+                        toast.error('Já é gestor deste projeto.'); return
+                      }
+                      try {
+                        await addProjectMember(id, email)
+                        setNewMemberEmail('')
+                        toast.success('Gestor adicionado.')
+                      } catch { toast.error('Erro ao convidar gestor.') }
+                    }
+                  }}
+                  onFocus={e => (e.target.style.border = `1px solid ${accent}60`)}
+                  onBlur={e => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')}
+                />
+                <button
+                  onClick={async () => {
+                    if (!newMemberEmail.trim()) return
+                    const email = newMemberEmail.trim().toLowerCase()
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                      toast.error('Email inválido.'); return
+                    }
+                    if (project.members?.includes(email)) {
+                      toast.error('Já é gestor deste projeto.'); return
+                    }
+                    try {
+                      await addProjectMember(id, email)
+                      setNewMemberEmail('')
+                      toast.success('Gestor adicionado.')
+                    } catch { toast.error('Erro ao convidar gestor.') }
+                  }}
+                  className="flex items-center justify-center w-10 h-10 rounded shrink-0 transition-all"
+                  style={{ background: `${accent}15`, border: `1px solid ${accent}30`, color: accent }}
+                  onMouseEnter={e => (e.currentTarget.style.background = `${accent}25`)}
+                  onMouseLeave={e => (e.currentTarget.style.background = `${accent}15`)}
+                >
+                  <Plus style={{ width: 14, height: 14 }} />
+                </button>
               </div>
             </div>
           </Section>

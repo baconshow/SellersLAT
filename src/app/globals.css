@@ -30,12 +30,14 @@
   font-display: swap;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  --font-outfit: 'Outfit', sans-serif;
+  --font-dm-sans: 'DM Sans', sans-serif;
+
   --color-brand: #00D4AA;
   --color-brand-secondary: #8B5CF6;
   --color-brand-rgb: 0,212,170;
@@ -146,13 +148,20 @@
 html, body {
   background: #050508;
   color: #F0F0F5;
-  font-family: 'Outfit', sans-serif;
+  font-family: var(--font-outfit), sans-serif;
   overflow-x: hidden;
+}
+
+/* Outfit: headings, números, títulos, labels uppercase */
+/* DM Sans: corpo de texto, parágrafos, descrições longas */
+
+.body-text, .description {
+  font-family: var(--font-dm-sans), sans-serif;
 }
 
 /* Classes para fontes personalizadas */
 .font-heading {
-  font-family: 'Outfit', sans-serif; /* Mude para sua fonte quando subir os arquivos */
+  font-family: var(--font-outfit), sans-serif;
 }
 
 /* Scrollbar premium */

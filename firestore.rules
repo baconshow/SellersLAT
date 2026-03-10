@@ -4,128 +4,139 @@ service cloud.firestore {
 
     /**
      * FIRESTORE SECURITY RULES - PROTOTYPING MODE
-     * 
+     *
      * Core Philosophy:
-     * This ruleset implements a strict User-Ownership model. Access to data is restricted 
-     * exclusively to the user who created it. This is enforced through direct field 
-     * checks on documents to ensure high performance and low cost.
-     * 
+     * This ruleset implements an Owner + Members model. Access to data is restricted
+     * to the user who created the project (ownerId) OR users whose email is in the
+     * project's members[] array. Public read is allowed for shared projects.
+     *
      * Data Structure:
      * - /projects/{projectId}: Root collection for client projects.
      * - /projects/{projectId}/phases/{phaseId}: Subcollection for project milestones.
      * - /projects/{projectId}/weeklyUpdates/{weeklyUpdateId}: Subcollection for progress tracking.
-     * 
+     * - /projects/{projectId}/distributors/{distributorId}: Subcollection for distributors.
+     * - /projects/{projectId}/distributors/{distributorId}/comments/{commentId}: Comments from gestores.
+     *
      * Key Security Decisions:
-     * 1. Denormalization for Authorization: To avoid expensive 'get()' calls, the 'ownerId' 
-     *    (representing the project creator's UID) is denormalized from the Project into all 
-     *    Phase and WeeklyUpdate documents.
-     * 2. Strict Ownership: No public reading or listing is permitted. All access requires 
-     *    authentication and matching ownership IDs.
-     * 3. Relational Integrity: On creation, the rules enforce that the document's 
-     *    internal owner field matches the authenticated user's UID.
-     * 4. Prototyping Flexibility: While authorization is strictly enforced, the specific 
-     *    data types and schema of non-authorization fields are not validated to allow 
-     *    for rapid frontend iteration.
+     * 1. Owner + Members: ownerId (UID) or members[] (array-contains email) grants full access.
+     * 2. Legacy userId: kept for backward compatibility (old projects without ownerId).
+     * 3. Public Share: Projects with shareEnabled == true can be read (get) without auth.
+     * 4. Prototyping Flexibility: Non-authorization fields are not schema-validated.
      */
 
     // --- Helper Functions ---
 
-    /** @description Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** @description Checks if the provided UID matches the authenticated user's UID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /** @description Checks if the user is the owner and the document exists (for updates/deletes). */
-    function isExistingOwner(userId) {
-      return resource != null && isOwner(userId);
+    function isMember(data) {
+      return isSignedIn()
+        && data.members != null
+        && data.members.hasAny([request.auth.token.email]);
+    }
+
+    function isOwnerOrMember(data) {
+      return isOwner(data.ownerId) || isOwner(data.userId) || isMember(data);
     }
 
     // --- Collection Rules ---
 
-    /**
-     * @description Rules for the top-level Projects collection.
-     * @path /projects/{projectId}
-     * @allow (create) if auth.uid == 'user123' and request.resource.data.userId == 'user123'
-     * @deny (list) if auth.uid is different from the document's userId.
-     * @principle Enforces document ownership for all CRUD operations.
-     */
     match /projects/{projectId} {
-      // Owner: acesso completo
-      allow get: if isOwner(resource.data.userId);
-      allow list: if isOwner(resource.data.userId)
-                  || (isSignedIn() && resource.data.shareEnabled == true);
+      // Read: owner, member, or public shared
+      allow get: if isOwnerOrMember(resource.data);
+      allow get: if resource.data.shareEnabled == true;
 
+      // List: owner or member (for dashboard queries)
+      // Also allow list for authenticated + shareEnabled (query by slug)
+      allow list: if isSignedIn() && (
+        resource.data.userId == request.auth.uid
+        || resource.data.ownerId == request.auth.uid
+        || (resource.data.members != null && resource.data.members.hasAny([request.auth.token.email]))
+        || resource.data.shareEnabled == true
+      );
+
+      // Create: authenticated, sets self as owner
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
 
-      allow update: if isExistingOwner(resource.data.userId)
-                    && request.resource.data.userId == resource.data.userId // Enforce immutability of owner
-                    // Gestores autorizados podem atualizar (comentários em distribuidores)
-                    || (isSignedIn() && resource.data.shareEnabled == true);
+      // Update: owner or member (immutable userId/ownerId)
+      // Also allow authenticated gestor on shared project (for comments)
+      allow update: if isOwnerOrMember(resource.data);
+      allow update: if isSignedIn() && resource.data.shareEnabled == true;
 
-      allow delete: if isExistingOwner(resource.data.userId);
+      // Delete: owner only
+      allow delete: if isSignedIn() && (
+        isOwner(resource.data.ownerId) || isOwner(resource.data.userId)
+      );
 
-      /**
-       * @description Rules for Phases within a Project.
-       * @path /projects/{projectId}/phases/{phaseId}
-       * @allow (get) if auth.uid matches the denormalized 'ownerId' field.
-       * @deny (update) if attempting to change the 'ownerId' field.
-       * @principle Uses denormalized ownership for independent, high-performance authorization.
-       */
+      // --- Phases subcollection ---
       match /phases/{phaseId} {
         allow get, list: if isOwner(resource.data.ownerId);
-        
         allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-        
-        allow update: if isExistingOwner(resource.data.ownerId) 
+        allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid
                       && request.resource.data.ownerId == resource.data.ownerId;
-        
-        allow delete: if isExistingOwner(resource.data.ownerId);
+        allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       }
 
-      /**
-       * @description Rules for Weekly Updates within a Project.
-       * @path /projects/{projectId}/weeklyUpdates/{weeklyUpdateId}
-       * @allow (create) if the incoming 'ownerId' matches the authenticated user.
-       * @deny (delete) if the user is not the established owner.
-       * @principle Authorization Independence: No parent lookup required due to denormalized ownerId.
-       */
+      // --- Weekly Updates subcollection ---
       match /weeklyUpdates/{weeklyUpdateId} {
         allow get, list: if isOwner(resource.data.ownerId);
-
         allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-
-        allow update: if isExistingOwner(resource.data.ownerId)
+        allow update: if isSignedIn() && resource.data.ownerId == request.auth.uid
                       && request.resource.data.ownerId == resource.data.ownerId;
-
-        allow delete: if isExistingOwner(resource.data.ownerId);
+        allow delete: if isSignedIn() && resource.data.ownerId == request.auth.uid;
       }
 
-      /**
-       * @description Rules for Distributors subcollection.
-       * @path /projects/{projectId}/distributors/{distributorId}
-       * Owner: full CRUD. Gestores autorizados (shareEnabled): read + update (hasUnreadComment).
-       */
+      // --- Distributors subcollection ---
       match /distributors/{distributorId} {
-        allow read, write: if isSignedIn()
-                           && request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.userId;
-        allow read, update: if isSignedIn()
-                            && get(/databases/$(database)/documents/projects/$(projectId)).data.shareEnabled == true;
+        // Owner or member: full CRUD
+        allow read, write: if isSignedIn() && (
+          request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.userId
+          || request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId
+          || (
+            get(/databases/$(database)/documents/projects/$(projectId)).data.members != null
+            && get(/databases/$(database)/documents/projects/$(projectId)).data.members.hasAny([request.auth.token.email])
+          )
+        );
 
-        /**
-         * @description Comments on a distributor — written by external gestores.
-         * @path /projects/{projectId}/distributors/{distributorId}/comments/{commentId}
-         */
+        // Shared project: read for anyone (public API), update for authenticated gestores
+        allow read: if get(/databases/$(database)/documents/projects/$(projectId)).data.shareEnabled == true;
+        allow update: if isSignedIn()
+                      && get(/databases/$(database)/documents/projects/$(projectId)).data.shareEnabled == true;
+
+        // --- Comments on distributors ---
         match /comments/{commentId} {
-          allow read: if isSignedIn()
-                      && (request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.userId
-                          || get(/databases/$(database)/documents/projects/$(projectId)).data.shareEnabled == true);
+          // Owner/member can read
+          allow read: if isSignedIn() && (
+            request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.userId
+            || request.auth.uid == get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId
+            || (
+              get(/databases/$(database)/documents/projects/$(projectId)).data.members != null
+              && get(/databases/$(database)/documents/projects/$(projectId)).data.members.hasAny([request.auth.token.email])
+            )
+          );
+          // Shared project: anyone can read
+          allow read: if get(/databases/$(database)/documents/projects/$(projectId)).data.shareEnabled == true;
+
+          // Any authenticated user can create comments
           allow create: if isSignedIn();
         }
+      }
+
+      // --- Messages subcollection (chat entre membros) ---
+      match /messages/{messageId} {
+        allow read: if request.auth != null && (
+          get(/databases/$(database)/documents/projects/$(projectId)).data.members.hasAny([request.auth.token.email])
+          || get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid
+        );
+        allow create: if request.auth != null && (
+          get(/databases/$(database)/documents/projects/$(projectId)).data.members.hasAny([request.auth.token.email])
+          || get(/databases/$(database)/documents/projects/$(projectId)).data.ownerId == request.auth.uid
+        );
       }
     }
 

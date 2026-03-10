@@ -4,9 +4,9 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Plus, TrendingUp, Users, Activity, FolderOpen } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { subscribeToProjects } from '@/lib/firestore'
+import { subscribeToProjects, subscribeToDistributorsCollection } from '@/lib/firestore'
 import { resetTheme } from '@/lib/theme'
-import type { Project } from '@/types'
+import type { Project, Distributor } from '@/types'
 import ProjectCard from '@/components/dashboard/ProjectCard'
 import NewProjectModal from '@/components/dashboard/NewProjectModal'
 import TopNav from '@/components/layout/TopNav'
@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const { user, loading, logout } = useAuth()
   const router = useRouter()
   const [projects,  setProjects]  = useState<Project[]>([])
+  const [distMap,   setDistMap]   = useState<Record<string, Distributor[]>>({})
   const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
@@ -25,18 +26,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!user) return
-    return subscribeToProjects(user.uid, setProjects)
+    return subscribeToProjects(user.uid, user.email ?? null, setProjects)
   }, [user])
 
-  const totalDistributors = projects.reduce((acc, p) => {
-    const latest = p.weeklyUpdates?.[p.weeklyUpdates.length - 1]
-    return acc + (latest?.distributorsTotal ?? 0)
-  }, 0)
+  // Subscribe to distributors for each project
+  useEffect(() => {
+    const unsubs = projects.map(p =>
+      subscribeToDistributorsCollection(p.id, dists => {
+        setDistMap(prev => ({ ...prev, [p.id]: dists }))
+      })
+    )
+    return () => unsubs.forEach(u => u())
+  }, [projects.map(p => p.id).join(',')])
 
-  const totalIntegrated = projects.reduce((acc, p) => {
-    const latest = p.weeklyUpdates?.[p.weeklyUpdates.length - 1]
-    return acc + (latest?.distributorsIntegrated ?? 0)
-  }, 0)
+  const totalDistributors = Object.values(distMap).reduce((acc, dists) => acc + dists.length, 0)
+  const totalIntegrated = Object.values(distMap).reduce(
+    (acc, dists) => acc + dists.filter(d => d.status === 'integrated').length, 0
+  )
 
   const activeProjects = projects.filter(p => {
     const now = new Date()
@@ -91,7 +97,7 @@ export default function DashboardPage() {
                 >
                   <kpi.icon style={{ color: kpi.color, width: 18, height: 18 }} />
                 </div>
-                <p className="text-2xl font-bold text-white">{kpi.value}{kpi.suffix}</p>
+                <p className="text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-outfit)', fontVariantNumeric: 'tabular-nums' }}>{kpi.value}{kpi.suffix}</p>
                 <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{kpi.label}</p>
               </div>
             </motion.div>
@@ -104,7 +110,15 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {projects.map((p, i) => (
-              <ProjectCard key={p.id} project={p} index={i} />
+              <ProjectCard
+                key={p.id}
+                project={p}
+                distributors={distMap[p.id] ?? []}
+                currentUserEmail={user?.email ?? ''}
+                currentUserName={user?.displayName ?? 'Sellers'}
+                index={i}
+                onEnter={() => router.push(`/project/${p.id}`)}
+              />
             ))}
             <motion.div
               initial={{ opacity: 0 }}

@@ -1,7 +1,14 @@
 
 'use client';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import { GoogleAuthProvider, signInWithPopup, signOut, signInAnonymously, type User } from 'firebase/auth';
+import {
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut,
+  signInAnonymously,
+  type User,
+} from 'firebase/auth';
 import { useFirebase } from '@/firebase';
 import toast from 'react-hot-toast';
 
@@ -46,6 +53,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, [firebase.user, firebase.isUserLoading]);
 
+  // Captura resultado do redirect ao retornar do Google
+  useEffect(() => {
+    if (!firebase.auth) return;
+
+    getRedirectResult(firebase.auth)
+      .then(async (result) => {
+        if (!result?.user) return;
+
+        if (!result.user.email?.endsWith('@sellers.com.br')) {
+          await signOut(firebase.auth!);
+          toast.error('Acesso restrito a contas @sellers.com.br', { duration: 6000 });
+          return;
+        }
+
+        setUser(result.user);
+        toast.success(`Bem-vindo, ${result.user.displayName}!`);
+      })
+      .catch((error: any) => {
+        console.error('Erro no redirect result:', error);
+        if (error.code === 'auth/unauthorized-domain') {
+          const domain = window.location.hostname;
+          toast.error(
+            `Domínio "${domain}" não autorizado. Adicione-o no Console do Firebase > Authentication > Settings > Authorized Domains.`,
+            { duration: 10000 }
+          );
+        }
+      });
+  }, [firebase.auth]);
+
   const signInWithGoogle = async () => {
     if (!firebase.auth) {
       toast.error('Firebase Auth não inicializado.');
@@ -55,37 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
 
-    try {
-      setLoading(true);
-      const result = await signInWithPopup(firebase.auth, provider);
-
-      if (!result.user.email?.endsWith('@sellers.com.br')) {
-        await signOut(firebase.auth);
-        toast.error('Acesso restrito a contas @sellers.com.br', { duration: 6000 });
-        setLoading(false);
-        return;
-      }
-
-      setUser(result.user);
-      toast.success(`Bem-vindo, ${result.user.displayName}!`);
-    } catch (error: any) {
-      console.error("Erro detalhado no login Google:", error);
-      setLoading(false);
-      
-      if (error.code === 'auth/unauthorized-domain') {
-        const domain = window.location.hostname;
-        console.error("DOMÍNIO NÃO AUTORIZADO NO FIREBASE:", domain);
-        toast.error(
-          `Domínio "${domain}" não autorizado. Adicione-o no Console do Firebase > Authentication > Settings > Authorized Domains.`,
-          { duration: 10000 }
-        );
-      } else if (error.code === 'auth/popup-closed-by-user') {
-        // Usuário fechou o popup, não é um erro crítico do sistema
-        toast.error('Login cancelado pelo usuário.');
-      } else {
-        toast.error('Erro ao entrar com Google: ' + error.message);
-      }
-    }
+    await signInWithRedirect(firebase.auth, provider);
   };
 
   const skipLogin = async () => {
@@ -110,13 +116,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      isConfigured: !!firebase.auth, 
-      signInWithGoogle, 
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      isConfigured: !!firebase.auth,
+      signInWithGoogle,
       skipLogin,
-      logout 
+      logout
     }}>
       {children}
     </AuthContext.Provider>

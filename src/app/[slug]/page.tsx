@@ -1,40 +1,38 @@
 'use client'
 
-import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { differenceInDays, differenceInWeeks, format, eachMonthOfInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import {
   CheckCircle2, Clock, XCircle, Circle, AlertCircle,
-  ChevronRight, Send, LogIn, LogOut, X,
+  ChevronRight, Send, LogIn, LogOut, X, ArrowRight,
 } from 'lucide-react'
-import { getProjectBySlug, addDistributorCommentDoc, getDistributorComments } from '@/lib/firestore'
+import { getProjectBySlug, addDistributorCommentDoc, getDistributorComments, subscribeToDistributorsCollection } from '@/lib/firestore'
 import { useAuth } from '@/contexts/AuthContext'
 import { applyTheme } from '@/lib/theme'
 import type { Project, Distributor, DistributorComment, PhaseStatus } from '@/types'
 import ProjectTimeline from '@/components/timeline/ProjectTimeline'
 import toast from 'react-hot-toast'
 
-// \u2500\u2500\u2500 Status configs \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Status configs ──────────────────────────────────────────────────────────────────
 
 const DIST_STATUS: Record<string, { color: string; Icon: any; label: string }> = {
   integrated:  { color: '#22c55e', Icon: CheckCircle2, label: 'Integrado'    },
   pending:     { color: '#f59e0b', Icon: Clock,        label: 'Pendente'     },
   blocked:     { color: '#ef4444', Icon: XCircle,      label: 'Bloqueado'    },
-  not_started: { color: '#ffffff30', Icon: Circle,     label: 'N\u00e3o iniciado' },
+  not_started: { color: '#ffffff30', Icon: Circle,     label: 'Não iniciado' },
 }
 
 const PHASE_STATUS: Record<PhaseStatus, { color: string; icon: any; label: string }> = {
-  completed:   { color: '#10B981', icon: CheckCircle2, label: 'Conclu\u00edda'     },
+  completed:   { color: '#10B981', icon: CheckCircle2, label: 'Concluída'     },
   in_progress: { color: 'var(--color-brand, #00D4AA)', icon: Clock, label: 'Em Andamento' },
   blocked:     { color: '#EF4444', icon: AlertCircle,  label: 'Bloqueada'     },
   pending:     { color: '#64748B', icon: Circle,       label: 'Pendente'      },
 }
 
-const EMPTY_DISTRIBUTORS: Distributor[] = []
-
-// \u2500\u2500\u2500 Main Page \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Main Page ─────────────────────────────────────────────────────────────────────
 
 export default function SlugSharePage() {
   // ============================================================
@@ -43,9 +41,10 @@ export default function SlugSharePage() {
   const { slug } = useParams<{ slug: string }>()
   const { user, loading: authLoading, signInWithGoogle, logout } = useAuth()
 
-  const [project, setProject]       = useState<Project | null>(null)
-  const [status, setStatus]         = useState<'loading' | 'invalid' | 'need_login' | 'unauthorized' | 'ready'>('loading')
-  const [distFilter, setDistFilter] = useState<string | null>(null)
+  const [project, setProject]             = useState<Project | null>(null)
+  const [distributors, setDistributors]  = useState<Distributor[]>([])
+  const [status, setStatus]              = useState<'loading' | 'invalid' | 'need_login' | 'unauthorized' | 'ready'>('loading')
+  const [distFilter, setDistFilter]      = useState<string | null>(null)
 
   // ============================================================
   // 2. ALL EFFECTS — no exceptions
@@ -81,12 +80,17 @@ export default function SlugSharePage() {
     setStatus('ready')
   }, [project, user, authLoading])
 
+  // Subscribe to distributors subcollection
+  useEffect(() => {
+    if (!project?.id) return
+    return subscribeToDistributorsCollection(project.id, setDistributors)
+  }, [project?.id])
+
   // ============================================================
   // 3. ALL DERIVED DATA (useMemo, useCallback, computed values)
   // ============================================================
 
   const accent       = project?.clientColor ?? '#00D4AA'
-  const distributors = project?.distributors ?? EMPTY_DISTRIBUTORS
   const weekNumber   = project ? differenceInWeeks(new Date(), new Date(project.startDate)) + 1 : 0
   const daysRunning  = project ? differenceInDays(new Date(), new Date(project.startDate)) : 0
 
@@ -128,9 +132,9 @@ export default function SlugSharePage() {
   if (status === 'invalid') {
     return (
       <GateScreen>
-        <h2 className="text-lg font-bold text-white">Link inativo ou n\u00e3o encontrado</h2>
+        <h2 className="text-lg font-bold text-white">Link inativo ou não encontrado</h2>
         <p className="text-sm mt-2 max-w-md" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Este link de compartilhamento n\u00e3o existe ou foi desativado pelo respons\u00e1vel do projeto.
+          Este link de compartilhamento não existe ou foi desativado pelo responsável do projeto.
         </p>
       </GateScreen>
     )
@@ -162,10 +166,10 @@ export default function SlugSharePage() {
   if (status === 'unauthorized') {
     return (
       <GateScreen>
-        <h2 className="text-lg font-bold text-white">Acesso n\u00e3o autorizado</h2>
+        <h2 className="text-lg font-bold text-white">Acesso não autorizado</h2>
         <p className="text-sm mt-2 max-w-md" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          O email <span className="text-white/70 font-medium">{user?.email}</span> n\u00e3o tem
-          permiss\u00e3o para acessar este projeto.
+          O email <span className="text-white/70 font-medium">{user?.email}</span> não tem
+          permissão para acessar este projeto.
         </p>
         <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
           Entre em contato com a Sellers para solicitar acesso.
@@ -260,7 +264,7 @@ export default function SlugSharePage() {
             {counts.integrated}
           </p>
           <p className="text-[10px] mt-1 relative z-10" style={{ color: '#10B981' }}>
-            {integrationPct}% conclu\u00eddo
+            {integrationPct}% concluído
           </p>
         </div>
 
@@ -380,11 +384,357 @@ export default function SlugSharePage() {
           </div>
         </SectionCard>
       </div>
+
+      {/* E) LAT Intelligence Chat */}
+      <PublicLATChat
+        slug={slug}
+        userEmail={user?.email ?? ''}
+        userName={user?.displayName ?? ''}
+        accent={accent}
+        accentRgb={project!.clientColorRgb ?? '0,212,170'}
+        clientName={project!.clientName}
+        counts={counts}
+      />
     </motion.div>
   )
 }
 
-// \u2500\u2500\u2500 Gate Screen \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Gate Screen ───────────────────────────────────────────────────────────────────
+
+// ─── ClaudeIcon (inline) ────────────────────────────────────────────────────
+
+const ClaudeIcon = ({ size = 14, ...props }: any) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 50 50" {...props}>
+    <path d="M19.861,27.625v-0.716l-16.65-0.681L2.07,25.985L1,24.575l0.11-0.703l0.959-0.645l17.95,1.345l0.11-0.314L5.716,14.365l-0.729-0.924l-0.314-2.016L5.985,9.98l2.214,0.24l11.312,8.602l0.327-0.353L12.623,5.977c0,0-0.548-2.175-0.548-2.697l1.494-2.029l0.827-0.266l2.833,0.995l7.935,17.331h0.314l1.348-14.819l0.752-1.822l1.494-0.985l1.167,0.557l0.959,1.374l-2.551,14.294h0.425l0.486-0.486l8.434-10.197l1.092-0.862h2.065l1.52,2.259l-0.681,2.334l-7.996,11.108l0.146,0.217l0.376-0.036l12.479-2.405l1.666,0.778l0.182,0.791l-0.655,1.617l-15.435,3.523l-0.084,0.062l0.097,0.12l13.711,0.814l1.578,1.044L49,29.868l-0.159,0.972l-2.431,1.238l-13.561-3.254h-0.363v0.217l11.218,10.427l0.256,1.154l-0.645,0.911l-0.681-0.097l-9.967-8.058h-0.256v0.34l5.578,8.35l0.243,2.162l-0.34,0.703l-1.215,0.425l-1.335-0.243l-7.863-12.083l-0.279,0.159l-1.348,14.524l-0.632,0.742l-1.459,0.558l-1.215-0.924L21.9,46.597l2.966-14.939l-0.023-0.084l-0.279,0.036L13.881,45.138l-0.827,0.327l-1.433-0.742l0.133-1.326l0.801-1.18l9.52-12.019l-0.013-0.314h-0.11l-12.69,8.239l-2.259,0.292L6.03,37.505l0.12-1.494l0.46-0.486L19.861,27.625z" fill="currentColor" />
+  </svg>
+)
+
+// ─── Public LAT Intelligence Chat ───────────────────────────────────────────
+
+interface AnalyzeData {
+  summary?: string
+  highlights?: string[]
+  attentionPoints?: { title: string; description: string }[]
+  nextWeekMessage?: string
+}
+
+interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  text: string
+}
+
+const LOADING_MESSAGES = [
+  '> Preparando seu resumo...',
+  '> Analisando as integrações...',
+  '> Quase lá...',
+]
+
+function PublicLATChat({
+  slug,
+  userEmail,
+  userName,
+  accent,
+  accentRgb,
+  clientName,
+  counts,
+}: {
+  slug: string
+  userEmail: string
+  userName: string
+  accent: string
+  accentRgb: string
+  clientName: string
+  counts: { total: number; integrated: number; pending: number; blocked: number }
+}) {
+  const [analyzeData, setAnalyzeData] = useState<AnalyzeData | null>(null)
+  const [analyzeLoading, setAnalyzeLoading] = useState(true)
+  const [analyzeError, setAnalyzeError] = useState(false)
+  const [loadingMsg, setLoadingMsg] = useState(LOADING_MESSAGES[0])
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [chatLoading, setChatLoading] = useState(false)
+  const [input, setInput] = useState('')
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Cycle loading messages
+  useEffect(() => {
+    if (!analyzeLoading) return
+    let idx = 0
+    const iv = setInterval(() => {
+      idx = (idx + 1) % LOADING_MESSAGES.length
+      setLoadingMsg(LOADING_MESSAGES[idx])
+    }, 2500)
+    return () => clearInterval(iv)
+  }, [analyzeLoading])
+
+  // Auto-fetch analyze on mount
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const res = await fetch('/api/claude/public', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ slug, userEmail, userName, mode: 'analyze' }),
+        })
+        const json = await res.json()
+        if (json.ok && json.data) {
+          setAnalyzeData(json.data as AnalyzeData)
+        } else {
+          setAnalyzeError(true)
+        }
+      } catch {
+        setAnalyzeError(true)
+      } finally {
+        setAnalyzeLoading(false)
+      }
+    }
+    run()
+  }, [slug, userEmail, userName])
+
+  // Scroll to bottom on new message
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleSend = async () => {
+    const text = input.trim()
+    if (!text || chatLoading) return
+    setInput('')
+
+    const userMsg: ChatMessage = { id: Date.now().toString(), role: 'user', text }
+    setMessages(prev => [...prev, userMsg])
+    setChatLoading(true)
+
+    try {
+      const res = await fetch('/api/claude/public', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, userEmail, userName, message: text, mode: 'chat' }),
+      })
+      const json = await res.json()
+      const reply = json.ok ? (json.text || 'Sem resposta.') : (json.error || 'Erro ao processar.')
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', text: reply }])
+    } catch {
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', text: 'Erro de conexão. Tente novamente.' }])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.5 }}
+      className="rounded overflow-hidden"
+      style={{
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 5,
+      }}
+    >
+      {/* Header */}
+      <div
+        className="px-5 py-4"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+      >
+        <div className="flex items-center gap-2">
+          <ClaudeIcon size={14} style={{ color: accent }} />
+          <span className="text-xs font-bold text-white">LAT Intelligence</span>
+        </div>
+        <p className="text-[10px] mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          Tire dúvidas sobre o projeto
+        </p>
+      </div>
+
+      {/* Analyze summary area */}
+      <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        {analyzeLoading ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-2"
+          >
+            <p className="text-[11px] font-mono" style={{ color: accent }}>
+              {loadingMsg}
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 border-2 rounded-full animate-spin" style={{ borderColor: `${accent}30`, borderTopColor: accent }} />
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                Consultando IA...
+              </span>
+            </div>
+          </motion.div>
+        ) : analyzeError ? (
+          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            Não foi possível carregar a análise automática.
+          </p>
+        ) : analyzeData ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="space-y-3"
+          >
+            {analyzeData.summary && (
+              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                {analyzeData.summary}
+              </p>
+            )}
+
+            {analyzeData.highlights && analyzeData.highlights.length > 0 && (
+              <div className="space-y-1">
+                {analyzeData.highlights.map((h, i) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <CheckCircle2 style={{ width: 11, height: 11, color: '#22c55e', marginTop: 2, flexShrink: 0 }} />
+                    <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{h}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {analyzeData.attentionPoints && analyzeData.attentionPoints.length > 0 && (
+              <div className="space-y-1.5">
+                {analyzeData.attentionPoints.map((p, i) => (
+                  <div
+                    key={i}
+                    className="rounded px-3 py-2"
+                    style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.1)', borderRadius: 5 }}
+                  >
+                    <p className="text-[11px] font-semibold" style={{ color: '#f59e0b' }}>{p.title}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{p.description}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {analyzeData.nextWeekMessage && (
+              <div
+                className="rounded px-3 py-2"
+                style={{ background: `rgba(${accentRgb}, 0.06)`, border: `1px solid rgba(${accentRgb}, 0.1)`, borderRadius: 5 }}
+              >
+                <p className="text-[10px] font-bold mb-0.5" style={{ color: accent }}>Esta semana</p>
+                <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{analyzeData.nextWeekMessage}</p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 pt-1">
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                • {counts.integrated} distribuidores integrados
+              </span>
+              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                • {counts.pending + counts.blocked} em andamento esta semana
+              </span>
+            </div>
+          </motion.div>
+        ) : null}
+      </div>
+
+      {/* Chat messages */}
+      {messages.length > 0 && (
+        <div
+          className="px-5 py-4 space-y-3 max-h-80 overflow-y-auto"
+          style={{
+            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            scrollbarWidth: 'thin',
+            scrollbarColor: 'rgba(255,255,255,0.1) transparent',
+          }}
+        >
+          {messages.map(msg => (
+            <motion.div
+              key={msg.id}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className="rounded px-3.5 py-2.5 max-w-[80%]"
+                style={{
+                  background: msg.role === 'user'
+                    ? `rgba(${accentRgb}, 0.1)`
+                    : 'rgba(255,255,255,0.04)',
+                  border: msg.role === 'user'
+                    ? `1px solid rgba(${accentRgb}, 0.15)`
+                    : '1px solid rgba(255,255,255,0.06)',
+                  borderRadius: 5,
+                }}
+              >
+                {msg.role === 'assistant' && (
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <ClaudeIcon size={10} style={{ color: accent }} />
+                    <span className="text-[9px] font-bold" style={{ color: accent }}>LAT</span>
+                  </div>
+                )}
+                <p
+                  className="text-[11px] leading-relaxed whitespace-pre-wrap"
+                  style={{
+                    color: msg.role === 'user' ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.55)',
+                  }}
+                >
+                  {msg.text}
+                </p>
+              </div>
+            </motion.div>
+          ))}
+
+          {chatLoading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex justify-start"
+            >
+              <div
+                className="rounded px-3.5 py-2.5 flex items-center gap-2"
+                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 5 }}
+              >
+                <div className="w-3 h-3 border-2 rounded-full animate-spin" style={{ borderColor: `${accent}30`, borderTopColor: accent }} />
+                <span className="text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  Pensando...
+                </span>
+              </div>
+            </motion.div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="px-5 py-3 flex items-center gap-2">
+        <input
+          type="text"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
+          placeholder="Digite sua pergunta..."
+          disabled={chatLoading}
+          className="flex-1 text-xs outline-none disabled:opacity-50"
+          style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 5,
+            color: 'rgba(255,255,255,0.85)',
+            padding: '9px 12px',
+          }}
+        />
+        <button
+          onClick={handleSend}
+          disabled={chatLoading || !input.trim()}
+          className="flex items-center justify-center w-9 h-9 rounded transition-all disabled:opacity-20"
+          style={{
+            background: `rgba(${accentRgb}, 0.12)`,
+            border: `1px solid rgba(${accentRgb}, 0.15)`,
+            borderRadius: 5,
+            color: accent,
+          }}
+        >
+          <ArrowRight style={{ width: 14, height: 14 }} />
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Gate Screen ─────────────────────────────────────────────────────────────
 
 function GateScreen({ children }: { children: React.ReactNode }) {
   return (
@@ -410,7 +760,7 @@ function GateScreen({ children }: { children: React.ReactNode }) {
   )
 }
 
-// \u2500\u2500\u2500 Section Card \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Section Card ──────────────────────────────────────────────────────────────────
 
 function SectionCard({ title, accent, children }: { title: string; accent: string; children: React.ReactNode }) {
   return (
@@ -419,7 +769,7 @@ function SectionCard({ title, accent, children }: { title: string; accent: strin
       style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
     >
       <div className="flex items-center gap-2 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-        <span style={{ color: accent, fontSize: 10 }}>\u25cf</span>
+        <span style={{ color: accent, fontSize: 10 }}>●</span>
         <p className="text-xs font-bold tracking-wide text-white">{title}</p>
       </div>
       {children}
@@ -427,7 +777,7 @@ function SectionCard({ title, accent, children }: { title: string; accent: strin
   )
 }
 
-// \u2500\u2500\u2500 Read-only Gantt \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Read-only Gantt ───────────────────────────────────────────────────────────────
 
 function ReadOnlyGantt({ project }: { project: Project }) {
   const projectStart = new Date(project.startDate)
@@ -565,7 +915,7 @@ function ReadOnlyGantt({ project }: { project: Project }) {
   )
 }
 
-// \u2500\u2500\u2500 Distributor Row \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
+// ─── Distributor Row ───────────────────────────────────────────────────────────────
 
 function DistributorRow({
   distributor,
@@ -617,10 +967,10 @@ function DistributorRow({
         text: comment.trim(),
       })
       setComment('')
-      toast.success('Coment\u00e1rio enviado.')
+      toast.success('Comentário enviado.')
       await loadComments()
     } catch {
-      toast.error('Erro ao enviar coment\u00e1rio.')
+      toast.error('Erro ao enviar comentário.')
     } finally {
       setSending(false)
     }
@@ -707,7 +1057,7 @@ function DistributorRow({
                         <div className="flex items-center gap-2">
                           <span className="text-[11px] font-semibold text-white/70">{c.name}</span>
                           <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                            {format(new Date(c.timestamp), "dd/MM '\u00e0s' HH:mm", { locale: ptBR })}
+                            {format(new Date(c.timestamp), "dd/MM 'às' HH:mm", { locale: ptBR })}
                           </span>
                         </div>
                         <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{c.text}</p>
@@ -723,7 +1073,7 @@ function DistributorRow({
                   type="text"
                   value={comment}
                   onChange={e => setComment(e.target.value)}
-                  placeholder="Digite seu coment\u00e1rio..."
+                  placeholder="Digite seu comentário..."
                   onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
                   className="flex-1 text-xs outline-none"
                   style={{

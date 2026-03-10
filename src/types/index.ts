@@ -113,6 +113,18 @@ export interface Project {
   shareEnabled?: boolean
   authorizedEmails?: string[]
   showRevenueToClient?: boolean
+  members?: string[]
+  ownerId?: string
+}
+
+export interface ProjectMessage {
+  id: string
+  type: 'user' | 'activity'
+  authorEmail: string
+  authorName: string
+  text: string
+  timestamp: any
+  projectId: string
 }
 
 export interface AIMessage {
@@ -120,6 +132,19 @@ export interface AIMessage {
   role: 'user' | 'assistant'
   content: string
   timestamp: string
+}
+
+export function generateDistributorId(name: string, cnpj?: string): string {
+  const base = cnpj
+    ? cnpj.replace(/[^0-9]/g, '')
+    : name
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '')
+        .substring(0, 60)
+  return `dist_${base}`
 }
 
 export const DEFAULT_PHASES: Omit<ProjectPhase, 'id' | 'startDate' | 'endDate'>[] = [

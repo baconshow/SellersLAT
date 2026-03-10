@@ -21,7 +21,7 @@ export default function LandingPage() {
   )
 
   return (
-    <div className="relative min-h-screen w-full bg-[#050508] overflow-hidden flex flex-col select-none">
+    <div className="relative min-h-screen w-full bg-[#050508] overflow-hidden flex flex-col select-text">
 
       {/* Overlays para profundidade no preto */}
       <div className="absolute inset-0 pointer-events-none z-1"
@@ -38,7 +38,7 @@ export default function LandingPage() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="w-6 h-6 relative opacity-25 hover:opacity-55 transition-opacity duration-300"
         >
-          <Image src="/images/sellers-logo.png" alt="Sellers" fill className="object-contain invert" />
+          <Image src="/images/sellers-logo.png" alt="Sellers" fill sizes="(max-width: 768px) 100vw, 50vw" priority className="object-contain invert" />
         </motion.div>
       </header>
 
@@ -101,7 +101,7 @@ export default function LandingPage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.5 }}
-          className="text-white/40 text-sm font-medium tracking-[0.1em] mb-14 text-center max-w-sm leading-relaxed"
+          className="text-white/40 text-sm font-medium tracking-tight mb-14 text-center max-w-sm leading-relaxed"
         >
           Autônomo por design.<br />
           Presente em cada etapa.

@@ -10,15 +10,19 @@ import {
 import {
   subscribeToProject,
   subscribeToDistributorsCollection,
-  addDistributorDoc,
+  upsertDistributorDoc,
   updateDistributorDoc,
   deleteDistributorDoc,
   getDistributorComments,
   addDistributorHistory,
   importWeeklyCSV,
+  logProjectActivity,
 } from '@/lib/firestore'
+import { collection, getDocs } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Project, Distributor, DistributorStatus, DistributorComment } from '@/types'
+import { generateDistributorId } from '@/types'
 import { format, differenceInDays } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
@@ -29,6 +33,16 @@ const STATUS_CFG: Record<DistributorStatus, { label: string; color: string; bg: 
   pending:     { label: 'Pendente',     color: '#f59e0b',   bg: 'rgba(245,158,11,0.1)',   Icon: Clock        },
   blocked:     { label: 'Bloqueado',    color: '#ef4444',   bg: 'rgba(239,68,68,0.1)',    Icon: XCircle      },
   not_started: { label: 'Não iniciado', color: '#ffffff40', bg: 'rgba(255,255,255,0.05)', Icon: Circle       },
+}
+
+const translatePhaseLabel = (phase?: string, status?: string): string => {
+  if (status === 'integrated' || status === 'concluido' || status === 'concluído')
+    return 'Distribuidor Integrado com Sucesso'
+  if (status === 'blocked') return 'Integração Bloqueada'
+  if (status === 'pending') return 'Aguardando Integração'
+  if (status === 'in_progress') return 'Integração em Andamento'
+  if (phase) return phase
+  return 'Sem status'
 }
 
 const CONNECTION_TYPES = ['Ello', 'FTP', 'API', 'Manual', 'Outro']
@@ -126,6 +140,7 @@ function parseCSV(text: string): Omit<Distributor, 'id'>[] {
 interface ImportResult {
   added: number
   updated: number
+  removed: number
   integrated: number
   pending: number
   blocked: number
@@ -175,14 +190,30 @@ function ImportModal({
 
       const res = await importWeeklyCSV(projectId, preview, weekNumber)
 
+      // Remove distribuidores que não vieram no CSV
+      const csvIds = preview.map(d => generateDistributorId(d.name, d.cnpj))
+      const existingSnap = await getDocs(
+        collection(db, 'projects', projectId, 'distributors')
+      )
+      const toDelete = existingSnap.docs.filter(d => !csvIds.includes(d.id))
+      for (const d of toDelete) {
+        await deleteDistributorDoc(projectId, d.id)
+      }
+
       await addDistributorHistory(projectId, {
         type:         'import',
         source:       'clickup_csv',
-        distributors: preview.map(d => ({ ...d, id: Math.random().toString(36).substring(2) })),
-        note:         `Semana ${weekNumber} — ${preview.length} distribuidores via CSV`,
+        distributors: preview.map(d => ({ ...d, id: generateDistributorId(d.name, d.cnpj) })),
+        note:         `Semana ${weekNumber} — ${preview.length} distribuidores via CSV` +
+                      (toDelete.length > 0 ? ` (${toDelete.length} removidos)` : ''),
       })
 
-      setResult({ ...res, previousIntegrated })
+      setResult({ ...res, removed: toDelete.length, previousIntegrated })
+
+      await logProjectActivity(projectId,
+        `CSV importado — ${res.added} novos, ${res.updated} atualizados, ${toDelete.length} removidos`
+      )
+
       setTimeout(onClose, 3000)
     } catch (e: any) {
       setError(e.message)
@@ -266,6 +297,23 @@ function ImportModal({
                 </span>
               </div>
             )}
+            {result.removed > 0 && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded"
+                   style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                <Trash2 style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.4)' }} />
+                <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  {result.removed} {result.removed === 1 ? 'removido' : 'removidos'} (não constam no CSV)
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Counts summary */}
+          <div className="flex items-center justify-center gap-4 text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <span>{result.updated} atualizados</span>
+            <span>·</span>
+            <span>{result.added} novos</span>
+            {result.removed > 0 && (<><span>·</span><span>{result.removed} removidos</span></>)}
           </div>
 
           {/* Before/after comparison */}
@@ -474,8 +522,23 @@ function DistributorModal({
     if (!form.name.trim()) return
     setSaving(true)
     try {
-      if (isEdit && distributor) await updateDistributorDoc(projectId, distributor.id, form)
-      else await addDistributorDoc(projectId, form)
+      if (isEdit && distributor) {
+        await updateDistributorDoc(projectId, distributor.id, form)
+        // Log status changes
+        if (distributor.status !== form.status) {
+          if (form.status === 'blocked') {
+            await logProjectActivity(projectId,
+              `${form.name} marcado como bloqueado — ${form.blockerDescription || 'sem descrição'}`
+            )
+          } else if (form.status === 'integrated') {
+            await logProjectActivity(projectId,
+              `${form.name} integrado com sucesso 🎉`
+            )
+          }
+        }
+      } else {
+        await upsertDistributorDoc(projectId, form)
+      }
       onClose()
     } catch (e) { console.error(e) }
     finally { setSaving(false) }
@@ -663,7 +726,7 @@ function DistributorRow({
 
         {/* Info */}
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-white truncate">{distributor.name}</p>
+          <p className="text-white truncate" style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 500 }}>{distributor.name}</p>
           <div className="flex items-center gap-3 mt-0.5">
             {distributor.connectionType && ConnIcon && (
               <span className="text-[10px] flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
@@ -684,7 +747,9 @@ function DistributorRow({
             )}
             {distributor.notes && (
               <span className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                {distributor.notes}
+                {distributor.notes.startsWith('Fase:')
+                  ? translatePhaseLabel(distributor.notes.replace('Fase: ', ''), distributor.status)
+                  : distributor.notes}
               </span>
             )}
           </div>

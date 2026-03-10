@@ -1,11 +1,12 @@
 import {
-  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc,
+  collection, doc, getDoc, getDocs, addDoc, updateDoc, deleteDoc, setDoc,
   query, where, orderBy, onSnapshot, serverTimestamp, limit as firestoreLimit,
+  arrayUnion, arrayRemove,
   type Unsubscribe, Timestamp
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Project, ProjectPhase, WeeklyUpdate, Distributor, DistributorSnapshot, DistributorHistoryEntry, DistributorComment } from '@/types'
-import { DEFAULT_PHASES } from '@/types'
+import type { Project, ProjectPhase, WeeklyUpdate, Distributor, DistributorSnapshot, DistributorHistoryEntry, DistributorComment, ProjectMessage } from '@/types'
+import { DEFAULT_PHASES, generateDistributorId } from '@/types'
 import { differenceInDays, addDays } from 'date-fns'
 
 function generateId(): string {
@@ -43,12 +44,15 @@ export async function createProject(
     phases?: ProjectPhase[]
     clientLogo?: string
     mascotImageUrl?: string
-  }
+  },
+  userEmail?: string
 ): Promise<string> {
   const phases = data.phases?.length ? data.phases : distributePhases(data.startDate, data.endDate)
 
   const payload = {
     userId,
+    ownerId: userId,
+    members: userEmail ? [userEmail] : [],
     clientName: data.clientName,
     clientColor: data.clientColor,
     clientColorSecondary: data.clientColorSecondary,
@@ -71,20 +75,63 @@ export async function createProject(
 
 export function subscribeToProjects(
   userId: string,
+  userEmail: string | null,
   cb: (projects: Project[]) => void
 ): Unsubscribe {
-  const q = query(
-    collection(db, 'projects'),
-    where('userId', '==', userId)
-  )
-  return onSnapshot(q, snap => {
-    const projects = snap.docs.map(d => ({ id: d.id, ...d.data() } as Project))
+  const col = collection(db, 'projects')
+
+  // Query 1: projetos onde sou owner (ownerId ou legado userId)
+  const qOwner = query(col, where('userId', '==', userId))
+
+  // Query 2: projetos onde sou membro (por email)
+  const qMember = userEmail
+    ? query(col, where('members', 'array-contains', userEmail))
+    : null
+
+  let ownerDocs: Project[] = []
+  let memberDocs: Project[] = []
+
+  const merge = () => {
+    const map = new Map<string, Project>()
+    for (const p of ownerDocs) map.set(p.id, p)
+    for (const p of memberDocs) if (!map.has(p.id)) map.set(p.id, p)
+    const projects = Array.from(map.values())
     projects.sort((a, b) => {
       const timeA = (a.createdAt as unknown as Timestamp)?.seconds || 0
       const timeB = (b.createdAt as unknown as Timestamp)?.seconds || 0
       return timeB - timeA
     })
     cb(projects)
+  }
+
+  const unsub1 = onSnapshot(qOwner, snap => {
+    ownerDocs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Project))
+    merge()
+  })
+
+  const unsub2 = qMember
+    ? onSnapshot(qMember, snap => {
+        memberDocs = snap.docs.map(d => ({ id: d.id, ...d.data() } as Project))
+        merge()
+      })
+    : () => {}
+
+  return () => { unsub1(); unsub2() }
+}
+
+// ─── Members ──────────────────────────────────────────────────────────────────
+
+export async function addProjectMember(projectId: string, email: string): Promise<void> {
+  await updateDoc(doc(db, 'projects', projectId), {
+    members: arrayUnion(email),
+    updatedAt: serverTimestamp(),
+  })
+}
+
+export async function removeProjectMember(projectId: string, email: string): Promise<void> {
+  await updateDoc(doc(db, 'projects', projectId), {
+    members: arrayRemove(email),
+    updatedAt: serverTimestamp(),
   })
 }
 
@@ -370,15 +417,41 @@ export function subscribeToDistributorsCollection(
   })
 }
 
+export async function upsertDistributorDoc(
+  projectId: string,
+  data: Omit<Distributor, 'id'>
+): Promise<string> {
+  const id = generateDistributorId(data.name, data.cnpj)
+  const ref = doc(db, 'projects', projectId, 'distributors', id)
+  const snap = await getDoc(ref)
+
+  if (snap.exists()) {
+    // Atualiza campos mas PRESERVA comentários e hasUnreadComment
+    const existing = snap.data()
+    await updateDoc(ref, {
+      ...data,
+      hasUnreadComment: existing.hasUnreadComment ?? false,
+      updatedAt: serverTimestamp(),
+    })
+  } else {
+    // Cria novo com ID estável
+    await setDoc(ref, {
+      ...data,
+      id,
+      hasUnreadComment: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    })
+  }
+  return id
+}
+
+/** @deprecated Use upsertDistributorDoc — mantida para compatibilidade */
 export async function addDistributorDoc(
   projectId: string,
   data: Omit<Distributor, 'id'>
 ): Promise<string> {
-  const ref = await addDoc(collection(db, 'projects', projectId, 'distributors'), {
-    ...data,
-    createdAt: serverTimestamp(),
-  })
-  return ref.id
+  return upsertDistributorDoc(projectId, data)
 }
 
 export async function updateDistributorDoc(
@@ -525,7 +598,7 @@ export async function importWeeklyCSV(
   }))
 
   // Mapa por nome (lowercase) para lookup rápido
-  const currentByName = new Map(
+  const currentByName = new Map<string, typeof currentDocs[number]>(
     currentDocs.map(d => [d.name.toLowerCase(), d])
   )
 
@@ -586,7 +659,7 @@ export async function importWeeklyCSV(
       }
 
       operations.push(
-        addDistributorDoc(projectId, csvDist).then(() => {})
+        upsertDistributorDoc(projectId, csvDist).then(() => {})
       )
       added++
     }
@@ -632,4 +705,54 @@ export async function importWeeklyCSV(
     blocked,
     diff,
   }
+}
+
+// ─── Messages (subcoleção projects/{id}/messages) ────────────────────────────
+// Regra Firestore: members podem ler/escrever messages
+// allow read, write: if request.auth != null &&
+//   get(/databases/.../projects/$(projectId)).data.members
+//   .hasAny([request.auth.token.email]);
+
+export function subscribeToProjectMessages(
+  projectId: string,
+  callback: (messages: ProjectMessage[]) => void,
+  limit = 20
+): Unsubscribe {
+  const q = query(
+    collection(db, 'projects', projectId, 'messages'),
+    orderBy('timestamp', 'desc'),
+    firestoreLimit(limit)
+  )
+  return onSnapshot(q, snap => {
+    const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() } as ProjectMessage))
+    callback(msgs.reverse())
+  })
+}
+
+export async function addProjectMessage(
+  projectId: string,
+  author: { email: string; name: string },
+  text: string,
+  type: 'user' | 'activity' = 'user'
+): Promise<void> {
+  await addDoc(collection(db, 'projects', projectId, 'messages'), {
+    type,
+    authorEmail: author.email,
+    authorName: author.name,
+    text,
+    timestamp: serverTimestamp(),
+    projectId,
+  })
+}
+
+export async function logProjectActivity(
+  projectId: string,
+  text: string
+): Promise<void> {
+  await addProjectMessage(
+    projectId,
+    { email: 'system@sellers.lat', name: 'LAT' },
+    text,
+    'activity'
+  )
 }
