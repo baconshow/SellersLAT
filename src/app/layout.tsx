@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Outfit, DM_Sans } from 'next/font/google'
+import { Outfit, DM_Sans, Orbitron } from 'next/font/google'
 import "./globals.css";
 import { FirebaseClientProvider } from "@/firebase";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NavActionsProvider } from "@/contexts/NavActionsContext";
 import { Toaster } from "@/components/ui/toaster";
 
 const outfit = Outfit({
@@ -17,6 +18,12 @@ const dmSans = DM_Sans({
   weight: ['300', '400', '500', '600'],
 })
 
+const orbitron = Orbitron({
+  subsets: ['latin'],
+  variable: '--font-orbitron',
+  weight: ['400', '700', '900'],
+})
+
 export const metadata: Metadata = {
   title: 'LAT — Live Autonomous Tracker',
   description: 'Autônomo por design. Presente em cada etapa.',
@@ -29,12 +36,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={`${outfit.variable} ${dmSans.variable} antialiased`} style={{ fontFamily: 'var(--font-outfit), sans-serif' }} suppressHydrationWarning>
+      <body className={`${outfit.variable} ${dmSans.variable} ${orbitron.variable} antialiased`} style={{ fontFamily: 'var(--font-outfit), sans-serif' }} suppressHydrationWarning>
         <FirebaseClientProvider>
           <AuthProvider>
-            <div className="noise" />
-            {children}
-            <Toaster />
+            <NavActionsProvider>
+              <div className="noise" />
+              {children}
+              <Toaster />
+            </NavActionsProvider>
           </AuthProvider>
         </FirebaseClientProvider>
       </body>

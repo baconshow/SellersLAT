@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, Search, CheckCircle2, Clock, XCircle, Circle,
   Pencil, Trash2, X, Wifi, HardDrive, Globe, FileText, Upload, AlertTriangle,
-  ChevronRight, MessageSquare,
+  ChevronRight, ChevronLeft, MessageSquare,
 } from 'lucide-react'
 import {
   subscribeToProject,
@@ -21,9 +21,10 @@ import {
 import { collection, getDocs } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
+import { useNavActions } from '@/contexts/NavActionsContext'
 import type { Project, Distributor, DistributorStatus, DistributorComment } from '@/types'
 import { generateDistributorId } from '@/types'
-import { format, differenceInDays } from 'date-fns'
+import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -168,6 +169,7 @@ function ImportModal({
   const [error,     setError]     = useState('')
 
   const weekNumber = (project.weeklyUpdates?.length ?? 0) + 1
+  const [selectedWeek, setSelectedWeek] = useState(weekNumber)
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -188,7 +190,7 @@ function ImportModal({
     try {
       const previousIntegrated = (project.distributors ?? []).filter(d => d.status === 'integrated').length
 
-      const res = await importWeeklyCSV(projectId, preview, weekNumber)
+      const res = await importWeeklyCSV(projectId, preview, selectedWeek)
 
       // Remove distribuidores que não vieram no CSV
       const csvIds = preview.map(d => generateDistributorId(d.name, d.cnpj))
@@ -204,7 +206,7 @@ function ImportModal({
         type:         'import',
         source:       'clickup_csv',
         distributors: preview.map(d => ({ ...d, id: generateDistributorId(d.name, d.cnpj) })),
-        note:         `Semana ${weekNumber} — ${preview.length} distribuidores via CSV` +
+        note:         `Semana ${selectedWeek} — ${preview.length} distribuidores via CSV` +
                       (toDelete.length > 0 ? ` (${toDelete.length} removidos)` : ''),
       })
 
@@ -247,7 +249,7 @@ function ImportModal({
               Importação concluída
             </p>
             <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              Semana {weekNumber}
+              Semana {selectedWeek}
             </p>
           </div>
 
@@ -347,7 +349,7 @@ function ImportModal({
              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
           <div>
             <p className="text-sm font-bold text-white">
-              Importar CSV do ClickUp — Semana {weekNumber}
+              Importar CSV do ClickUp
             </p>
             <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
               Campos mapeados: Nome, Status, Responsável, Modo de Integração, Fase
@@ -435,6 +437,33 @@ function ImportModal({
                     </span>
                   )
                 })}
+              </div>
+
+              {/* Week selector */}
+              <div className="flex items-center justify-between px-3 py-2.5 rounded"
+                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
+                <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  Para qual semana é esse import?
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setSelectedWeek(w => Math.max(1, w - 1))}
+                    className="w-6 h-6 rounded flex items-center justify-center transition-all"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}
+                  >
+                    <ChevronLeft style={{ width: 12, height: 12 }} />
+                  </button>
+                  <span className="text-xs font-bold text-white" style={{ minWidth: 60, textAlign: 'center' }}>
+                    Semana {selectedWeek}
+                  </span>
+                  <button
+                    onClick={() => setSelectedWeek(w => w + 1)}
+                    className="w-6 h-6 rounded flex items-center justify-center transition-all"
+                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}
+                  >
+                    <ChevronRight style={{ width: 12, height: 12 }} />
+                  </button>
+                </div>
               </div>
 
               {/* Table */}
@@ -874,7 +903,7 @@ export default function DistribuidoresPage() {
   const [modalOpen,        setModalOpen]        = useState(false)
   const [importOpen,       setImportOpen]       = useState(false)
   const [editTarget,       setEditTarget]       = useState<Distributor | undefined>()
-  const [bannerDismissed,  setBannerDismissed]  = useState(false)
+  const { setActions, clearActions } = useNavActions()
 
   useEffect(() => {
     if (!loading && !user) router.replace('/')
@@ -890,17 +919,37 @@ export default function DistribuidoresPage() {
     return subscribeToDistributorsCollection(id, setDistributors)
   }, [id])
 
-  if (!project) return null
+  useEffect(() => {
+    setActions(
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setImportOpen(true)}
+          className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium transition-all"
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: 'rgba(255,255,255,0.5)',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
+        >
+          <Upload style={{ width: 12, height: 12 }} />
+          Importar CSV
+        </button>
+        <button
+          onClick={() => { setEditTarget(undefined); setModalOpen(true) }}
+          className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold"
+          style={{ background: 'var(--color-brand)', color: '#050508', borderRadius: 5 }}
+        >
+          <Plus style={{ width: 12, height: 12 }} />
+          Novo
+        </button>
+      </div>
+    )
+    return () => clearActions()
+  }, [setActions, clearActions, setImportOpen, setModalOpen, setEditTarget])
 
-  const shouldRemind = (() => {
-    const today = new Date()
-    const isMonday = today.getDay() === 1
-    const lastImport = (project as any).lastImportAt
-    const daysSince = lastImport
-      ? differenceInDays(today, new Date(lastImport.seconds * 1000))
-      : 999
-    return isMonday || daysSince > 6
-  })()
+  if (!project) return null
 
   const filtered = distributors.filter(d => {
     const matchSearch = d.name.toLowerCase().includes(search.toLowerCase())
@@ -920,85 +969,7 @@ export default function DistribuidoresPage() {
   const handleClose = () => { setModalOpen(false); setEditTarget(undefined) }
 
   return (
-    <div className="flex-1 px-8 pt-4 pb-12">
-
-      {/* Import reminder banner */}
-      <AnimatePresence>
-        {shouldRemind && !bannerDismissed && (
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
-            className="mb-5 flex items-start gap-3 relative"
-            style={{
-              background: 'rgba(var(--color-brand-rgb, 0,212,170), 0.06)',
-              borderLeft: '3px solid var(--color-brand, #00D4AA)',
-              borderRadius: 4,
-              padding: '14px 16px',
-            }}
-          >
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-white flex items-center gap-1.5">
-                <Upload style={{ width: 12, height: 12, color: 'var(--color-brand)' }} />
-                Hora de importar o CSV do ClickUp!
-              </p>
-              <p className="text-[11px] mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-                Mantenha o relatório atualizado — leva menos de 1 min.
-              </p>
-            </div>
-            <button
-              onClick={() => setImportOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-semibold transition-all flex-shrink-0"
-              style={{ background: 'var(--color-brand)', color: '#050508' }}
-            >
-              Importar agora
-              <ChevronRight style={{ width: 11, height: 11 }} />
-            </button>
-            <button
-              onClick={() => setBannerDismissed(true)}
-              className="absolute top-2 right-2 flex-shrink-0"
-              style={{ color: 'rgba(255,255,255,0.2)' }}
-            >
-              <X style={{ width: 12, height: 12 }} />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-bold text-white">Distribuidores</h2>
-          <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            {distributors.length} cadastrados
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setImportOpen(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium transition-all"
-            style={{
-              background: 'rgba(255,255,255,0.05)',
-              border:     '1px solid rgba(255,255,255,0.08)',
-              color:      'rgba(255,255,255,0.5)',
-            }}
-            onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
-          >
-            <Upload style={{ width: 12, height: 12 }} />
-            Importar CSV
-          </button>
-          <button
-            onClick={() => { setEditTarget(undefined); setModalOpen(true) }}
-            className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold transition-all"
-            style={{ background: 'var(--color-brand)', color: '#050508' }}
-          >
-            <Plus style={{ width: 12, height: 12 }} />
-            Novo
-          </button>
-        </div>
-      </div>
+    <div className="flex-1 px-8 pt-2 pb-12">
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-5">

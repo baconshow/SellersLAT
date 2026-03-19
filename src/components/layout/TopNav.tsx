@@ -1,16 +1,14 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, GanttChart, Users,
-  Presentation, Settings, DollarSign, Plus, ChevronRight,
+  Presentation, Settings, DollarSign, ChevronRight, ClipboardList,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { useState } from 'react'
+import { useNavActions } from '@/contexts/NavActionsContext'
 import type { Project } from '@/types'
 import { markCommentsAsRead } from '@/lib/firestore'
-import WeeklyUpdateDrawer from '@/components/ui/WeeklyUpdateDrawer'
 
 const ClaudeIcon = ({ size = 18, ...props }: any) => (
   <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 50 50" {...props}>
@@ -19,14 +17,15 @@ const ClaudeIcon = ({ size = 18, ...props }: any) => (
 )
 
 interface TopNavProps {
-  projectId?:    string
-  clientName?:   string
-  brandColor?:   string
-  project?:      Project | null
-  onToggleLAT?:  () => void
-  showLAT?:      boolean
-  isDashboard?:  boolean
-  onNewProject?: () => void
+  projectId?:       string
+  clientName?:      string
+  brandColor?:      string
+  project?:         Project | null
+  onToggleLAT?:     () => void
+  showLAT?:         boolean
+  isDashboard?:     boolean
+  onNewProject?:    () => void
+  newTicketsCount?: number
 }
 
 const ROUTE_LABELS: Record<string, string> = {
@@ -36,21 +35,23 @@ const ROUTE_LABELS: Record<string, string> = {
   'settings':       'Settings',
   'distribuidores': 'Distribuidores',
   'faturamento':    'Faturamento',
+  'requisicoes':    'Requisições',
 }
 
 export default function TopNav({
   projectId,
-  clientName   = 'Projeto',
-  brandColor   = '#00D4AA',
-  project      = null,
+  clientName      = 'Projeto',
+  brandColor      = '#00D4AA',
+  project         = null,
   onToggleLAT,
-  showLAT      = false,
-  isDashboard  = false,
+  showLAT         = false,
+  isDashboard     = false,
   onNewProject,
+  newTicketsCount,
 }: TopNavProps) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
-  const [drawerOpen, setDrawerOpen] = useState(false)
+  const { actions } = useNavActions()
 
   const segment = projectId
     ? pathname.replace(`/project/${projectId}`, '').replace(/^\//, '')
@@ -64,14 +65,17 @@ export default function TopNav({
       ))
     : (project?.weeklyUpdates?.slice(-1)[0]?.weekNumber ?? 1)
 
+  const hasNewTickets = (newTicketsCount ?? 0) > 0
+
   const navItems = projectId ? [
-    { icon: LayoutDashboard, label: 'Dashboard',        href: `/project/${projectId}`,                isLAT: false },
-    { icon: GanttChart,      label: 'Gantt',            href: `/project/${projectId}/gantt`,          isLAT: false },
-    { icon: Presentation,    label: 'Slides',           href: `/project/${projectId}/slides`,         isLAT: false },
-    { icon: Users,           label: 'Distribuidores',   href: `/project/${projectId}/distribuidores`, isLAT: false },
-    { icon: Settings,        label: 'Settings',         href: `/project/${projectId}/settings`,       isLAT: false },
-    { icon: DollarSign,      label: 'Faturamento',      href: `/project/${projectId}/faturamento`,    isLAT: false },
-    { icon: ClaudeIcon,      label: 'LAT Intelligence', href: '',                                     isLAT: true  },
+    { icon: LayoutDashboard, label: 'Dashboard',        href: `/project/${projectId}`,                isLAT: false, badge: '' },
+    { icon: GanttChart,      label: 'Gantt',            href: `/project/${projectId}/gantt`,          isLAT: false, badge: '' },
+    { icon: Presentation,    label: 'Slides',           href: `/project/${projectId}/slides`,         isLAT: false, badge: '' },
+    { icon: Users,           label: 'Distribuidores',   href: `/project/${projectId}/distribuidores`, isLAT: false, badge: '' },
+    { icon: ClipboardList,   label: 'Requisições',      href: `/project/${projectId}/requisicoes`,    isLAT: false, badge: 'tickets' },
+    { icon: DollarSign,      label: 'Faturamento',      href: `/project/${projectId}/faturamento`,    isLAT: false, badge: '' },
+    { icon: Settings,        label: 'Settings',         href: `/project/${projectId}/settings`,       isLAT: false, badge: '' },
+    { icon: ClaudeIcon,      label: 'LAT Intelligence', href: '',                                     isLAT: true,  badge: '' },
   ] : []
 
   const accent = isDashboard ? '#00D4AA' : brandColor
@@ -236,6 +240,10 @@ export default function TopNav({
                         style={{ width: 8, height: 8, background: '#EF4444', top: 6, right: 6 }}
                       />
                     )}
+                    {item.badge === 'tickets' && hasNewTickets && (
+                      <span className="absolute rounded-full"
+                        style={{ width: 8, height: 8, background: '#3B82F6', top: 6, right: 6 }} />
+                    )}
                     <span
                       className="absolute top-full mt-2 px-2.5 py-1.5 rounded text-[10px] font-medium whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
                       style={{
@@ -254,40 +262,10 @@ export default function TopNav({
 
           {/* ── Direita ── */}
           <div className="flex items-center gap-2 shrink-0">
-            {!isDashboard && project && (
-              <button
-                onClick={() => setDrawerOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded text-xs font-semibold tracking-wide transition-all"
-                style={{
-                  background: `${accent}15`,
-                  border:     `1px solid ${accent}30`,
-                  color:       accent,
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background  = `${accent}25`
-                  e.currentTarget.style.borderColor = `${accent}55`
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background  = `${accent}15`
-                  e.currentTarget.style.borderColor = `${accent}30`
-                }}
-              >
-                <Plus style={{ width: 13, height: 13 }} strokeWidth={2.5} />
-                Atualizar Semana
-              </button>
-            )}
+            {actions}
           </div>
         </div>
       </header>
-
-      <AnimatePresence>
-        {drawerOpen && project && (
-          <WeeklyUpdateDrawer
-            project={project}
-            onClose={() => setDrawerOpen(false)}
-          />
-        )}
-      </AnimatePresence>
     </>
   )
 }

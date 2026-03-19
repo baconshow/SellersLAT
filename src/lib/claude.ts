@@ -1,4 +1,4 @@
-import type { Project } from '@/types'
+import type { Project, Distributor } from '@/types'
 
 export interface LATAction {
   title:       string
@@ -29,7 +29,8 @@ interface UserContext {
 export async function analyzeProject(
   project: Project,
   trigger: string,
-  userContext?: UserContext
+  userContext?: UserContext,
+  distributors?: Distributor[],
 ): Promise<LATAnalysis | null> {
   try {
     const res = await fetch('/api/claude', {
@@ -37,6 +38,7 @@ export async function analyzeProject(
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         project,
+        distributors,
         trigger,
         userName:         userContext?.userName,
         authorizedEmails: userContext?.authorizedEmails,
@@ -54,7 +56,8 @@ export async function analyzeProject(
 export async function chatWithClaude(
   project: Project,
   messages: { role: 'user' | 'assistant'; content: string }[],
-  userContext?: UserContext
+  userContext?: UserContext,
+  distributors?: Distributor[],
 ): Promise<string | null> {
   try {
     const res = await fetch('/api/claude', {
@@ -62,6 +65,7 @@ export async function chatWithClaude(
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         project,
+        distributors,
         messages,
         userName:         userContext?.userName,
         authorizedEmails: userContext?.authorizedEmails,

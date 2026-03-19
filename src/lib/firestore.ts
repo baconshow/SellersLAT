@@ -5,7 +5,7 @@ import {
   type Unsubscribe, Timestamp
 } from 'firebase/firestore'
 import { db } from './firebase'
-import type { Project, ProjectPhase, WeeklyUpdate, Distributor, DistributorSnapshot, DistributorHistoryEntry, DistributorComment, ProjectMessage } from '@/types'
+import type { Project, ProjectPhase, WeeklyUpdate, Distributor, DistributorSnapshot, DistributorHistoryEntry, DistributorComment, ProjectMessage, Ticket, TicketStatus } from '@/types'
 import { DEFAULT_PHASES, generateDistributorId } from '@/types'
 import { differenceInDays, addDays } from 'date-fns'
 
@@ -755,4 +755,78 @@ export async function logProjectActivity(
     text,
     'activity'
   )
+}
+
+// ─── Tickets (subcoleção projects/{id}/tickets) ───────────────────────────────
+
+export async function generateTicketId(projectId: string, clientName: string): Promise<string> {
+  // Prefixo: 3 primeiras letras do clientName, maiúsculas, sem acentos
+  const prefix = clientName
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z]/g, '')
+    .substring(0, 3)
+    .toUpperCase()
+
+  // Contador atômico em projects/{id}/meta/ticketCounter
+  const counterRef = doc(db, 'projects', projectId, 'meta', 'ticketCounter')
+  const snap = await getDoc(counterRef)
+  const current = snap.exists() ? (snap.data().count as number) : 0
+  const next = current + 1
+
+  await setDoc(counterRef, { count: next }, { merge: true })
+
+  return `${prefix}${String(next).padStart(3, '0')}`
+}
+
+export async function createTicket(
+  projectId: string,
+  clientName: string,
+  data: {
+    title: string
+    description: string
+    source: 'internal' | 'public'
+    createdByEmail: string
+    createdByName: string
+    priority: 'hi' | 'md' | 'lo'
+    sprint: number
+    estimatedDate: string
+    effort: 'low' | 'medium' | 'high'
+  }
+): Promise<string> {
+  const id = await generateTicketId(projectId, clientName)
+  await setDoc(doc(db, 'projects', projectId, 'tickets', id), {
+    id,
+    projectId,
+    ...data,
+    status: 'aberto',
+    aiClassified: true,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  })
+  return id
+}
+
+export function subscribeToTickets(
+  projectId: string,
+  cb: (tickets: Ticket[]) => void
+): Unsubscribe {
+  const q = query(
+    collection(db, 'projects', projectId, 'tickets'),
+    orderBy('createdAt', 'desc')
+  )
+  return onSnapshot(q, snap => {
+    cb(snap.docs.map(d => ({ id: d.id, ...d.data() } as Ticket)))
+  })
+}
+
+export async function updateTicketStatus(
+  projectId: string,
+  ticketId: string,
+  status: TicketStatus
+): Promise<void> {
+  await updateDoc(doc(db, 'projects', projectId, 'tickets', ticketId), {
+    status,
+    updatedAt: serverTimestamp(),
+  })
 }

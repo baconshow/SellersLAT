@@ -9,7 +9,7 @@ import {
 import { differenceInDays } from 'date-fns'
 import { analyzeProject, chatWithClaude } from '@/lib/claude'
 import type { LATAnalysis } from '@/lib/claude'
-import type { Project } from '@/types'
+import type { Project, Distributor } from '@/types'
 import { useAuth } from '@/contexts/AuthContext'
 
 const ClaudeIcon = ({ size = 18, ...props }: any) => (
@@ -377,6 +377,7 @@ function IntroScreen({ messages, active, finalMessage, onDoneTyping }: IntroScre
 
 interface Props {
   project: Project
+  distributors?: Distributor[]
   onClose?: () => void
 }
 
@@ -392,7 +393,7 @@ const SEVERITY_COLOR = {
   low:    '#64748B',
 }
 
-export default function LATIntelligence({ project, onClose }: Props) {
+export default function LATIntelligence({ project, distributors = [], onClose }: Props) {
   const { user } = useAuth()
   const [tab,        setTab]       = useState<'actions' | 'chat'>('actions')
   const [analysis,   setAnalysis]  = useState<LATAnalysis | null>(null)
@@ -445,7 +446,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
     setLoading(true)
     analysisDoneRef.current = false
     analysisResultRef.current = null
-    const result = await analyzeProject(project, 'manual_check', userContext)
+    const result = await analyzeProject(project, 'manual_check', userContext, distributors)
     analysisResultRef.current = result
     analysisDoneRef.current = true
     setAnalysis(result)
@@ -498,6 +499,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
           project,
+          distributors,
           messages:         next,
           userName:         userContext.userName,
           authorizedEmails: userContext.authorizedEmails,
@@ -544,10 +546,7 @@ export default function LATIntelligence({ project, onClose }: Props) {
       <div className="flex items-center justify-between px-5 py-4"
            style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded flex items-center justify-center"
-               style={{ background: 'var(--color-brand,#00D4AA)' }}>
-            <ClaudeIcon style={{ width: 14, height: 14, color: '#050508' }} />
-          </div>
+          <ClaudeIcon style={{ width: 22, height: 22, color: 'var(--color-brand,#00D4AA)' }} />
           <div>
             <p className="text-sm font-semibold text-white">LAT Intelligence</p>
             <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>

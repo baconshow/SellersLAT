@@ -3,8 +3,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import {
   GoogleAuthProvider,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   signOut,
   signInAnonymously,
   type User,
@@ -53,45 +52,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, [firebase.user, firebase.isUserLoading]);
 
-  // Captura resultado do redirect ao retornar do Google
-  useEffect(() => {
-    if (!firebase.auth) return;
-
-    getRedirectResult(firebase.auth)
-      .then(async (result) => {
-        if (!result?.user) return;
-
-        if (!result.user.email?.endsWith('@sellers.com.br')) {
-          await signOut(firebase.auth!);
-          toast.error('Acesso restrito a contas @sellers.com.br', { duration: 6000 });
-          return;
-        }
-
-        setUser(result.user);
-        toast.success(`Bem-vindo, ${result.user.displayName}!`);
-      })
-      .catch((error: any) => {
-        console.error('Erro no redirect result:', error);
-        if (error.code === 'auth/unauthorized-domain') {
-          const domain = window.location.hostname;
-          toast.error(
-            `Domínio "${domain}" não autorizado. Adicione-o no Console do Firebase > Authentication > Settings > Authorized Domains.`,
-            { duration: 10000 }
-          );
-        }
-      });
-  }, [firebase.auth]);
-
   const signInWithGoogle = async () => {
     if (!firebase.auth) {
       toast.error('Firebase Auth não inicializado.');
       return;
     }
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(firebase.auth, provider);
 
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
+      if (!result.user.email?.endsWith('@sellers.com.br')) {
+        await signOut(firebase.auth);
+        toast.error('Acesso restrito a contas @sellers.com.br', { duration: 6000 });
+        return;
+      }
 
-    await signInWithRedirect(firebase.auth, provider);
+      toast.success(`Bem-vindo, ${result.user.displayName}!`);
+    } catch (error: any) {
+      if (error.code === 'auth/popup-blocked') {
+        toast.error('Popup bloqueado. Permita popups para este site.', { duration: 8000 });
+      } else if (error.code === 'auth/unauthorized-domain') {
+        toast.error(`Domínio não autorizado no Firebase Console.`, { duration: 8000 });
+      } else if (error.code !== 'auth/popup-closed-by-user') {
+        toast.error('Erro ao autenticar. Tente novamente.');
+        console.error('[signInWithGoogle]', error);
+      }
+    }
   };
 
   const skipLogin = async () => {

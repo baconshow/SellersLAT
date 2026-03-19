@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import {
   DollarSign, TrendingUp, AlertTriangle, Target,
   CheckCircle2, Clock, XCircle, Circle, Eye, EyeOff,
+  Calendar, Zap,
 } from 'lucide-react'
 import {
   subscribeToProject,
@@ -13,7 +14,7 @@ import {
 } from '@/lib/firestore'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Project, Distributor, DistributorStatus } from '@/types'
-import { format } from 'date-fns'
+import { format, addDays, startOfMonth, endOfMonth, isAfter } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -26,7 +27,30 @@ const STATUS_CFG: Record<DistributorStatus, { label: string; color: string; Icon
 }
 
 function formatBRL(value: number): string {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  return value.toLocaleString('pt-BR', {
+    style: 'currency', currency: 'BRL',
+    minimumFractionDigits: 0, maximumFractionDigits: 0,
+  })
+}
+
+const FINAL_PHASES = ['onboarding opt-in', 'validação opt-in', 'validacao opt-in']
+
+function isNearIntegration(d: Distributor): boolean {
+  if (d.status === 'integrated') return false
+  const notes = (d.notes ?? '').toLowerCase()
+  return FINAL_PHASES.some(f => notes.includes(f))
+}
+
+function getNextBillingDate(): Date {
+  const today = new Date()
+  const firstNext = startOfMonth(addDays(endOfMonth(today), 1))
+  return firstNext
+}
+
+function getCutoffDate(): Date {
+  // dia 25 do mês atual
+  const today = new Date()
+  return new Date(today.getFullYear(), today.getMonth(), 25)
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -92,10 +116,23 @@ export default function FaturamentoPage() {
       ...distributors.filter(d => d.status === 'not_started'),
     ]
 
+    const nextBilling   = getNextBillingDate()
+    const cutoff        = getCutoffDate()
+    const today2        = new Date()
+    const daysUntilCutoff = Math.ceil((cutoff.getTime() - today2.getTime()) / (1000 * 60 * 60 * 24))
+    const cutoffPassed  = isAfter(today2, cutoff)
+
+    // Distribuidores que podem entrar no próximo ciclo
+    const nearIntegration = distributors.filter(d => isNearIntegration(d))
+    const revenueNearIntegration = nearIntegration.reduce((s, d) => s + (d.valuePerConnection || avgValue), 0)
+    const revenueNextCycle = revenueConfirmed + revenueNearIntegration
+
     return {
       integrated, pending, blocked, total,
       revenueConfirmed, revenuePending, revenueBlocked, revenueTotal,
       avgValue, pct, sorted,
+      nearIntegration, revenueNearIntegration, revenueNextCycle,
+      nextBilling, cutoff, daysUntilCutoff, cutoffPassed,
     }
   }, [distributors])
 
@@ -167,7 +204,7 @@ export default function FaturamentoPage() {
           <p
             className="text-5xl font-black mb-2"
             style={{
-              fontFamily: "'Conthrax', 'Orbitron', 'Share Tech Mono', monospace",
+              fontFamily: 'var(--font-outfit)',
               color: '#fff',
               letterSpacing: '0.02em',
             }}
@@ -196,6 +233,82 @@ export default function FaturamentoPage() {
               <span className="font-bold" style={{ color: accent }}>
                 {data.pct}% do potencial
               </span>
+            </div>
+          </div>
+
+          {/* Ciclo de faturamento */}
+          <div className="mt-6 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="flex flex-col items-center gap-3">
+
+              {/* Próximo faturamento */}
+              <div className="flex items-center gap-2">
+                <Calendar style={{ width: 13, height: 13, color: 'rgba(255,255,255,0.3)' }} />
+                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                  Próximo faturamento:
+                </span>
+                <span className="text-xs font-bold text-white">
+                  {format(data.nextBilling, "1 'de' MMMM", { locale: ptBR })}
+                </span>
+                <span className="text-xs font-black" style={{ color: accent }}>
+                  {formatBRL(data.revenueNextCycle)}
+                </span>
+              </div>
+
+              {/* Alerta de distribuidores na reta final */}
+              {data.nearIntegration.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex items-start gap-3 px-4 py-3 rounded max-w-lg w-full"
+                  style={{
+                    background: data.cutoffPassed
+                      ? 'rgba(239,68,68,0.08)'
+                      : 'rgba(245,158,11,0.08)',
+                    border: `1px solid ${data.cutoffPassed ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)'}`,
+                  }}
+                >
+                  <Zap style={{
+                    width: 14, height: 14, flexShrink: 0, marginTop: 1,
+                    color: data.cutoffPassed ? '#ef4444' : '#f59e0b',
+                  }} />
+                  <div className="text-left">
+                    <p className="text-xs font-semibold" style={{
+                      color: data.cutoffPassed ? '#ef4444' : '#f59e0b',
+                    }}>
+                      {data.cutoffPassed
+                        ? `Corte passou — ${data.nearIntegration.length} distribuidores ficaram fora deste ciclo`
+                        : `${data.nearIntegration.length} distribuidores podem entrar no ciclo de ${format(data.nextBilling, "MMMM", { locale: ptBR })}`
+                      }
+                    </p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                      {data.cutoffPassed
+                        ? `Integre-os agora para garantir o faturamento de ${format(data.nextBilling, "1 'de' MMMM", { locale: ptBR })}`
+                        : `Integrar até dia 25/${format(data.cutoff, 'MM')} garante +${formatBRL(data.revenueNearIntegration)} neste ciclo`
+                      }
+                    </p>
+                    {/* Lista inline */}
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {data.nearIntegration.slice(0, 5).map(d => (
+                        <span key={d.id} className="text-[10px] px-2 py-0.5 rounded font-medium"
+                          style={{
+                            background: 'rgba(255,255,255,0.06)',
+                            color: 'rgba(255,255,255,0.5)',
+                            border: '1px solid rgba(255,255,255,0.08)',
+                          }}>
+                          {d.name.split(' ')[0]}
+                        </span>
+                      ))}
+                      {data.nearIntegration.length > 5 && (
+                        <span className="text-[10px] px-2 py-0.5 rounded"
+                          style={{ color: 'rgba(255,255,255,0.3)' }}>
+                          +{data.nearIntegration.length - 5} mais
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </div>
           </div>
         </div>
@@ -302,6 +415,7 @@ export default function FaturamentoPage() {
                 <th className="text-left px-4 py-2.5 font-semibold text-white/40">ERP</th>
                 <th className="text-left px-4 py-2.5 font-semibold text-white/40">Modo</th>
                 <th className="text-left px-4 py-2.5 font-semibold text-white/40">Status</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-white/40">Fase</th>
                 <th className="text-right px-4 py-2.5 font-semibold text-white/40">Valor</th>
                 <th className="text-left px-4 py-2.5 font-semibold text-white/40">Data Integração</th>
               </tr>
@@ -345,6 +459,24 @@ export default function FaturamentoPage() {
                         <cfg.Icon style={{ width: 11, height: 11 }} />
                         {cfg.label}
                       </span>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      {(() => {
+                        const fase = (d.notes ?? '').replace('Fase: ', '')
+                        const isNear = isNearIntegration(d)
+                        if (!fase) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>—</span>
+                        return (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex items-center gap-1"
+                            style={{
+                              background: isNear ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)',
+                              color: isNear ? '#f59e0b' : 'rgba(255,255,255,0.3)',
+                              border: isNear ? '1px solid rgba(245,158,11,0.25)' : 'none',
+                            }}>
+                            {isNear && <Zap style={{ width: 9, height: 9 }} />}
+                            {fase}
+                          </span>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-2.5 text-right font-semibold" style={{ color: valueColor }}>
                       {value > 0 ? (

@@ -147,6 +147,28 @@ export function generateDistributorId(name: string, cnpj?: string): string {
   return `dist_${base}`
 }
 
+export type TicketStatus = 'aberto' | 'andamento' | 'implementado' | 'cancelado'
+export type TicketPriority = 'hi' | 'md' | 'lo'
+export type TicketSource = 'internal' | 'public'
+
+export interface Ticket {
+  id: string
+  projectId: string
+  title: string
+  description: string
+  status: TicketStatus
+  priority: TicketPriority
+  sprint: number
+  estimatedDate: string
+  effort: 'low' | 'medium' | 'high'
+  source: TicketSource
+  createdByEmail: string
+  createdByName: string
+  createdAt: any
+  updatedAt: any
+  aiClassified?: boolean
+}
+
 export const DEFAULT_PHASES: Omit<ProjectPhase, 'id' | 'startDate' | 'endDate'>[] = [
   {
     name: 'KickOff',

@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, MessageCircle, Send, Activity } from 'lucide-react'
+import { ChevronRight, MessageCircle, Send, Activity, Calendar } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import type { Project, Distributor, ProjectMessage } from '@/types'
 import { subscribeToProjectMessages, addProjectMessage } from '@/lib/firestore'
@@ -9,9 +9,9 @@ import { subscribeToProjectMessages, addProjectMessage } from '@/lib/firestore'
 // ─── ClaudeIcon inline (LAT) ─────────────────────────────────────────────────
 function ClaudeIcon({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
       <path
-        d="M16.604 2.072c-.523-.168-1.07.12-1.24.643L9.932 18.781a1.028 1.028 0 0 0 .643 1.24 1.028 1.028 0 0 0 1.24-.643l5.433-16.066a.982.982 0 0 0-.644-1.24M7.59 7.452a.982.982 0 0 0-1.38.144L.676 14.664a.982.982 0 0 0 .144 1.38.982.982 0 0 0 1.38-.143l5.534-7.068a.982.982 0 0 0-.143-1.38m9.464.144a.982.982 0 0 0-1.38-.144.982.982 0 0 0-.144 1.381l5.534 7.068a.982.982 0 0 0 1.38.143.982.982 0 0 0 .144-1.38z"
+        d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 3c1.5 0 2.9.4 4.1 1.2L5.2 16.1A7.7 7.7 0 0 1 4 12c0-3.9 2.9-7.1 6.7-7.6L12 5zm0 14c-1.5 0-2.9-.4-4.1-1.2l10.9-9.9c.7 1.1 1.2 2.5 1.2 4.1 0 3.9-2.9 7.1-6.7 7.6L12 19z"
         fill={color}
       />
     </svg>
@@ -109,7 +109,7 @@ export default function ProjectCard({
       const res = await fetch('/api/claude', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ project, trigger: 'dashboard_insight' }),
+        body: JSON.stringify({ project, distributors, trigger: 'dashboard_insight' }),
       })
       const json = await res.json()
       if (json.ok && json.data) {
@@ -184,13 +184,13 @@ export default function ProjectCard({
         <div className="px-5 py-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
           {lastUserMsg && (
             <p className="text-[11px] truncate mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}>💬 {lastUserMsg.authorName.split(' ')[0]}:</span>{' '}
+              <span style={{ color: 'rgba(255,255,255,0.5)' }}><MessageCircle size={11} style={{ display: 'inline', marginRight: 5, opacity: 0.5, flexShrink: 0 }} />{lastUserMsg.authorName.split(' ')[0]}:</span>{' '}
               "{lastUserMsg.text}"
             </p>
           )}
           {currentPhase && (
             <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
-              📅 Fase atual: {currentPhase.name}
+              <Calendar size={11} style={{ display: 'inline', marginRight: 5, opacity: 0.5, flexShrink: 0 }} />Fase atual: {currentPhase.name}
             </p>
           )}
           {!lastUserMsg && !currentPhase && (

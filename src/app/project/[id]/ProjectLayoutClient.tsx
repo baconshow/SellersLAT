@@ -3,9 +3,9 @@ import { useState, useEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import TopNav from '@/components/layout/TopNav'
 import LATIntelligence from '@/components/intelligence/LATIntelligence'
-import { subscribeToProject } from '@/lib/firestore'
+import { subscribeToProject, subscribeToDistributorsCollection } from '@/lib/firestore'
 import { applyTheme } from '@/lib/theme'
-import type { Project } from '@/types'
+import type { Project, Distributor } from '@/types'
 
 export default function ProjectLayoutClient({
   children,
@@ -14,8 +14,9 @@ export default function ProjectLayoutClient({
   children:  React.ReactNode
   projectId: string
 }) {
-  const [project, setProject] = useState<Project | null>(null)
-  const [showAI,  setShowAI]  = useState(false)
+  const [project,      setProject]      = useState<Project | null>(null)
+  const [distributors, setDistributors] = useState<Distributor[]>([])
+  const [showAI,       setShowAI]       = useState(false)
 
   useEffect(() => {
     const unsub = subscribeToProject(projectId, p => {
@@ -23,6 +24,10 @@ export default function ProjectLayoutClient({
       if (p) applyTheme(p.clientColor, p.clientColorSecondary, p.clientColorRgb)
     })
     return unsub
+  }, [projectId])
+
+  useEffect(() => {
+    return subscribeToDistributorsCollection(projectId, setDistributors)
   }, [projectId])
 
   return (
@@ -61,7 +66,7 @@ export default function ProjectLayoutClient({
               boxShadow:      '-20px 0 60px rgba(0,0,0,0.4)',
             }}
           >
-            <LATIntelligence project={project} onClose={() => setShowAI(false)} />
+            <LATIntelligence project={project} distributors={distributors} onClose={() => setShowAI(false)} />
           </motion.div>
         )}
       </AnimatePresence>

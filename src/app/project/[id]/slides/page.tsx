@@ -8,8 +8,8 @@ import {
   Maximize2, Minimize2, CheckCircle2, Clock,
   XCircle, Circle, ArrowLeft, Wifi, HardDrive, Globe, FileText,
 } from 'lucide-react';
-import { subscribeToProject } from '@/lib/firestore';
-import type { Project, DistributorStatus } from '@/types';
+import { subscribeToProject, subscribeToDistributorsCollection } from '@/lib/firestore';
+import type { Project, Distributor, DistributorStatus } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -46,12 +46,11 @@ function buildSlides(project: Project, aiContent: any): Slide[] {
   if (latest) {
     slides.push({ id: 'kpis', type: 'kpis', label: 'Integrações' });
 
-    const snap = latest.distributorSnapshots ?? project.distributors ?? [];
-    if (snap.filter(d => d.status === 'integrated').length > 0)
+    if ((latest.distributorsIntegrated ?? 0) > 0)
       slides.push({ id: 'drill-integrated', type: 'drilldown', label: 'Integrados',   drillStatus: 'integrated'  });
-    if (snap.filter(d => d.status === 'pending').length > 0)
+    if ((latest.distributorsPending ?? 0) > 0)
       slides.push({ id: 'drill-pending',    type: 'drilldown', label: 'Pendentes',    drillStatus: 'pending'     });
-    if (snap.filter(d => d.status === 'blocked').length > 0)
+    if ((latest.distributorsBlocked ?? 0) > 0)
       slides.push({ id: 'drill-blocked',    type: 'drilldown', label: 'Bloqueados',   drillStatus: 'blocked'     });
 
     if (latest.highlights?.length)  slides.push({ id: 'highlights', type: 'highlights', label: 'Destaques'       });
@@ -339,19 +338,17 @@ function KPIsSlide({
 
 function DrilldownSlide({
   project,
+  distributors,
   status,
   onBack,
 }: {
-  project: Project;
-  status:  DistributorStatus;
-  onBack:  () => void;
+  project:      Project;
+  distributors: Distributor[];
+  status:       DistributorStatus;
+  onBack:       () => void;
 }) {
-  const latest = project.weeklyUpdates?.slice(-1)[0];
-  const cfg    = DIST_CFG[status];
-
-  const list = (
-    latest?.distributorSnapshots ?? project.distributors ?? []
-  ).filter(d => d.status === status);
+  const cfg  = DIST_CFG[status];
+  const list = distributors.filter(d => d.status === status);
 
   return (
     <div className="w-full h-full flex flex-col p-14 relative overflow-hidden">
@@ -622,6 +619,7 @@ export default function SlidesPage() {
   const containerRef             = useRef<HTMLDivElement>(null);
 
   const [project,      setProject]      = useState<Project | null>(null);
+  const [distributors, setDistributors] = useState<Distributor[]>([]);
   const [aiContent,    setAiContent]    = useState<any>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [direction,    setDirection]    = useState(1);
@@ -634,6 +632,11 @@ export default function SlidesPage() {
   useEffect(() => {
     if (!id) return;
     return subscribeToProject(id, setProject);
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    return subscribeToDistributorsCollection(id, setDistributors);
   }, [id]);
 
   const slides = project ? buildSlides(project, aiContent) : [];
@@ -725,7 +728,7 @@ export default function SlidesPage() {
               {slide?.type === 'phases'     && <PhasesSlide   project={project} />}
               {slide?.type === 'kpis'       && <KPIsSlide     project={project} onDrilldown={handleDrilldown} />}
               {slide?.type === 'drilldown'  && slide.drillStatus && (
-                <DrilldownSlide project={project} status={slide.drillStatus} onBack={handleDrillBack} />
+                <DrilldownSlide project={project} distributors={distributors} status={slide.drillStatus} onBack={handleDrillBack} />
               )}
               {(slide?.type === 'highlights' || slide?.type === 'blockers' || slide?.type === 'nextsteps') && (
                 <ListSlide project={project} type={slide.type} />

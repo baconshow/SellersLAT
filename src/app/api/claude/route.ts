@@ -21,26 +21,32 @@ function daysSince(dateStr: string | undefined): number | null {
   return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-async function fetchDistributors(projectId: string): Promise<Distributor[]> {
+async function fetchDistributors(projectId: string, cached?: Distributor[]): Promise<Distributor[]> {
+  if (cached !== undefined) return cached
   const db = getDb()
   const snap = await getDocs(collection(db, 'projects', projectId, 'distributors'))
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Distributor))
 }
 
 async function fetchComments(projectId: string, distributorId: string): Promise<DistributorComment[]> {
-  const db = getDb()
-  const q = query(
-    collection(db, 'projects', projectId, 'distributors', distributorId, 'comments'),
-    orderBy('timestamp', 'asc'),
-  )
-  const snap = await getDocs(q)
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as DistributorComment))
+  try {
+    const db = getDb()
+    const q = query(
+      collection(db, 'projects', projectId, 'distributors', distributorId, 'comments'),
+      orderBy('timestamp', 'asc'),
+    )
+    const snap = await getDocs(q)
+    return snap.docs.map(d => ({ id: d.id, ...d.data() } as DistributorComment))
+  } catch {
+    return []
+  }
 }
 
 async function buildProjectContext(
   project: Project,
   userName: string,
   authorizedEmails: string[],
+  cachedDistributors?: Distributor[],
 ): Promise<string> {
   const today       = new Date()
   const start       = new Date(project.startDate)
@@ -56,8 +62,8 @@ async function buildProjectContext(
   const completedPhases = project.phases.filter(p => p.status === 'completed').length
   const totalPhases     = project.phases.length
 
-  // ── Busca distribuidores da subcoleção ──
-  const distributors = await fetchDistributors(project.id)
+  // ── Busca distribuidores da subcoleção (ou usa cache do body) ──
+  const distributors = await fetchDistributors(project.id, cachedDistributors)
 
   const gestores = authorizedEmails.length > 0
     ? authorizedEmails.join(', ')
@@ -195,8 +201,8 @@ ESTRUTURA INTERNA SELLERS:
   `.trim()
 }
 
-async function buildCompactContext(project: Project): Promise<string> {
-  const distributors = await fetchDistributors(project.id)
+async function buildCompactContext(project: Project, cachedDistributors?: Distributor[]): Promise<string> {
+  const distributors = await fetchDistributors(project.id, cachedDistributors)
 
   const integrated  = distributors.filter(d => d.status === 'integrated').length
   const pending     = distributors.filter(d => d.status === 'pending').length
@@ -249,12 +255,13 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json()
-    const { project, trigger, messages, userName: rawUserName, authorizedEmails: rawEmails } = body as {
+    const { project, trigger, messages, userName: rawUserName, authorizedEmails: rawEmails, distributors: bodyDistributors } = body as {
       project:           Project
       trigger?:          string
       messages?:         { role: 'user' | 'assistant'; content: string }[]
       userName?:         string
       authorizedEmails?: string[]
+      distributors?:     Distributor[]
     }
 
     const userName         = rawUserName || 'time Sellers'
@@ -263,7 +270,7 @@ export async function POST(req: Request) {
 
     // ── Modo dashboard_insight — contexto compacto, resposta leve ──
     if (trigger === 'dashboard_insight') {
-      const compactCtx = await buildCompactContext(project)
+      const compactCtx = await buildCompactContext(project, bodyDistributors)
       const response = await anthropic.messages.create({
         model:      'claude-haiku-4-5-20251001',
         max_tokens: 512,
@@ -290,7 +297,39 @@ ${compactCtx}`,
       return Response.json({ ok: true, data: json })
     }
 
-    const context = await buildProjectContext(project, userName, authorizedEmails)
+    // ── Modo ticket_classify — classifica um ticket com IA ──
+    if (trigger === 'ticket_classify') {
+      const { ticketTitle, ticketDescription, currentSprint } = body as any
+      const response = await anthropic.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 256,
+        system: `Você é um gestor de projetos ágeis sênior. Classifique a solicitação abaixo e retorne APENAS JSON válido, sem texto extra.
+
+Regras:
+- priority: "hi" se impacta análise de dados ou decisões estratégicas, "md" se melhoria de usabilidade, "lo" se cosmético
+- sprint: número inteiro — use ${currentSprint || 2} como sprint atual, adicione 0 para urgente, 1 para normal, 2 para backlog
+- estimatedDate: data estimada de entrega no formato "Mmm/AAAA" em pt-BR, calcule a partir de hoje (${new Date().toLocaleDateString('pt-BR')})
+- effort: "low" até 4h, "medium" 4h-2d, "high" acima de 2d
+
+Formato exato:
+{
+  "priority": "hi"|"md"|"lo",
+  "sprint": number,
+  "estimatedDate": "string",
+  "effort": "low"|"medium"|"high",
+  "reasoning": "1 frase explicando a classificação"
+}`,
+        messages: [{
+          role: 'user',
+          content: `Título: ${ticketTitle}\nDescrição: ${ticketDescription}`
+        }],
+      })
+      const raw = response.content[0].type === 'text' ? response.content[0].text.trim() : '{}'
+      const json = tryParseJSON(raw)
+      return Response.json({ ok: true, data: json })
+    }
+
+    const context = await buildProjectContext(project, userName, authorizedEmails, bodyDistributors)
 
     // ── Modo proativo — retorna JSON ──────────────────────────
     if (trigger && !messages) {
