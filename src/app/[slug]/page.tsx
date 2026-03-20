@@ -24,7 +24,7 @@ const DIST_STATUS: Record<string, { color: string; Icon: any; label: string }> =
   integrated:  { color: '#22c55e', Icon: CheckCircle2, label: 'Integrado'    },
   pending:     { color: '#f59e0b', Icon: Clock,        label: 'Pendente'     },
   blocked:     { color: '#ef4444', Icon: XCircle,      label: 'Bloqueado'    },
-  not_started: { color: '#ffffff30', Icon: Circle,     label: 'Não iniciado' },
+  not_started: { color: 'var(--color-text-muted)', Icon: Circle, label: 'Não iniciado' },
 }
 
 const PHASE_STATUS: Record<PhaseStatus, { color: string; icon: any; label: string }> = {
@@ -127,7 +127,8 @@ export default function SlugSharePage() {
   if (status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-5 h-5 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
+        <div className="w-5 h-5 border-2 rounded-full animate-spin"
+             style={{ borderColor: 'var(--color-border)', borderTopColor: 'var(--color-text-muted)' }} />
       </div>
     )
   }
@@ -228,18 +229,32 @@ export default function SlugSharePage() {
             </span>
           </div>
 
-          {/* Direita: toggle tema */}
+          {/* Direita: user + logout + toggle tema */}
           <div className="flex items-center gap-2">
+            <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
+              {user?.displayName?.split(' ')[0]}
+            </span>
+            <button
+              onClick={logout}
+              title="Sair"
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 30, height: 30, borderRadius: 5,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface2)',
+                cursor: 'pointer',
+                color: 'var(--color-text-muted)',
+                transition: 'all 150ms ease',
+              }}
+            >
+              <LogOut size={13} />
+            </button>
             <button
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 30,
-                height: 30,
-                borderRadius: 5,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 30, height: 30, borderRadius: 5,
                 border: '1px solid var(--color-border)',
                 background: 'var(--color-surface2)',
                 cursor: 'pointer',
@@ -265,9 +280,22 @@ export default function SlugSharePage() {
           <h1 className="text-3xl font-bold" style={{ color: accent }}>
             {project!.clientName}
           </h1>
-          <p className="text-sm mt-1.5" style={{ color: 'var(--color-text-muted)' }}>
-            Semana {weekNumber} · {daysRunning} dias de projeto
-          </p>
+          <div className="flex items-center gap-3 mt-2">
+            <span
+              className="text-[10px] font-bold px-2 py-1 rounded"
+              style={{
+                background: `${accent}15`,
+                border: `1px solid ${accent}30`,
+                color: accent,
+                letterSpacing: '0.08em',
+              }}
+            >
+              SEMANA {weekNumber}
+            </span>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              {daysRunning} dias de projeto
+            </span>
+          </div>
           {/* Barra de progresso */}
           <div className="mt-4 flex items-center gap-3">
             <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
@@ -699,7 +727,7 @@ function PublicLATChat({
           style={{
             borderBottom: '1px solid var(--color-border)',
             scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(255,255,255,0.1) transparent',
+            scrollbarColor: 'var(--color-border) transparent',
           }}
         >
           {messages.map(msg => (
@@ -811,7 +839,7 @@ function GateScreen({ children }: { children: React.ReactNode }) {
             fontFamily: 'Conthrax, Orbitron, "Share Tech Mono", monospace',
             fontSize: 14,
             fontWeight: 700,
-            color: '#00D4AA',
+            color: 'var(--color-brand)',
             letterSpacing: 2,
           }}
         >
@@ -1102,7 +1130,7 @@ function DistributorRow({
               ) : comments.length > 0 ? (
                 <div
                   className="space-y-2 max-h-48 overflow-y-auto"
-                  style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
+                  style={{ scrollbarWidth: 'thin', scrollbarColor: 'var(--color-border) transparent' }}
                 >
                   {comments.map((c: DistributorComment) => (
                     <div

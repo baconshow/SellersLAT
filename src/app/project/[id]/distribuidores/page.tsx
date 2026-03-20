@@ -70,7 +70,6 @@ function parseConnectionType(s: string): string {
 }
 
 function cleanName(taskName: string): string {
-  // Remove "N. " prefix e " [Cliente]" suffix
   return taskName
     .replace(/^\d+\.\s*/, '')
     .replace(/\s*\[.*?\]\s*$/, '')
@@ -97,7 +96,6 @@ function parseCSV(text: string): Omit<Distributor, 'id'>[] {
   const iCategory   = idx('Categoria')
 
   return lines.slice(1).map(line => {
-    // Parse respeitando campos com vírgulas dentro de aspas
     const cols: string[] = []
     let cur = '', inQuote = false
     for (const ch of line) {
@@ -192,7 +190,6 @@ function ImportModal({
 
       const res = await importWeeklyCSV(projectId, preview, selectedWeek)
 
-      // Remove distribuidores que não vieram no CSV
       const csvIds = preview.map(d => generateDistributorId(d.name, d.cnpj))
       const existingSnap = await getDocs(
         collection(db, 'projects', projectId, 'distributors')
@@ -226,9 +223,6 @@ function ImportModal({
 
   // ── Result screen ──
   if (result) {
-    const integrationPct = (result.integrated + result.pending + result.blocked) > 0
-      ? Math.round((result.integrated / (result.integrated + result.pending + result.blocked + (preview.length - result.integrated - result.pending - result.blocked))) * 100)
-      : 0
     const totalAfter = result.integrated + result.pending + result.blocked + (preview.length - result.integrated - result.pending - result.blocked)
     const pct = totalAfter > 0 ? Math.round((result.integrated / totalAfter) * 100) : 0
 
@@ -241,25 +235,25 @@ function ImportModal({
         <motion.div
           initial={{ scale: 0.96, y: 16 }} animate={{ scale: 1, y: 0 }}
           className="w-full max-w-md rounded p-6 space-y-5"
-          style={{ background: '#0e0e16', border: '1px solid rgba(255,255,255,0.08)' }}
+          style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border-2)' }}
         >
           <div className="text-center space-y-1">
-            <p className="text-lg font-bold text-white flex items-center justify-center gap-2">
+            <p className="text-lg font-bold flex items-center justify-center gap-2" style={{ color: 'var(--color-text)' }}>
               <CheckCircle2 style={{ width: 18, height: 18, color: '#22c55e' }} />
               Importação concluída
             </p>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
               Semana {selectedWeek}
             </p>
           </div>
 
           {/* Progress bar */}
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <div className="flex items-center justify-between text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
               <span>Integração</span>
               <span style={{ color: 'var(--color-brand)' }}>{pct}%</span>
             </div>
-            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${pct}%` }}
@@ -301,9 +295,9 @@ function ImportModal({
             )}
             {result.removed > 0 && (
               <div className="flex items-center gap-2 px-3 py-2 rounded"
-                   style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                <Trash2 style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.4)' }} />
-                <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                   style={{ background: 'var(--color-muted)', border: '1px solid var(--color-border-2)' }}>
+                <Trash2 style={{ width: 12, height: 12, color: 'var(--color-text-muted)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
                   {result.removed} {result.removed === 1 ? 'removido' : 'removidos'} (não constam no CSV)
                 </span>
               </div>
@@ -311,7 +305,7 @@ function ImportModal({
           </div>
 
           {/* Counts summary */}
-          <div className="flex items-center justify-center gap-4 text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <div className="flex items-center justify-center gap-4 text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
             <span>{result.updated} atualizados</span>
             <span>·</span>
             <span>{result.added} novos</span>
@@ -319,7 +313,7 @@ function ImportModal({
           </div>
 
           {/* Before/after comparison */}
-          <div className="text-center text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <div className="text-center text-xs" style={{ color: 'var(--color-text-muted)' }}>
             Semana anterior: {result.previousIntegrated} integrados → Agora: {result.integrated} integrados
           </div>
 
@@ -342,20 +336,20 @@ function ImportModal({
       <motion.div
         initial={{ scale: 0.96, y: 16 }} animate={{ scale: 1, y: 0 }}
         className="w-full max-w-2xl rounded overflow-hidden"
-        style={{ background: '#0e0e16', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border-2)' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4"
-             style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+             style={{ borderBottom: '1px solid var(--color-border)' }}>
           <div>
-            <p className="text-sm font-bold text-white">
+            <p className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
               Importar CSV do ClickUp
             </p>
-            <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
               Campos mapeados: Nome, Status, Responsável, Modo de Integração, Fase
             </p>
           </div>
-          <button onClick={onClose} style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <button onClick={onClose} style={{ color: 'var(--color-text-muted)' }}>
             <X style={{ width: 15, height: 15 }} />
           </button>
         </div>
@@ -365,20 +359,20 @@ function ImportModal({
           <div
             className="rounded"
             style={{
-              background: 'rgba(255,255,255,0.02)',
-              border: '1px solid rgba(255,255,255,0.06)',
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
               borderRadius: 5,
               padding: '12px 14px',
             }}
           >
-            <p className="text-[11px] font-semibold mb-1" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            <p className="text-[11px] font-semibold mb-1" style={{ color: 'var(--color-text-2)' }}>
               Como funciona
             </p>
-            <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.35)' }}>
+            <p className="text-[11px] leading-relaxed" style={{ color: 'var(--color-text-muted)' }}>
               Exporte a lista de distribuidores do ClickUp toda segunda-feira e importe aqui.
               O LAT compara com a semana anterior e atualiza o relatório automaticamente.
             </p>
-            <p className="text-[11px] mt-1.5" style={{ color: 'rgba(255,255,255,0.25)' }}>
+            <p className="text-[11px] mt-1.5" style={{ color: 'var(--color-text-muted)' }}>
               Enquanto a gente não conecta direto com o ClickUp... é assim que rola. 🥲
             </p>
           </div>
@@ -388,13 +382,13 @@ function ImportModal({
             <div
               onClick={() => fileRef.current?.click()}
               className="flex flex-col items-center justify-center py-10 rounded cursor-pointer transition-all"
-              style={{ border: '2px dashed rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.02)' }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)')}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
+              style={{ border: '2px dashed var(--color-border-2)', background: 'var(--color-surface)' }}
+              onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-border-2)')}
+              onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border-2)')}
             >
-              <Upload style={{ width: 24, height: 24, color: 'rgba(255,255,255,0.2)', marginBottom: 10 }} />
-              <p className="text-sm text-white/50">Clique para selecionar o CSV</p>
-              <p className="text-xs text-white/25 mt-1">Exportado do ClickUp — lista de distribuidores</p>
+              <Upload style={{ width: 24, height: 24, color: 'var(--color-text-muted)', marginBottom: 10 }} />
+              <p className="text-sm" style={{ color: 'var(--color-text-2)' }}>Clique para selecionar o CSV</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>Exportado do ClickUp — lista de distribuidores</p>
               <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFile} />
             </div>
           )}
@@ -411,13 +405,13 @@ function ImportModal({
           {preview.length > 0 && (
             <>
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold text-white">
+                <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
                   {preview.length} distribuidores encontrados
                 </p>
                 <button
                   onClick={() => { setPreview([]); setError('') }}
                   className="text-xs"
-                  style={{ color: 'rgba(255,255,255,0.3)' }}
+                  style={{ color: 'var(--color-text-muted)' }}
                 >
                   Trocar arquivo
                 </button>
@@ -441,25 +435,25 @@ function ImportModal({
 
               {/* Week selector */}
               <div className="flex items-center justify-between px-3 py-2.5 rounded"
-                   style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}>
-                <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                   style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+                <span className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
                   Para qual semana é esse import?
                 </span>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setSelectedWeek(w => Math.max(1, w - 1))}
                     className="w-6 h-6 rounded flex items-center justify-center transition-all"
-                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}
+                    style={{ background: 'var(--color-border)', color: 'var(--color-text-muted)' }}
                   >
                     <ChevronLeft style={{ width: 12, height: 12 }} />
                   </button>
-                  <span className="text-xs font-bold text-white" style={{ minWidth: 60, textAlign: 'center' }}>
+                  <span className="text-xs font-bold" style={{ color: 'var(--color-text)', minWidth: 60, textAlign: 'center' }}>
                     Semana {selectedWeek}
                   </span>
                   <button
                     onClick={() => setSelectedWeek(w => w + 1)}
                     className="w-6 h-6 rounded flex items-center justify-center transition-all"
-                    style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}
+                    style={{ background: 'var(--color-border)', color: 'var(--color-text-muted)' }}
                   >
                     <ChevronRight style={{ width: 12, height: 12 }} />
                   </button>
@@ -468,30 +462,30 @@ function ImportModal({
 
               {/* Table */}
               <div className="rounded overflow-hidden max-h-60 overflow-y-auto"
-                   style={{ border: '1px solid rgba(255,255,255,0.06)' }}>
+                   style={{ border: '1px solid var(--color-border)' }}>
                 <table className="w-full text-xs">
                   <thead>
-                    <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                      <th className="text-left px-3 py-2 font-semibold text-white/40">Nome</th>
-                      <th className="text-left px-3 py-2 font-semibold text-white/40">Status</th>
-                      <th className="text-left px-3 py-2 font-semibold text-white/40">Conexão</th>
-                      <th className="text-left px-3 py-2 font-semibold text-white/40">Responsável</th>
+                    <tr style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}>
+                      <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Nome</th>
+                      <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Status</th>
+                      <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Conexão</th>
+                      <th className="text-left px-3 py-2 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Responsável</th>
                     </tr>
                   </thead>
                   <tbody>
                     {preview.map((d, i) => {
                       const cfg = STATUS_CFG[d.status]
                       return (
-                        <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                          <td className="px-3 py-2 text-white/80">{d.name}</td>
+                        <tr key={i} style={{ borderBottom: '1px solid var(--color-muted)' }}>
+                          <td className="px-3 py-2" style={{ color: 'var(--color-text)' }}>{d.name}</td>
                           <td className="px-3 py-2">
                             <span className="flex items-center gap-1" style={{ color: cfg.color }}>
                               <cfg.Icon style={{ width: 10, height: 10 }} />
                               {cfg.label}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-white/40">{d.connectionType || '—'}</td>
-                          <td className="px-3 py-2 text-white/40">{d.responsible || '—'}</td>
+                          <td className="px-3 py-2" style={{ color: 'var(--color-text-muted)' }}>{d.connectionType || '—'}</td>
+                          <td className="px-3 py-2" style={{ color: 'var(--color-text-muted)' }}>{d.responsible || '—'}</td>
                         </tr>
                       )
                     })}
@@ -505,14 +499,14 @@ function ImportModal({
           {preview.length > 0 && (
             <div className="flex justify-end gap-2 pt-1">
               <button onClick={onClose} className="px-4 py-2 rounded text-xs"
-                      style={{ color: 'rgba(255,255,255,0.35)' }}>
+                      style={{ color: 'var(--color-text-muted)' }}>
                 Cancelar
               </button>
               <button
                 onClick={handleImport}
                 disabled={importing}
                 className="flex items-center gap-2 px-5 py-2 rounded text-xs font-semibold transition-all disabled:opacity-60"
-                style={{ background: 'var(--color-brand)', color: '#050508' }}
+                style={{ background: 'var(--color-brand)', color: 'var(--color-bg)' }}
               >
                 {importing ? 'Importando...' : `Importar ${preview.length} distribuidores`}
               </button>
@@ -553,7 +547,6 @@ function DistributorModal({
     try {
       if (isEdit && distributor) {
         await updateDistributorDoc(projectId, distributor.id, form)
-        // Log status changes
         if (distributor.status !== form.status) {
           if (form.status === 'blocked') {
             await logProjectActivity(projectId,
@@ -583,13 +576,13 @@ function DistributorModal({
       <motion.div
         initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }}
         className="w-full max-w-lg rounded p-6 space-y-5"
-        style={{ background: '#0e0e16', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--color-bg)', border: '1px solid var(--color-border-2)' }}
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-white">
+          <h2 className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
             {isEdit ? 'Editar Distribuidor' : 'Novo Distribuidor'}
           </h2>
-          <button onClick={onClose} style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <button onClick={onClose} style={{ color: 'var(--color-text-muted)' }}>
             <X style={{ width: 14, height: 14 }} />
           </button>
         </div>
@@ -599,8 +592,8 @@ function DistributorModal({
             value={form.name}
             onChange={e => set('name', e.target.value)}
             placeholder="Ex: Distribuidora Sul Minas"
-            className="w-full px-3 py-2.5 rounded text-sm text-white placeholder-white/20 outline-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="w-full px-3 py-2.5 rounded text-sm outline-none"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--color-border-2)', color: 'var(--color-text)' }}
           />
         </Field>
 
@@ -615,7 +608,7 @@ function DistributorModal({
                     className="flex items-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-all"
                     style={active
                       ? { background: cfg.bg, border: `1px solid ${cfg.color}40`, color: cfg.color }
-                      : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)' }}>
+                      : { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
                     <cfg.Icon style={{ width: 11, height: 11 }} />{cfg.label}
                   </button>
                 )
@@ -632,8 +625,8 @@ function DistributorModal({
                   <button key={ct} onClick={() => set('connectionType', ct)}
                     className="flex items-center gap-1.5 px-2 py-1.5 rounded text-xs font-medium transition-all"
                     style={active
-                      ? { background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', color: '#fff' }
-                      : { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.35)' }}>
+                      ? { background: 'var(--color-border-2)', border: '1px solid var(--color-border-2)', color: 'var(--color-text)' }
+                      : { background: 'var(--color-surface)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
                     <Icon style={{ width: 11, height: 11 }} />{ct}
                   </button>
                 )
@@ -647,8 +640,8 @@ function DistributorModal({
             value={form.responsible ?? ''}
             onChange={e => set('responsible', e.target.value)}
             placeholder="Nome do contato"
-            className="w-full px-3 py-2.5 rounded text-sm text-white placeholder-white/20 outline-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="w-full px-3 py-2.5 rounded text-sm outline-none"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--color-border-2)', color: 'var(--color-text)' }}
           />
         </Field>
 
@@ -657,8 +650,8 @@ function DistributorModal({
             value={form.erp ?? ''}
             onChange={e => set('erp', e.target.value)}
             placeholder="Ex: SAP, Sankhya, Winthor..."
-            className="w-full px-3 py-2.5 rounded text-sm text-white placeholder-white/20 outline-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="w-full px-3 py-2.5 rounded text-sm outline-none"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--color-border-2)', color: 'var(--color-text)' }}
           />
         </Field>
 
@@ -668,8 +661,8 @@ function DistributorModal({
             onChange={e => set('notes', e.target.value)}
             rows={2}
             placeholder="Status atual, observações gerais..."
-            className="w-full px-3 py-2.5 rounded text-sm text-white placeholder-white/20 outline-none resize-none"
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+            className="w-full px-3 py-2.5 rounded text-sm outline-none resize-none"
+            style={{ background: 'var(--input-bg)', border: '1px solid var(--color-border-2)', color: 'var(--color-text)' }}
           />
         </Field>
 
@@ -680,20 +673,20 @@ function DistributorModal({
               onChange={e => set('blockerDescription', e.target.value)}
               rows={2}
               placeholder="O que está impedindo a integração?"
-              className="w-full px-3 py-2.5 rounded text-sm text-white placeholder-white/20 outline-none resize-none"
-              style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)' }}
+              className="w-full px-3 py-2.5 rounded text-sm outline-none resize-none"
+              style={{ background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--color-text)' }}
             />
           </Field>
         )}
 
         <div className="flex justify-end gap-2 pt-1">
           <button onClick={onClose} className="px-4 py-2 rounded text-xs"
-                  style={{ color: 'rgba(255,255,255,0.35)' }}>
+                  style={{ color: 'var(--color-text-muted)' }}>
             Cancelar
           </button>
           <button onClick={handleSave} disabled={saving || !form.name.trim()}
             className="px-5 py-2 rounded text-xs font-semibold transition-all disabled:opacity-40"
-            style={{ background: 'var(--color-brand)', color: '#050508' }}>
+            style={{ background: 'var(--color-brand)', color: 'var(--color-bg)' }}>
             {saving ? 'Salvando...' : isEdit ? 'Salvar' : 'Adicionar'}
           </button>
         </div>
@@ -744,21 +737,19 @@ function DistributorRow({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: deleting ? 0 : 1, y: 0 }}
       className="rounded overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
     >
       <div className="flex items-center gap-4 px-4 py-3 group">
-        {/* Status icon */}
         <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
              style={{ background: cfg.bg }}>
           <cfg.Icon style={{ width: 14, height: 14, color: cfg.color }} />
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
-          <p className="text-white truncate" style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 500 }}>{distributor.name}</p>
+          <p className="truncate" style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 500, color: 'var(--color-text)' }}>{distributor.name}</p>
           <div className="flex items-center gap-3 mt-0.5">
             {distributor.connectionType && ConnIcon && (
-              <span className="text-[10px] flex items-center gap-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <span className="text-[10px] flex items-center gap-1" style={{ color: 'var(--color-text-muted)' }}>
                 <ConnIcon style={{ width: 10, height: 10 }} />
                 {distributor.connectionType}
               </span>
@@ -770,12 +761,12 @@ function DistributorRow({
               </span>
             )}
             {distributor.responsible && (
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                 {distributor.responsible}
               </span>
             )}
             {distributor.notes && (
-              <span className="text-[10px] truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              <span className="text-[10px] truncate" style={{ color: 'var(--color-text-muted)' }}>
                 {distributor.notes.startsWith('Fase:')
                   ? translatePhaseLabel(distributor.notes.replace('Fase: ', ''), distributor.status)
                   : distributor.notes}
@@ -789,18 +780,16 @@ function DistributorRow({
           )}
         </div>
 
-        {/* Status label */}
         <span className="text-xs font-medium flex-shrink-0 flex items-center gap-1.5"
               style={{ color: cfg.color }}>
           <cfg.Icon style={{ width: 11, height: 11 }} />
           {cfg.label}
         </span>
 
-        {/* Comments toggle */}
         <button
           onClick={toggleExpand}
           className="relative flex items-center gap-1 px-2 py-1.5 rounded text-[10px] font-medium transition-all flex-shrink-0"
-          style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.35)' }}
+          style={{ background: 'var(--color-muted)', color: 'var(--color-text-muted)' }}
         >
           <ChevronRight
             style={{
@@ -815,20 +804,19 @@ function DistributorRow({
           )}
         </button>
 
-        {/* Actions */}
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button onClick={() => onEdit(distributor)}
             className="w-7 h-7 rounded flex items-center justify-center transition-colors"
-            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
+            style={{ background: 'var(--color-surface2)', color: 'var(--color-text-muted)' }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
             <Pencil style={{ width: 11, height: 11 }} />
           </button>
           <button onClick={handleDelete}
             className="w-7 h-7 rounded flex items-center justify-center transition-colors"
-            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}
+            style={{ background: 'var(--color-surface2)', color: 'var(--color-text-muted)' }}
             onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}>
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}>
             <Trash2 style={{ width: 11, height: 11 }} />
           </button>
         </div>
@@ -842,7 +830,7 @@ function DistributorRow({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            style={{ borderTop: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}
+            style={{ borderTop: '1px solid var(--color-border)', overflow: 'hidden' }}
           >
             <div className="px-4 py-3">
               {loadingComments ? (
@@ -850,7 +838,7 @@ function DistributorRow({
                   <div className="w-4 h-4 border-2 border-white/10 border-t-white/40 rounded-full animate-spin" />
                 </div>
               ) : comments.length === 0 ? (
-                <p className="text-[11px] text-center py-4" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                <p className="text-[11px] text-center py-4" style={{ color: 'var(--color-text-muted)' }}>
                   Nenhum comentário de gestores.
                 </p>
               ) : (
@@ -859,23 +847,22 @@ function DistributorRow({
                     <div
                       key={c.id}
                       className="flex items-start gap-3 px-3 py-2.5 rounded"
-                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 5 }}
+                      style={{ background: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: 5 }}
                     >
-                      {/* Avatar */}
                       <div
                         className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold"
-                        style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+                        style={{ background: 'var(--color-border-2)', color: 'var(--color-text-2)' }}
                       >
                         {c.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-semibold text-white/70">{c.name}</span>
-                          <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                          <span className="text-[11px] font-semibold" style={{ color: 'var(--color-text-2)' }}>{c.name}</span>
+                          <span className="text-[9px]" style={{ color: 'var(--color-text-muted)' }}>
                             {format(new Date(c.timestamp), "dd/MM 'às' HH:mm", { locale: ptBR })}
                           </span>
                         </div>
-                        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{c.text}</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-2)' }}>{c.text}</p>
                       </div>
                     </div>
                   ))}
@@ -926,12 +913,12 @@ export default function DistribuidoresPage() {
           onClick={() => setImportOpen(true)}
           className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium transition-all"
           style={{
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: 'rgba(255,255,255,0.5)',
+            background: 'var(--color-surface2)',
+            border: '1px solid var(--color-border-2)',
+            color: 'var(--color-text-2)',
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-2)')}
         >
           <Upload style={{ width: 12, height: 12 }} />
           Importar CSV
@@ -939,7 +926,7 @@ export default function DistribuidoresPage() {
         <button
           onClick={() => { setEditTarget(undefined); setModalOpen(true) }}
           className="flex items-center gap-2 px-3 py-2 rounded text-xs font-semibold"
-          style={{ background: 'var(--color-brand)', color: '#050508', borderRadius: 5 }}
+          style={{ background: 'var(--color-brand)', color: 'var(--color-bg)', borderRadius: 5 }}
         >
           <Plus style={{ width: 12, height: 12 }} />
           Novo
@@ -974,18 +961,18 @@ export default function DistribuidoresPage() {
       {/* Filters */}
       <div className="flex items-center gap-3 mb-5">
         <div className="relative flex-1 max-w-xs">
-          <Search style={{ width: 13, height: 13, position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'rgba(255,255,255,0.2)' }} />
+          <Search style={{ width: 13, height: 13, position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--color-text-muted)' }} />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar..."
-            className="w-full text-xs text-white outline-none"
+            className="w-full text-xs outline-none"
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border:     '1px solid rgba(255,255,255,0.07)',
+              background: 'var(--input-bg)',
+              border:     '1px solid var(--color-border)',
               borderRadius: 5,
               padding:    '7px 12px 7px 30px',
-              color:      'rgba(255,255,255,0.8)',
+              color:      'var(--color-text)',
             }}
           />
         </div>
@@ -998,8 +985,8 @@ export default function DistribuidoresPage() {
               <button key={s} onClick={() => setFilterStatus(s)}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium transition-all"
                 style={active
-                  ? { background: cfg ? cfg.bg : 'rgba(255,255,255,0.08)', color: cfg ? cfg.color : '#fff', border: `1px solid ${cfg ? cfg.color + '30' : 'rgba(255,255,255,0.15)'}` }
-                  : { background: 'transparent', color: 'rgba(255,255,255,0.3)', border: '1px solid transparent' }}>
+                  ? { background: cfg ? cfg.bg : 'var(--color-border-2)', color: cfg ? cfg.color : 'var(--color-text)', border: `1px solid ${cfg ? cfg.color + '30' : 'var(--color-border-2)'}` }
+                  : { background: 'transparent', color: 'var(--color-text-muted)', border: '1px solid transparent' }}>
                 {cfg && <cfg.Icon style={{ width: 10, height: 10 }} />}
                 {s === 'all' ? 'Todos' : cfg!.label}
                 <span style={{ opacity: 0.5 }}>{counts[s]}</span>
@@ -1012,7 +999,7 @@ export default function DistribuidoresPage() {
       {/* List */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>
+          <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
             {distributors.length === 0
               ? 'Nenhum distribuidor cadastrado ainda.'
               : 'Nenhum resultado para os filtros aplicados.'}
@@ -1044,7 +1031,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   return (
     <div className="space-y-1.5">
       <label className="text-[10px] uppercase tracking-widest font-semibold"
-             style={{ color: 'rgba(255,255,255,0.3)' }}>
+             style={{ color: 'var(--color-text-muted)' }}>
         {label}
       </label>
       {children}

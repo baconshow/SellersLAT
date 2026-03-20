@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 export default function SlugLayout({ children }: { children: ReactNode }) {
   return (
-    <div style={{ background: '#050508', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
+    <div style={{ background: 'var(--color-bg)', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
       {/* ── Background effects ── */}
 
       {/* Top gradient glow */}
@@ -59,32 +59,8 @@ export default function SlugLayout({ children }: { children: ReactNode }) {
         }}
       />
 
-      {/* ── Header ── */}
-      <header
-        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6"
-        style={{
-          height: 56,
-          background: 'rgba(5,5,8,0.7)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          backdropFilter: 'blur(20px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(160%)',
-        }}
-      >
-        <span
-          style={{
-            fontFamily: 'Conthrax, Orbitron, "Share Tech Mono", monospace',
-            fontSize: 16,
-            fontWeight: 700,
-            color: '#00D4AA',
-            letterSpacing: 2,
-          }}
-        >
-          LAT
-        </span>
-      </header>
-
       {/* ── Content ── */}
-      <main style={{ paddingTop: 56, position: 'relative', zIndex: 1 }}>
+      <main style={{ position: 'relative', zIndex: 1 }}>
         {children}
       </main>
     </div>

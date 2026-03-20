@@ -14,31 +14,13 @@ import {
   addProjectMember, removeProjectMember,
 } from '@/lib/firestore'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/contexts/ThemeContext'
 import { applyTheme } from '@/lib/theme'
-import type { Project, DistributorHistoryEntry, DistributorStatus } from '@/types'
+import type { Project, DistributorStatus } from '@/types'
 import ColorPickerField from '@/components/ui/ColorPickerField'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-
-const FIELD = {
-  background:   'rgba(255,255,255,0.04)',
-  border:       '1px solid rgba(255,255,255,0.08)',
-  borderRadius: 5,
-  color:        'rgba(255,255,255,0.85)',
-  fontSize:     13,
-  padding:      '10px 14px',
-  outline:      'none',
-  width:        '100%',
-  transition:   'border 150ms',
-}
-
-const DIST_STATUS_CFG: Record<DistributorStatus, { color: string; Icon: any }> = {
-  integrated:  { color: '#22c55e', Icon: CheckCircle2 },
-  pending:     { color: '#f59e0b', Icon: Clock        },
-  blocked:     { color: '#ef4444', Icon: XCircle      },
-  not_started: { color: '#ffffff30', Icon: Circle     },
-}
 
 const HISTORY_TYPE_CFG: Record<string, { label: string; color: string; icon: any }> = {
   import:          { label: 'Importação CSV',   color: '#00D4AA', icon: Upload       },
@@ -51,7 +33,30 @@ type Tab = 'config' | 'history'
 export default function SettingsPage() {
   const { id } = useParams<{ id: string }>()
   const { user, loading: authLoading } = useAuth()
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
   const router = useRouter()
+
+  const FIELD: React.CSSProperties = {
+    background:   isDark ? 'rgba(255,255,255,0.06)' : '#EDEEF2',
+    border:       `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#C8C9D0'}`,
+    borderRadius: 5,
+    color:        isDark ? 'rgba(255,255,255,0.85)' : '#1A1A2E',
+    fontSize:     13,
+    padding:      '10px 14px',
+    outline:      'none',
+    width:        '100%',
+    transition:   'border 150ms',
+  }
+
+  const BLUR_BORDER = isDark ? 'rgba(255,255,255,0.1)' : '#C8C9D0'
+
+  const DIST_STATUS_CFG: Record<DistributorStatus, { color: string; Icon: any }> = {
+    integrated:  { color: '#22c55e', Icon: CheckCircle2 },
+    pending:     { color: '#f59e0b', Icon: Clock        },
+    blocked:     { color: '#ef4444', Icon: XCircle      },
+    not_started: { color: isDark ? '#ffffff30' : 'rgba(0,0,0,0.15)', Icon: Circle },
+  }
 
   const [project,           setProject]           = useState<Project | null>(null)
   const [loading,           setLoading]           = useState(true)
@@ -74,9 +79,8 @@ export default function SettingsPage() {
 
   const isDirty       = useRef(false)
   const timerRef      = useRef<any>(null)
-  const savedTimerRef = useRef<any>(null)   // ← controla o dismiss da mensagem "tudo salvo"
+  const savedTimerRef = useRef<any>(null)
 
-  // Wrapper — marca dirty e atualiza form
   const updateForm = (patch: Partial<typeof form>) => {
     isDirty.current = true
     setForm(prev => ({ ...prev, ...patch }))
@@ -91,7 +95,6 @@ export default function SettingsPage() {
     const unsub = subscribeToProject(id, p => {
       if (p) {
         setProject(p)
-        // Só seta o form sem marcar dirty
         setForm({
           clientName:           p.clientName           ?? '',
           clientColor:          p.clientColor          ?? '#00D4AA',
@@ -109,10 +112,9 @@ export default function SettingsPage() {
   const autoSave = useCallback(async (data: typeof form) => {
     if (!id || !project) return
     setSaveStatus('saving')
-    isDirty.current = false   // ← evita re-trigger quando o Firestore atualiza o form
+    isDirty.current = false
     try {
       await updateProject(id, data)
-      // Cancela qualquer dismiss anterior e inicia um novo de 10s
       clearTimeout(savedTimerRef.current)
       setSaveStatus('saved')
       savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 10_000)
@@ -129,7 +131,6 @@ export default function SettingsPage() {
     return () => clearTimeout(timerRef.current)
   }, [form])
 
-  // Limpa o timer ao desmontar
   useEffect(() => () => clearTimeout(savedTimerRef.current), [])
 
   const handleDelete = async () => {
@@ -165,7 +166,7 @@ export default function SettingsPage() {
   )
 
   if (!project) return (
-    <div className="p-8 text-white/40 text-sm">Projeto não encontrado.</div>
+    <div className="p-8 text-sm" style={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#8888A0' }}>Projeto não encontrado.</div>
   )
 
   const history = [...(project.distributorHistory ?? [])].reverse()
@@ -182,42 +183,42 @@ export default function SettingsPage() {
           <button
             onClick={() => router.back()}
             className="w-8 h-8 rounded flex items-center justify-center transition-all"
-            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
-            onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.8)')}
-            onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
+            style={{ background: isDark ? 'rgba(255,255,255,0.05)' : '#EDEEF2', color: isDark ? 'rgba(255,255,255,0.4)' : '#8888A0' }}
+            onMouseEnter={e => (e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.8)' : '#1A1A2E')}
+            onMouseLeave={e => (e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.4)' : '#8888A0')}
           >
             <ArrowLeft style={{ width: 15, height: 15 }} />
           </button>
           <div>
-            <h2 className="text-base font-bold text-white">Configurações</h2>
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>{project.clientName}</p>
+            <h2 className="text-base font-bold" style={{ color: isDark ? '#fff' : '#1A1A2E' }}>Configurações</h2>
+            <p className="text-xs" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>{project.clientName}</p>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex items-center gap-1 mb-6 p-1 rounded"
-           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', width: 'fit-content' }}>
+           style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#E8E9ED', border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #C8C9D0', width: 'fit-content' }}>
         {([
-          { key: 'config',  label: 'Configurações', Icon: Palette },
-          { key: 'history', label: 'Histórico',      Icon: History,
+          { key: 'config' as Tab,  label: 'Configurações', Icon: Palette, badge: undefined as number | undefined },
+          { key: 'history' as Tab, label: 'Histórico',      Icon: History,
             badge: history.length > 0 ? history.length : undefined },
-        ] as const).map(tab => (
+        ]).map(tab => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
             className="flex items-center gap-2 px-4 py-2 rounded text-xs font-semibold transition-all"
             style={activeTab === tab.key
-              ? { background: accent, color: '#050508' }
-              : { color: 'rgba(255,255,255,0.4)' }}
+              ? { background: accent, color: isDark ? '#050508' : '#FFFFFF' }
+              : { color: isDark ? 'rgba(255,255,255,0.4)' : '#8888A0' }}
           >
             <tab.Icon style={{ width: 13, height: 13 }} />
             {tab.label}
             {tab.badge !== undefined && (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold"
                     style={activeTab === tab.key
-                      ? { background: 'rgba(0,0,0,0.2)', color: '#050508' }
-                      : { background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}>
+                      ? { background: 'rgba(0,0,0,0.2)', color: isDark ? '#050508' : '#FFFFFF' }
+                      : { background: isDark ? 'rgba(255,255,255,0.08)' : '#D5D6DC', color: isDark ? 'rgba(255,255,255,0.4)' : '#8888A0' }}>
                 {tab.badge}
               </span>
             )}
@@ -228,24 +229,24 @@ export default function SettingsPage() {
       {/* ── Tab: Config ── */}
       {activeTab === 'config' && (
         <div className="space-y-4">
-          <Section icon={<Palette style={{ width: 14, height: 14 }} />} title="Identidade Visual" accent={accent}>
+          <Section icon={<Palette style={{ width: 14, height: 14 }} />} title="Identidade Visual" accent={accent} isDark={isDark}>
             <div className="space-y-4">
-              <Field label="Nome do Cliente">
+              <Field label="Nome do Cliente" isDark={isDark}>
                 <input type="text" value={form.clientName}
                   onChange={e => updateForm({ clientName: e.target.value })}
                   style={FIELD}
                   onFocus={e => (e.target.style.border = `1px solid ${accent}60`)}
-                  onBlur={e  => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')} />
+                  onBlur={e  => (e.target.style.border = `1px solid ${BLUR_BORDER}`)} />
               </Field>
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Cor Primária">
+                <Field label="Cor Primária" isDark={isDark}>
                   <ColorPickerField
                     value={form.clientColor}
                     onChange={v => updateForm({ clientColor: v })}
                     label="Cor Primária"
                   />
                 </Field>
-                <Field label="Cor Secundária">
+                <Field label="Cor Secundária" isDark={isDark}>
                   <ColorPickerField
                     value={form.clientColorSecondary}
                     onChange={v => updateForm({ clientColorSecondary: v })}
@@ -256,12 +257,12 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3 px-4 py-3 rounded"
                    style={{ background: `${accent}08`, border: `1px solid ${accent}20` }}>
                 <div className="w-8 h-8 rounded flex items-center justify-center text-sm font-bold"
-                     style={{ background: accent, color: '#050508' }}>
+                     style={{ background: accent, color: isDark ? '#050508' : '#FFFFFF' }}>
                   {form.clientName?.[0]?.toUpperCase() ?? '?'}
                 </div>
                 <div>
-                  <p className="text-xs font-semibold text-white">{form.clientName || 'Nome do cliente'}</p>
-                  <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Preview do card</p>
+                  <p className="text-xs font-semibold" style={{ color: isDark ? '#fff' : '#1A1A2E' }}>{form.clientName || 'Nome do cliente'}</p>
+                  <p className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>Preview do card</p>
                 </div>
                 <div className="ml-auto flex gap-2">
                   <div className="w-4 h-4 rounded-full" style={{ background: form.clientColor }} />
@@ -271,32 +272,31 @@ export default function SettingsPage() {
             </div>
           </Section>
 
-          <Section icon={<Target style={{ width: 14, height: 14 }} />} title="Planejamento" accent={accent}>
+          <Section icon={<Target style={{ width: 14, height: 14 }} />} title="Planejamento" accent={accent} isDark={isDark}>
             <div className="space-y-4">
-              <Field label="Objetivo Principal">
+              <Field label="Objetivo Principal" isDark={isDark}>
                 <input type="text" value={form.objective}
                   onChange={e => updateForm({ objective: e.target.value })}
                   placeholder="Ex: Integrar 100% dos distribuidores Tier 1"
                   style={FIELD}
                   onFocus={e => (e.target.style.border = `1px solid ${accent}60`)}
-                  onBlur={e  => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')} />
+                  onBlur={e  => (e.target.style.border = `1px solid ${BLUR_BORDER}`)} />
               </Field>
-              <Field label="Descrição">
+              <Field label="Descrição" isDark={isDark}>
                 <textarea value={form.description}
                   onChange={e => updateForm({ description: e.target.value })}
                   rows={4}
                   placeholder="Descreva o escopo e metas do projeto..."
                   style={{ ...FIELD, resize: 'none' } as React.CSSProperties}
                   onFocus={e => (e.target.style.border = `1px solid ${accent}60`)}
-                  onBlur={e  => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')} />
+                  onBlur={e  => (e.target.style.border = `1px solid ${BLUR_BORDER}`)} />
               </Field>
             </div>
           </Section>
 
           {/* Compartilhamento */}
-          <Section icon={<Share2 style={{ width: 14, height: 14 }} />} title="Compartilhamento" accent={accent}>
+          <Section icon={<Share2 style={{ width: 14, height: 14 }} />} title="Compartilhamento" accent={accent} isDark={isDark}>
             <div className="space-y-4">
-              {/* Toggle + Gerar link */}
               {!project.shareToken ? (
                 <button
                   onClick={async () => {
@@ -321,8 +321,8 @@ export default function SettingsPage() {
                   {/* Toggle ativo/inativo */}
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-xs font-semibold text-white">Link {project.shareEnabled ? 'ativo' : 'inativo'}</p>
-                      <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                      <p className="text-xs font-semibold" style={{ color: isDark ? '#fff' : '#1A1A2E' }}>Link {project.shareEnabled ? 'ativo' : 'inativo'}</p>
+                      <p className="text-[10px] mt-0.5" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>
                         {project.shareEnabled ? 'Gestores autorizados podem acessar.' : 'O link está desativado.'}
                       </p>
                     </div>
@@ -334,7 +334,7 @@ export default function SettingsPage() {
                         } catch { toast.error('Erro ao alterar.') }
                       }}
                       className="relative w-10 h-5 rounded-full transition-all"
-                      style={{ background: project.shareEnabled ? accent : 'rgba(255,255,255,0.1)' }}
+                      style={{ background: project.shareEnabled ? accent : (isDark ? 'rgba(255,255,255,0.1)' : '#C8C9D0') }}
                     >
                       <div
                         className="absolute top-0.5 w-4 h-4 rounded-full transition-all"
@@ -351,7 +351,7 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2">
                       <div
                         className="flex-1 px-3 py-2.5 rounded text-xs font-mono truncate"
-                        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}
+                        style={{ background: isDark ? 'rgba(255,255,255,0.04)' : '#EDEEF2', border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#C8C9D0'}`, color: isDark ? 'rgba(255,255,255,0.6)' : '#4A4A68' }}
                       >
                         sellers.lat/{project.slug ?? id}
                       </div>
@@ -375,7 +375,7 @@ export default function SettingsPage() {
 
               {/* Emails autorizados */}
               <div className="space-y-2">
-                <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <p className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: isDark ? 'rgba(255,255,255,0.35)' : '#8888A0' }}>
                   Emails autorizados
                 </p>
                 <div className="flex items-center gap-2">
@@ -397,7 +397,7 @@ export default function SettingsPage() {
                       }
                     }}
                     onFocus={e => (e.target.style.border = `1px solid ${accent}60`)}
-                    onBlur={e => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')}
+                    onBlur={e => (e.target.style.border = `1px solid ${BLUR_BORDER}`)}
                   />
                   <button
                     onClick={async () => {
@@ -417,17 +417,16 @@ export default function SettingsPage() {
                     <Plus style={{ width: 14, height: 14 }} />
                   </button>
                 </div>
-                <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                <p className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.2)' : '#B8B9C4' }}>
                   Apenas esses emails têm acesso ao link compartilhado.
                 </p>
 
-                {/* Lista de emails */}
                 {(project.authorizedEmails || []).length > 0 && (
                   <div className="space-y-1 mt-2">
                     {project.authorizedEmails!.map((email, i) => (
                       <div key={email} className="flex items-center justify-between px-3 py-2 rounded"
-                           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                        <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>{email}</span>
+                           style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#F4F5F7', border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#E8E9ED'}` }}>
+                        <span className="text-xs font-mono" style={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#4A4A68' }}>{email}</span>
                         <button
                           onClick={async () => {
                             const emails = project.authorizedEmails!.filter((_, idx) => idx !== i)
@@ -436,7 +435,8 @@ export default function SettingsPage() {
                               toast.success('Email removido.')
                             } catch { toast.error('Erro ao remover email.') }
                           }}
-                          className="text-white/30 hover:text-red-400 transition-colors"
+                          style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#B8B9C4' }}
+                          className="hover:text-red-400 transition-colors"
                         >
                           <X style={{ width: 13, height: 13 }} />
                         </button>
@@ -449,23 +449,22 @@ export default function SettingsPage() {
           </Section>
 
           {/* Gestores do Projeto */}
-          <Section icon={<Users style={{ width: 14, height: 14 }} />} title="Gestores do Projeto" accent={accent}>
+          <Section icon={<Users style={{ width: 14, height: 14 }} />} title="Gestores do Projeto" accent={accent} isDark={isDark}>
             <div className="space-y-3">
-              <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <p className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>
                 Todos os gestores podem editar este projeto.
               </p>
 
-              {/* Lista de membros */}
               {(project.members ?? []).length > 0 && (
                 <div className="space-y-1">
                   {project.members!.map(email => {
                     const isOwner = user?.email === email && project.ownerId === user?.uid
                     return (
                       <div key={email} className="flex items-center justify-between px-3 py-2 rounded"
-                           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                           style={{ background: isDark ? 'rgba(255,255,255,0.03)' : '#F4F5F7', border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#E8E9ED'}` }}>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>✉</span>
-                          <span className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>{email}</span>
+                          <span className="text-xs" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>✉</span>
+                          <span className="text-xs font-mono" style={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#4A4A68' }}>{email}</span>
                         </div>
                         {isOwner ? (
                           <span className="text-[9px] px-2 py-0.5 rounded-full font-bold"
@@ -480,7 +479,8 @@ export default function SettingsPage() {
                                 toast.success('Gestor removido.')
                               } catch { toast.error('Erro ao remover gestor.') }
                             }}
-                            className="text-white/30 hover:text-red-400 transition-colors"
+                            style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#B8B9C4' }}
+                            className="hover:text-red-400 transition-colors"
                           >
                             <X style={{ width: 13, height: 13 }} />
                           </button>
@@ -491,7 +491,6 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* Adicionar membro */}
               <div className="flex items-center gap-2">
                 <input
                   type="email"
@@ -517,7 +516,7 @@ export default function SettingsPage() {
                     }
                   }}
                   onFocus={e => (e.target.style.border = `1px solid ${accent}60`)}
-                  onBlur={e => (e.target.style.border = '1px solid rgba(255,255,255,0.08)')}
+                  onBlur={e => (e.target.style.border = `1px solid ${BLUR_BORDER}`)}
                 />
                 <button
                   onClick={async () => {
@@ -555,8 +554,8 @@ export default function SettingsPage() {
             </div>
             <div className="flex items-center justify-between gap-4">
               <div>
-                <p className="text-xs font-semibold text-white">Excluir projeto permanentemente</p>
-                <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <p className="text-xs font-semibold" style={{ color: isDark ? '#fff' : '#1A1A2E' }}>Excluir projeto permanentemente</p>
+                <p className="text-[11px] mt-0.5" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>
                   Todos os dados, atualizações e histórico serão perdidos.
                 </p>
               </div>
@@ -575,7 +574,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button onClick={() => setShowDeleteConfirm(false)}
                     className="px-4 py-2 rounded text-xs font-bold"
-                    style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)' }}>
+                    style={{ background: isDark ? 'rgba(255,255,255,0.05)' : '#EDEEF2', color: isDark ? 'rgba(255,255,255,0.5)' : '#4A4A68' }}>
                     Cancelar
                   </button>
                   <button onClick={handleDelete}
@@ -590,8 +589,7 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* Auto-save status — rodapé */}
-          {/* Só monta o elemento quando saved, evitando o piscar do saving→saved→idle */}
+          {/* Auto-save status */}
           <AnimatePresence>
             {saveStatus === 'saved' && (
               <motion.div
@@ -614,11 +612,11 @@ export default function SettingsPage() {
         <div className="space-y-3">
           {history.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <History style={{ width: 28, height: 28, color: 'rgba(255,255,255,0.1)', marginBottom: 12 }} />
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <History style={{ width: 28, height: 28, color: isDark ? 'rgba(255,255,255,0.1)' : '#C8C9D0', marginBottom: 12 }} />
+              <p className="text-sm" style={{ color: isDark ? 'rgba(255,255,255,0.25)' : '#8888A0' }}>
                 Nenhum histórico registrado ainda.
               </p>
-              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.15)' }}>
+              <p className="text-xs mt-1" style={{ color: isDark ? 'rgba(255,255,255,0.15)' : '#B8B9C4' }}>
                 Importações de CSV e snapshots semanais aparecerão aqui.
               </p>
             </div>
@@ -638,7 +636,7 @@ export default function SettingsPage() {
                   initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                   className="rounded overflow-hidden"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  style={{ background: isDark ? 'rgba(255,255,255,0.02)' : '#F4F5F7', border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#E8E9ED'}` }}
                 >
                   <div className="flex items-center gap-4 px-4 py-3">
                     <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0"
@@ -647,7 +645,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-xs font-semibold text-white">{cfg.label}</p>
+                        <p className="text-xs font-semibold" style={{ color: isDark ? '#fff' : '#1A1A2E' }}>{cfg.label}</p>
                         {entry.source === 'pre_restore_backup' && (
                           <span className="text-[9px] px-1.5 py-0.5 rounded-full"
                                 style={{ background: 'rgba(245,158,11,0.15)', color: '#f59e0b' }}>
@@ -656,16 +654,16 @@ export default function SettingsPage() {
                         )}
                         {entry.weekNumber && (
                           <span className="text-[9px] px-1.5 py-0.5 rounded-full"
-                                style={{ background: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)' }}>
+                                style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#E8E9ED', color: isDark ? 'rgba(255,255,255,0.4)' : '#8888A0' }}>
                             Semana {entry.weekNumber}
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5">
-                        <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        <p className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>
                           {format(new Date(entry.timestamp), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                         </p>
-                        <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                        <span className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.2)' : '#B8B9C4' }}>
                           {entry.distributors.length} distribuidores
                         </span>
                         <div className="flex items-center gap-1.5">
@@ -675,7 +673,7 @@ export default function SettingsPage() {
                         </div>
                       </div>
                       {entry.note && (
-                        <p className="text-[10px] mt-0.5 truncate" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                        <p className="text-[10px] mt-0.5 truncate" style={{ color: isDark ? 'rgba(255,255,255,0.2)' : '#B8B9C4' }}>
                           {entry.note}
                         </p>
                       )}
@@ -683,9 +681,9 @@ export default function SettingsPage() {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <button onClick={() => setExpandedEntry(isExpand ? null : entry.id)}
                         className="flex items-center gap-1 px-2.5 py-1.5 rounded text-[10px] font-medium transition-all"
-                        style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
-                        onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-                        onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}>
+                        style={{ background: isDark ? 'rgba(255,255,255,0.05)' : '#E8E9ED', color: isDark ? 'rgba(255,255,255,0.4)' : '#8888A0' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = isDark ? '#fff' : '#1A1A2E')}
+                        onMouseLeave={e => (e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.4)' : '#8888A0')}>
                         <ChevronDown style={{ width: 10, height: 10, transform: isExpand ? 'rotate(180deg)' : 'none', transition: 'transform 150ms' }} />
                         Ver
                       </button>
@@ -705,7 +703,7 @@ export default function SettingsPage() {
                       <motion.div
                         initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
-                        style={{ borderTop: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}
+                        style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#E8E9ED'}`, overflow: 'hidden' }}
                       >
                         <div className="px-4 py-3 space-y-1.5 max-h-64 overflow-y-auto"
                              style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
@@ -714,9 +712,9 @@ export default function SettingsPage() {
                             return (
                               <div key={d.id} className="flex items-center gap-3 py-1">
                                 <scfg.Icon style={{ width: 11, height: 11, color: scfg.color, flexShrink: 0 }} />
-                                <span className="text-xs text-white/70 flex-1 truncate">{d.name}</span>
+                                <span className="text-xs flex-1 truncate" style={{ color: isDark ? 'rgba(255,255,255,0.7)' : '#4A4A68' }}>{d.name}</span>
                                 {d.connectionType && (
-                                  <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                                  <span className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.25)' : '#B8B9C4' }}>
                                     {d.connectionType}
                                   </span>
                                 )}
@@ -737,27 +735,27 @@ export default function SettingsPage() {
   )
 }
 
-function Section({ icon, title, accent, children }: {
-  icon: React.ReactNode; title: string; accent: string; children: React.ReactNode
+function Section({ icon, title, accent, isDark, children }: {
+  icon: React.ReactNode; title: string; accent: string; isDark: boolean; children: React.ReactNode
 }) {
   return (
     <div className="rounded p-5 space-y-4"
-         style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+         style={{ background: isDark ? 'rgba(255,255,255,0.02)' : '#F4F5F7', border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#E8E9ED'}` }}>
       <div className="flex items-center gap-2 pb-3"
-           style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+           style={{ borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : '#E8E9ED'}` }}>
         <span style={{ color: accent }}>{icon}</span>
-        <p className="text-xs font-bold tracking-wide text-white">{title}</p>
+        <p className="text-xs font-bold tracking-wide" style={{ color: isDark ? '#fff' : '#1A1A2E' }}>{title}</p>
       </div>
       {children}
     </div>
   )
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, isDark, children }: { label: string; isDark: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
       <label className="text-[10px] uppercase tracking-widest font-semibold"
-             style={{ color: 'rgba(255,255,255,0.3)' }}>
+             style={{ color: isDark ? 'rgba(255,255,255,0.35)' : '#8888A0' }}>
         {label}
       </label>
       {children}

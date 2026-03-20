@@ -63,7 +63,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-[#050508]">
+    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
 
       <TopNav
         isDashboard
@@ -82,8 +82,8 @@ export default function DashboardPage() {
               transition={{ delay: i * 0.05 }}
               className="rounded p-5 relative overflow-hidden"
               style={{
-                background: 'rgba(255,255,255,0.03)',
-                border:     '1px solid rgba(255,255,255,0.06)',
+                background: 'var(--color-surface)',
+                border:     '1px solid var(--color-border)',
               }}
             >
               <div
@@ -97,8 +97,8 @@ export default function DashboardPage() {
                 >
                   <kpi.icon style={{ color: kpi.color, width: 18, height: 18 }} />
                 </div>
-                <p className="text-2xl font-bold text-white" style={{ fontFamily: 'var(--font-outfit)', fontVariantNumeric: 'tabular-nums' }}>{kpi.value}{kpi.suffix}</p>
-                <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{kpi.label}</p>
+                <p className="text-2xl font-bold" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-outfit)', fontVariantNumeric: 'tabular-nums' }}>{kpi.value}{kpi.suffix}</p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{kpi.label}</p>
               </div>
             </motion.div>
           ))}
@@ -128,19 +128,19 @@ export default function DashboardPage() {
               className="rounded flex flex-col items-center justify-center gap-3 py-12
                          cursor-pointer transition-all group"
               style={{
-                background: 'rgba(255,255,255,0.02)',
-                border:     '1px solid rgba(255,255,255,0.05)',
+                background: 'var(--color-surface)',
+                border:     '1px solid var(--color-border)',
               }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.02)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface2)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-surface)')}
             >
               <div
                 className="w-12 h-12 rounded flex items-center justify-center transition-transform group-hover:scale-110"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+                style={{ background: 'var(--color-muted)', border: '1px solid var(--color-border-2)' }}
               >
-                <Plus className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors" />
+                <Plus className="w-5 h-5 transition-colors" style={{ color: 'var(--color-text-muted)' }} />
               </div>
-              <p className="text-sm transition-colors" style={{ color: 'rgba(255,255,255,0.25)' }}>
+              <p className="text-sm transition-colors" style={{ color: 'var(--color-text-muted)' }}>
                 Novo Projeto
               </p>
             </motion.div>
@@ -162,21 +162,21 @@ function EmptyState({ onNew }: { onNew: () => void }) {
     >
       <div
         className="w-20 h-20 rounded flex items-center justify-center mb-6"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--color-muted)', border: '1px solid var(--color-border-2)' }}
       >
-        <FolderOpen className="w-9 h-9 text-white/25" />
+        <FolderOpen className="w-9 h-9" style={{ color: 'var(--color-text-muted)' }} />
       </div>
-      <h3 className="text-xl font-bold text-white mb-2">Nenhum projeto ainda</h3>
-      <p className="text-sm mb-6 max-w-xs" style={{ color: 'rgba(255,255,255,0.35)' }}>
+      <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--color-text)' }}>Nenhum projeto ainda</h3>
+      <p className="text-sm mb-6 max-w-xs" style={{ color: 'var(--color-text-muted)' }}>
         Crie seu primeiro projeto para começar a acompanhar implantações.
       </p>
       <button
         onClick={onNew}
         className="flex items-center gap-2 px-6 py-3 rounded font-semibold text-sm transition-all"
         style={{
-          background: 'rgba(255,255,255,0.05)',
-          border:     '1px solid rgba(255,255,255,0.10)',
-          color:      'rgba(255,255,255,0.65)',
+          background: 'var(--color-surface2)',
+          border:     '1px solid var(--color-border-2)',
+          color:      'var(--color-text-2)',
         }}
       >
         <Plus className="w-4 h-4" />

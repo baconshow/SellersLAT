@@ -5,11 +5,15 @@ import {
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
 import { differenceInWeeks, parseISO, startOfWeek } from 'date-fns'
+import { useTheme } from '@/contexts/ThemeContext'
 import type { Project } from '@/types'
 
 interface Props { project: Project }
 
 export default function ProjectTimeline({ project }: Props) {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
   const chartData = useMemo(() => {
     const updates = [...(project.weeklyUpdates ?? [])].sort((a, b) => a.weekNumber - b.weekNumber)
     const distributors = project.distributors ?? []
@@ -100,8 +104,11 @@ export default function ProjectTimeline({ project }: Props) {
 
   if (!chartData.length) return (
     <div className="rounded px-6 py-8 flex items-center justify-center mb-4"
-         style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-      <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>
+         style={{
+           background: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF',
+           border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #C8C9D0',
+         }}>
+      <p className="text-sm" style={{ color: isDark ? 'rgba(255,255,255,0.2)' : '#B8B9C4' }}>
         Adicione distribuidores ao projeto para visualizar o gráfico de progresso.
       </p>
     </div>
@@ -112,26 +119,29 @@ export default function ProjectTimeline({ project }: Props) {
 
   return (
     <div className="rounded p-6 mb-4"
-         style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
+         style={{
+           background: isDark ? 'rgba(255,255,255,0.02)' : '#FFFFFF',
+           border: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #C8C9D0',
+         }}>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.18em]"
-              style={{ color: 'rgba(255,255,255,0.3)' }}>
+              style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>
           Previsto vs Realizado — Integrações
         </span>
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-1.5">
-            <div style={{ width: 20, borderTop: '2px dashed rgba(255,255,255,0.25)' }} />
-            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Previsto</span>
+            <div style={{ width: 20, borderTop: isDark ? '2px dashed rgba(255,255,255,0.25)' : '2px dashed #C8C9D0' }} />
+            <span className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>Previsto</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-5 h-0.5 rounded" style={{ background: 'var(--color-brand,#00D4AA)' }} />
-            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Realizado</span>
+            <span className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>Realizado</span>
           </div>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full" style={{ background: '#EF4444' }} />
-            <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Bloqueios</span>
+            <span className="text-[10px]" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>Bloqueios</span>
           </div>
         </div>
       </div>
@@ -140,8 +150,8 @@ export default function ProjectTimeline({ project }: Props) {
         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="gradPrevisto" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%"  stopColor="rgba(255,255,255,0.10)" />
-              <stop offset="95%" stopColor="rgba(255,255,255,0)"    />
+              <stop offset="5%"  stopColor={isDark ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.04)'} />
+              <stop offset="95%" stopColor={isDark ? 'rgba(255,255,255,0)' : 'rgba(0,0,0,0)'}    />
             </linearGradient>
             <linearGradient id="gradRealizado" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%"  stopColor="var(--color-brand,#00D4AA)" stopOpacity={0.22} />
@@ -161,7 +171,10 @@ export default function ProjectTimeline({ project }: Props) {
                 <text
                   x={x} y={y + 12}
                   textAnchor="middle"
-                  fill={isAnchor ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)'}
+                  fill={isAnchor
+                    ? (isDark ? 'rgba(255,255,255,0.5)' : '#4A4A68')
+                    : (isDark ? 'rgba(255,255,255,0.2)' : '#B8B9C4')
+                  }
                   fontSize={isAnchor ? 11 : 10}
                   fontWeight={isAnchor ? 600 : 400}
                 >
@@ -169,34 +182,34 @@ export default function ProjectTimeline({ project }: Props) {
                 </text>
               )
             }}
-            axisLine={{ stroke: 'rgba(255,255,255,0.06)' }}
+            axisLine={{ stroke: isDark ? 'rgba(255,255,255,0.06)' : '#C8C9D0' }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: 'rgba(255,255,255,0.2)', fontSize: 10 }}
+            tick={{ fill: isDark ? 'rgba(255,255,255,0.2)' : '#B8B9C4', fontSize: 10 }}
             axisLine={false}
             tickLine={false}
           />
           <Tooltip
             contentStyle={{
-              background:   'rgba(10,10,16,0.96)',
-              border:       '1px solid rgba(255,255,255,0.1)',
+              background:   isDark ? 'rgba(10,10,16,0.96)' : '#FFFFFF',
+              border:       isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #C8C9D0',
               borderRadius: 5,
               fontSize:     11,
-              color:        '#fff',
+              color:        isDark ? '#F0F0F5' : '#1A1A2E',
             }}
-            labelStyle={{ color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}
+            labelStyle={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#8888A0', marginBottom: 4 }}
             labelFormatter={(label: string) => {
               const point = chartData.find(d => d.semana === label)
               return point?.label !== label ? `${point?.label} (${label})` : label
             }}
-            cursor={{ stroke: 'rgba(255,255,255,0.06)' }}
+            cursor={{ stroke: isDark ? 'rgba(255,255,255,0.06)' : '#C8C9D0' }}
           />
 
           <Area
             type="monotone"
             dataKey="previsto"
-            stroke="rgba(255,255,255,0.18)"
+            stroke={isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.15)'}
             strokeWidth={1.5}
             strokeDasharray="5 4"
             fill="url(#gradPrevisto)"
@@ -216,8 +229,8 @@ export default function ProjectTimeline({ project }: Props) {
               const isAnchor = payload.isAnchor
               return (
                 <circle key={props.key} cx={cx} cy={cy} r={isAnchor ? 5 : 4}
-                  fill={payload.label === 'Meta' ? 'rgba(255,255,255,0.3)' : 'var(--color-brand,#00D4AA)'}
-                  stroke="#050508" strokeWidth={2}
+                  fill={payload.label === 'Meta' ? (isDark ? 'rgba(255,255,255,0.3)' : '#B8B9C4') : 'var(--color-brand,#00D4AA)'}
+                  stroke={isDark ? '#050508' : '#E8E9ED'} strokeWidth={2}
                 />
               )
             }}

@@ -31,7 +31,7 @@ export default function ProjectLayoutClient({
   }, [projectId])
 
   return (
-    <div className="min-h-screen" style={{ background: '#050508' }}>
+    <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
 
       <TopNav
         projectId={projectId}
@@ -44,7 +44,7 @@ export default function ProjectLayoutClient({
 
       {/* Conteúdo empurra quando LAT abre */}
       <main
-        className="flex flex-col min-h-screen pt-16 transition-all duration-300"
+        className="flex flex-col min-h-screen pt-20 transition-all duration-300"
         style={{ marginRight: showAI ? 400 : 0 }}
       >
         {children}
@@ -60,9 +60,9 @@ export default function ProjectLayoutClient({
             transition={{ type: 'spring', stiffness: 300, damping: 32 }}
             className="fixed right-0 top-[64px] bottom-0 w-[400px] z-30 flex flex-col"
             style={{
-              background:     'rgba(10,10,16,0.98)',
+              background:     'var(--nav-bg)',
               backdropFilter: 'blur(20px)',
-              borderLeft:     '1px solid rgba(255,255,255,0.07)',
+              borderLeft:     '1px solid var(--color-border)',
               boxShadow:      '-20px 0 60px rgba(0,0,0,0.4)',
             }}
           >

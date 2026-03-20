@@ -158,7 +158,7 @@ export interface Ticket {
   description: string
   status: TicketStatus
   priority: TicketPriority
-  sprint: number
+  sprint: string
   estimatedDate: string
   effort: 'low' | 'medium' | 'high'
   source: TicketSource
@@ -167,6 +167,11 @@ export interface Ticket {
   createdAt: any
   updatedAt: any
   aiClassified?: boolean
+  tipo: string
+  criticidade: string
+  impacto: string
+  observacao?: string
+  deliveryDate?: string
 }
 
 export const DEFAULT_PHASES: Omit<ProjectPhase, 'id' | 'startDate' | 'endDate'>[] = [

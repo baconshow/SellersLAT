@@ -1,9 +1,11 @@
 'use client'
 
-// Adicione GEMINI_API_KEY=sua_chave em .env.local
-
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { Circle, Clock, CheckCircle2, XCircle, ChevronDown } from 'lucide-react'
+import { doc, updateDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import * as XLSX from 'xlsx'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavActions } from '@/contexts/NavActionsContext'
 import {
@@ -15,21 +17,68 @@ import {
 import MagicImporter from '@/components/requisicoes/MagicImporter'
 import type { Ticket, TicketStatus, Project } from '@/types'
 
-const STATUS_CFG: Record<TicketStatus, { label: string; color: string; bg: string; border: string }> = {
-  aberto:       { label: '○ Aberto',       color: '#9898B0', bg: 'rgba(255,255,255,.04)', border: 'rgba(255,255,255,.10)' },
-  andamento:    { label: '⟳ Em Andamento', color: '#3B82F6', bg: 'rgba(59,130,246,.13)',  border: 'rgba(59,130,246,.28)'  },
-  implementado: { label: '✓ Implementado', color: '#10B981', bg: 'rgba(16,185,129,.13)',  border: 'rgba(16,185,129,.28)'  },
-  cancelado:    { label: '✕ Cancelado',    color: '#EF4444', bg: 'rgba(239,68,68,.10)',   border: 'rgba(239,68,68,.25)'   },
+const STATUS_CFG: Record<TicketStatus, { label: string; color: string; bg: string; border: string; icon: any }> = {
+  aberto:       { label: 'Aberto',       color: '#9898B0', bg: 'rgba(255,255,255,.04)', border: 'rgba(255,255,255,.10)', icon: Circle },
+  andamento:    { label: 'Em Andamento', color: '#3B82F6', bg: 'rgba(59,130,246,.13)',  border: 'rgba(59,130,246,.28)',  icon: Clock },
+  implementado: { label: 'Implementado', color: '#10B981', bg: 'rgba(16,185,129,.13)',  border: 'rgba(16,185,129,.28)',  icon: CheckCircle2 },
+  cancelado:    { label: 'Cancelado',    color: '#EF4444', bg: 'rgba(239,68,68,.10)',   border: 'rgba(239,68,68,.25)',   icon: XCircle },
 }
 
-const PRIO_COLOR = { hi: '#EF4444', md: '#F5A623', lo: '#3B82F6' }
-const PRIO_LABEL = { hi: 'Alta', md: 'Média', lo: 'Baixa' }
-const EFFORT_LABEL = { low: 'Baixo', medium: 'Médio', high: 'Alto' }
+const PRIO_COLOR: Record<string, string> = { hi: '#EF4444', md: '#F5A623', lo: '#3B82F6' }
+const PRIO_LABEL: Record<string, string> = { hi: 'Alta', md: 'Média', lo: 'Baixa' }
+const EFFORT_LABEL: Record<string, string> = { low: 'Baixo', medium: 'Médio', high: 'Alto' }
+const STATUS_LABEL: Record<string, string> = { aberto: 'Aberto', andamento: 'Em Andamento', implementado: 'Implementado', cancelado: 'Cancelado' }
+
+const TIPO_OPTIONS = ['Melhoria', 'Novo Dashboard', 'Correção', 'Integração', 'Ajuste Visual', 'Outro']
+const CRIT_OPTIONS = ['Alto', 'Médio', 'Baixo']
+const IMPACTO_OPTIONS = ['Alto', 'Médio', 'Baixo']
 
 const mono = '"JetBrains Mono", monospace'
 const outfit = 'var(--font-outfit), sans-serif'
-const glass = { background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.065)' }
+const glass = { background: 'var(--color-surface)', border: '1px solid var(--color-border)' }
 const R = '5px'
+
+const inputStyle: React.CSSProperties = {
+  width: '100%', background: 'var(--input-bg)', border: '1px solid var(--color-border)',
+  borderRadius: R, padding: '7px 10px', color: 'var(--color-text)', fontSize: '.78rem', fontFamily: outfit,
+  transition: 'all 140ms',
+}
+const selectStyle: React.CSSProperties = {
+  ...inputStyle, appearance: 'none', WebkitAppearance: 'none', cursor: 'pointer',
+}
+const labelStyle: React.CSSProperties = {
+  fontFamily: outfit, fontSize: '.56rem', fontWeight: 700, textTransform: 'uppercase',
+  letterSpacing: '.07em', color: 'var(--color-text-muted)', display: 'block', marginBottom: 4,
+}
+
+function estimateDeliveryDate(effort: string, existingTickets: Ticket[]): string {
+  const days = effort === 'high' ? 45 : effort === 'medium' ? 21 : 7
+  const base = new Date()
+  base.setDate(base.getDate() + days)
+
+  const targetMonth = `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, '0')}`
+  const sameMonth = existingTickets.filter(t => {
+    if (!t.deliveryDate) return false
+    return t.deliveryDate.startsWith(targetMonth)
+  })
+
+  if (sameMonth.length >= 2) {
+    base.setDate(base.getDate() + 14)
+  }
+
+  return base.toISOString().split('T')[0]
+}
+
+interface EditForm {
+  title: string
+  description: string
+  sprint: string
+  tipo: string
+  criticidade: string
+  impacto: string
+  observacao: string
+  deliveryDate: string
+}
 
 export default function RequisicoesPage() {
   const { id: projectId } = useParams<{ id: string }>()
@@ -43,6 +92,15 @@ export default function RequisicoesPage() {
   const [showModal, setShowModal] = useState(false)
   const [showImporter, setShowImporter] = useState(false)
 
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [dropdownOpenId, setDropdownOpenId] = useState<string | null>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editForm, setEditForm] = useState<EditForm>({
+    title: '', description: '', sprint: '', tipo: '', criticidade: '', impacto: '', observacao: '', deliveryDate: '',
+  })
+  const expandedRef = useRef<HTMLDivElement>(null)
+  const clickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const [form, setForm] = useState({ title: '', description: '' })
   const [classifying, setClassifying] = useState(false)
   const [classified, setClassified] = useState<{
@@ -54,6 +112,14 @@ export default function RequisicoesPage() {
   } | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [savingId, setSavingId] = useState<string | null>(null)
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    if (!dropdownOpenId) return
+    const handler = () => setDropdownOpenId(null)
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [dropdownOpenId])
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login')
@@ -71,18 +137,53 @@ export default function RequisicoesPage() {
     return () => unsub()
   }, [projectId])
 
-  // ── Botões na TopNav ──
+  const exportToExcel = useCallback(() => {
+    const data = visible.map(t => ({
+      'ID': t.id,
+      'Título': t.title,
+      'Tipo': t.tipo ?? '',
+      'Sprint': t.sprint ?? '',
+      'Criticidade': t.criticidade ?? '',
+      'Impacto': t.impacto ?? '',
+      'Status': STATUS_LABEL[t.status] ?? t.status,
+      'Prioridade': PRIO_LABEL[t.priority] ?? t.priority,
+      'Esforço': EFFORT_LABEL[t.effort] ?? t.effort,
+      'Criado em': t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('pt-BR') : '',
+      'Entrega Prevista': t.deliveryDate ? new Date(t.deliveryDate + 'T12:00:00').toLocaleDateString('pt-BR') : '',
+      'Descrição': t.description ?? '',
+      'Observação': t.observacao ?? '',
+    }))
+
+    const ws = XLSX.utils.json_to_sheet(data)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Requisições')
+    XLSX.writeFile(wb, `requisicoes-${projectId}-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }, [tickets, filterStatus, projectId])
+
   useEffect(() => {
     const accent = project?.clientColor ?? '#00D4AA'
     setActions(
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <button
+          onClick={exportToExcel}
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 14px', borderRadius: R,
+            background: 'var(--color-surface2)', border: '1px solid var(--color-border-2)',
+            color: 'var(--color-text-muted)', fontFamily: outfit,
+            fontSize: '.78rem', fontWeight: 700, cursor: 'pointer',
+            whiteSpace: 'nowrap', transition: 'all 140ms',
+          }}
+        >
+          ↓ Exportar
+        </button>
+        <button
           onClick={() => setShowImporter(true)}
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '6px 14px', borderRadius: R,
-            background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.10)',
-            color: '#9898B0', fontFamily: outfit,
+            background: 'var(--color-surface2)', border: '1px solid var(--color-border-2)',
+            color: 'var(--color-text-muted)', fontFamily: outfit,
             fontSize: '.78rem', fontWeight: 700, cursor: 'pointer',
             whiteSpace: 'nowrap', transition: 'all 140ms',
           }}
@@ -105,7 +206,7 @@ export default function RequisicoesPage() {
       </div>
     )
     return () => clearActions()
-  }, [setActions, clearActions, project])
+  }, [setActions, clearActions, project, exportToExcel])
 
   const classify = useCallback(async () => {
     if (!form.title.trim() || !form.description.trim()) return
@@ -133,6 +234,7 @@ export default function RequisicoesPage() {
     if (!classified || !project || !user) return
     setSubmitting(true)
     try {
+      const deliveryDate = estimateDeliveryDate(classified.effort, tickets)
       await createTicket(projectId, project.clientName, {
         title: form.title,
         description: form.description,
@@ -140,16 +242,20 @@ export default function RequisicoesPage() {
         createdByEmail: user.email ?? '',
         createdByName: user.displayName ?? user.email ?? 'Gestor',
         priority: classified.priority,
-        sprint: classified.sprint,
+        sprint: `Sprint ${classified.sprint}`,
         estimatedDate: classified.estimatedDate,
         effort: classified.effort,
+        tipo: 'Melhoria',
+        criticidade: classified.effort === 'high' ? 'Alto' : classified.effort === 'medium' ? 'Médio' : 'Baixo',
+        impacto: classified.priority === 'hi' ? 'Alto' : classified.priority === 'md' ? 'Médio' : 'Baixo',
+        deliveryDate,
       })
       setForm({ title: '', description: '' })
       setClassified(null)
       setShowModal(false)
     } catch (e) { console.error(e) }
     finally { setSubmitting(false) }
-  }, [classified, project, user, projectId, form])
+  }, [classified, project, user, projectId, form, tickets])
 
   const handleStatus = useCallback(async (ticketId: string, status: TicketStatus) => {
     setSavingId(ticketId)
@@ -157,15 +263,19 @@ export default function RequisicoesPage() {
     setSavingId(null)
   }, [projectId])
 
-  // ── Import ticket from MagicImporter ──
   const handleImportTicket = useCallback(async (data: {
     title: string
     description: string
     priority: 'hi' | 'md' | 'lo'
     assignee: string | null
     notes: string | null
+    tipo: string
+    criticidade: string
+    impacto: string
+    observacao: string
   }) => {
     if (!project || !user) return
+    const deliveryDate = estimateDeliveryDate('medium', tickets)
     await createTicket(projectId, project.clientName, {
       title: data.title,
       description: data.description,
@@ -173,11 +283,62 @@ export default function RequisicoesPage() {
       createdByEmail: user.email ?? '',
       createdByName: user.displayName ?? user.email ?? 'Gestor',
       priority: data.priority,
-      sprint: 2,
+      sprint: 'Sprint 2',
       estimatedDate: 'A definir',
       effort: 'medium',
+      tipo: data.tipo || 'Melhoria',
+      criticidade: data.criticidade || 'Médio',
+      impacto: data.impacto || 'Médio',
+      observacao: data.observacao,
+      deliveryDate,
     })
-  }, [project, user, projectId])
+  }, [project, user, projectId, tickets])
+
+  const handleRowClick = useCallback((ticketId: string) => {
+    if (editingId) return
+    if (clickTimerRef.current) clearTimeout(clickTimerRef.current)
+    clickTimerRef.current = setTimeout(() => {
+      setExpandedId(prev => prev === ticketId ? null : ticketId)
+    }, 220)
+  }, [editingId])
+
+  const startEditing = useCallback((t: Ticket) => {
+    setEditingId(t.id)
+    setEditForm({
+      title: t.title ?? '',
+      description: t.description ?? '',
+      sprint: t.sprint ?? '',
+      tipo: t.tipo ?? 'Melhoria',
+      criticidade: t.criticidade ?? 'Médio',
+      impacto: t.impacto ?? 'Médio',
+      observacao: t.observacao ?? '',
+      deliveryDate: t.deliveryDate ?? '',
+    })
+  }, [])
+
+  const saveEdit = useCallback(async () => {
+    if (!editingId) return
+    try {
+      await updateDoc(doc(db, 'projects', projectId, 'tickets', editingId), {
+        title: editForm.title,
+        description: editForm.description,
+        sprint: editForm.sprint,
+        tipo: editForm.tipo,
+        criticidade: editForm.criticidade,
+        impacto: editForm.impacto,
+        observacao: editForm.observacao || null,
+        deliveryDate: editForm.deliveryDate || null,
+      })
+    } catch (e) { console.error(e) }
+    setEditingId(null)
+  }, [editingId, editForm, projectId])
+
+  const handleBlur = useCallback((e: React.FocusEvent<HTMLDivElement>) => {
+    if (!editingId) return
+    const related = e.relatedTarget as HTMLElement | null
+    if (related && e.currentTarget.contains(related)) return
+    saveEdit()
+  }, [editingId, saveEdit])
 
   const visible = tickets.filter(t => filterStatus === 'all' || t.status === filterStatus)
   const counts = {
@@ -194,18 +355,20 @@ export default function RequisicoesPage() {
     <>
       <style>{`
         @keyframes fadeIn { from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)} }
-        .ticket-row:hover { background: rgba(255,255,255,0.018) !important; }
+        .ticket-row:hover { background: var(--color-surface) !important; }
+        .kpi-card { cursor:pointer; transition:all 140ms; }
+        .kpi-card:hover { border-color:var(--color-border-2)!important; }
         .modal-overlay {
           position:fixed;inset:0;background:rgba(0,0,0,.75);
           backdrop-filter:blur(6px);z-index:200;
           display:flex;align-items:center;justify-content:center;padding:24px;
         }
         .modal {
-          background:#0E0E18;border:1px solid rgba(255,255,255,.09);
+          background:var(--color-bg);border:1px solid var(--color-border);
           border-radius:5px;width:100%;max-width:540px;padding:26px;
           animation:fadeIn .18s ease-out both;
         }
-        select option { background:#1A1A2C;color:#F0F0F5; }
+        select option { background:var(--color-bg);color:var(--color-text); }
         textarea:focus, input:focus {
           outline:none;
           border-color:rgba(59,130,246,.4)!important;
@@ -213,50 +376,35 @@ export default function RequisicoesPage() {
         }
       `}</style>
 
-      <div style={{ minHeight: '100vh', background: '#050508', color: '#F0F0F5', fontFamily: outfit, paddingBottom: 80 }}>
+      <div style={{ minHeight: '100vh', background: 'var(--color-bg)', color: 'var(--color-text)', fontFamily: outfit, paddingBottom: 80 }}>
         <div style={{ maxWidth: 1180, margin: '0 auto', padding: '28px 24px 0' }}>
 
-          {/* ── Stats ── */}
+          {/* ── Stats (clicáveis) ── */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 8, marginBottom: 20 }}>
             {([
-              ['all',          'Total',         '#F0F0F5'],
-              ['aberto',       'Abertos',        '#9898B0'],
-              ['andamento',    'Em Andamento',   '#3B82F6'],
-              ['implementado', 'Implementados',  '#10B981'],
-              ['cancelado',    'Cancelados',     '#EF4444'],
-            ] as const).map(([k, l, c]) => (
-              <div key={k} style={{ ...glass, borderRadius: R, padding: '12px 14px' }}>
-                <div style={{ fontFamily: outfit, fontSize: '1.4rem', fontWeight: 700, color: c, lineHeight: 1, marginBottom: 3 }}>
-                  {counts[k]}
-                </div>
-                <div style={{ fontSize: '.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: '#5A5A72' }}>{l}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* ── Filtros ── */}
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 16 }}>
-            {([
-              ['all',          'Todos',          '#00D4AA'],
+              ['all',          'Total',         'var(--color-text)'],
               ['aberto',       'Abertos',        '#9898B0'],
               ['andamento',    'Em Andamento',   '#3B82F6'],
               ['implementado', 'Implementados',  '#10B981'],
               ['cancelado',    'Cancelados',     '#EF4444'],
             ] as const).map(([k, l, c]) => {
-              const on = filterStatus === k
+              const isActive = filterStatus === k
               return (
-                <button key={k}
+                <div
+                  key={k}
+                  className="kpi-card"
                   onClick={() => setFilterStatus(k)}
                   style={{
-                    padding: '5px 12px', borderRadius: R,
-                    border: `1px solid ${on ? `${c}55` : 'rgba(255,255,255,.07)'}`,
-                    background: on ? `${c}12` : 'transparent',
-                    color: on ? c : '#5A5A72',
-                    fontFamily: outfit,
-                    fontSize: '.72rem', fontWeight: 600,
-                    cursor: 'pointer', transition: 'all 140ms',
+                    background: isActive ? 'rgba(0,212,170,.06)' : 'var(--color-surface)',
+                    border: isActive ? '1px solid rgba(0,212,170,.4)' : '1px solid var(--color-border)',
+                    borderRadius: R, padding: '12px 14px',
                   }}
-                >{l}</button>
+                >
+                  <div style={{ fontFamily: outfit, fontSize: '1.4rem', fontWeight: 700, color: c, lineHeight: 1, marginBottom: 3 }}>
+                    {counts[k]}
+                  </div>
+                  <div style={{ fontSize: '.62rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--color-text-muted)' }}>{l}</div>
+                </div>
               )
             })}
           </div>
@@ -264,69 +412,279 @@ export default function RequisicoesPage() {
           {/* ── Lista ── */}
           <div style={{ ...glass, borderRadius: R, overflow: 'hidden' }}>
             {visible.length === 0 ? (
-              <div style={{ padding: '40px 24px', textAlign: 'center', color: '#5A5A72', fontSize: '.84rem' }}>
+              <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: '.84rem' }}>
                 {tickets.length === 0
                   ? 'Nenhuma requisição registrada ainda.'
                   : 'Nenhum item com o filtro selecionado.'}
               </div>
             ) : visible.map((t, i) => {
               const sc = STATUS_CFG[t.status]
+              const StatusIcon = sc.icon
+              const isExpanded = expandedId === t.id
+              const isEditing = editingId === t.id
+
               return (
-                <div key={t.id} className="ticket-row" style={{
-                  display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '12px 16px',
-                  borderTop: i === 0 ? 'none' : '1px solid rgba(255,255,255,0.055)',
-                  background: '#0E0E18', transition: 'background 140ms',
-                }}>
-                  {/* Prio strip */}
-                  <div style={{ width: 3, height: 34, borderRadius: 2, background: PRIO_COLOR[t.priority], flexShrink: 0 }} />
+                <div
+                  key={t.id}
+                  ref={isExpanded ? expandedRef : undefined}
+                  onBlur={isEditing ? handleBlur : undefined}
+                  style={{
+                    borderBottom: i < visible.length - 1 ? '1px solid var(--color-border)' : 'none',
+                    background: isExpanded ? 'var(--color-surface)' : 'var(--color-bg)',
+                    transition: 'background 140ms',
+                  }}
+                >
+                  {/* ── Row principal ── */}
+                  <div
+                    className="ticket-row"
+                    onClick={() => handleRowClick(t.id)}
+                    onDoubleClick={() => { if (clickTimerRef.current) clearTimeout(clickTimerRef.current); setExpandedId(t.id); startEditing(t) }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '12px 16px', cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ width: 3, height: 34, borderRadius: 2, background: PRIO_COLOR[t.priority], flexShrink: 0 }} />
 
-                  {/* ID */}
-                  <div style={{ fontFamily: mono, fontSize: '.63rem', fontWeight: 600, color: '#5A5A72', minWidth: 56, flexShrink: 0 }}>{t.id}</div>
+                    <div style={{ fontFamily: mono, fontSize: '.63rem', fontWeight: 600, color: 'var(--color-text-muted)', minWidth: 56, flexShrink: 0 }}>{t.id}</div>
 
-                  {/* Body */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: outfit, fontSize: '.79rem', fontWeight: 500, color: '#F0F0F5', marginBottom: 4, lineHeight: 1.35 }}>{t.title}</div>
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                      {[
-                        `Sprint ${t.sprint}`,
-                        t.estimatedDate,
-                        `Esforço: ${EFFORT_LABEL[t.effort]}`,
-                        t.source === 'public' ? '🌐 Indústria' : '🔒 Interno',
-                      ].map((item, idx, arr) => (
-                        <span key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span style={{ fontFamily: outfit, fontSize: '.6rem', color: '#5A5A72' }}>{item}</span>
-                          {idx < arr.length - 1 && <span style={{ width: 2, height: 2, borderRadius: '50%', background: '#5A5A72', flexShrink: 0 }} />}
-                        </span>
-                      ))}
-                      {t.aiClassified && (
-                        <span style={{ fontFamily: outfit, fontSize: '.58rem', color: '#00D4AA', opacity: .7 }}>· ✦ IA</span>
-                      )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontFamily: outfit, fontSize: '.79rem', fontWeight: 500, color: 'var(--color-text)', marginBottom: 4, lineHeight: 1.35 }}>{t.title}</div>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {[
+                          t.sprint ?? '',
+                          t.tipo ?? '',
+                          t.estimatedDate,
+                          `Esforço: ${EFFORT_LABEL[t.effort] ?? t.effort}`,
+                          t.source === 'public' ? '🌐 Indústria' : '🔒 Interno',
+                        ].filter(Boolean).map((item, idx, arr) => (
+                          <span key={idx} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <span style={{ fontFamily: outfit, fontSize: '.6rem', color: 'var(--color-text-muted)' }}>{item}</span>
+                            {idx < arr.length - 1 && <span style={{ width: 2, height: 2, borderRadius: '50%', background: 'var(--color-text-muted)', flexShrink: 0 }} />}
+                          </span>
+                        ))}
+                        {t.aiClassified && (
+                          <span style={{ fontFamily: outfit, fontSize: '.58rem', color: 'var(--color-brand)', opacity: .7 }}>· ✦ IA</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <span style={{
+                      fontSize: '.6rem', color: 'var(--color-text-muted)', transition: 'transform 180ms',
+                      transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', flexShrink: 0,
+                    }}>▾</span>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+                      {savingId === t.id && <span style={{ fontFamily: mono, fontSize: '.6rem', color: 'var(--color-text-muted)' }}>···</span>}
+                      <div style={{ position: 'relative' }}>
+                        <button
+                          onClick={() => setDropdownOpenId(dropdownOpenId === t.id ? null : t.id)}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 6,
+                            padding: '5px 10px', borderRadius: R,
+                            border: `1px solid ${sc.border}`,
+                            background: sc.bg, color: sc.color,
+                            fontFamily: outfit, fontSize: '.7rem', fontWeight: 700,
+                            cursor: 'pointer', minWidth: 136,
+                            transition: 'all 140ms',
+                          }}
+                        >
+                          <StatusIcon size={11} style={{ color: sc.color }} />
+                          {sc.label}
+                          <ChevronDown size={11} style={{ marginLeft: 'auto', opacity: 0.6 }} />
+                        </button>
+
+                        {dropdownOpenId === t.id && (
+                          <div style={{
+                            position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                            background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                            borderRadius: R, overflow: 'hidden', zIndex: 50, minWidth: 140,
+                            boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                          }}>
+                            {(Object.entries(STATUS_CFG) as [TicketStatus, typeof STATUS_CFG[TicketStatus]][]).map(([k, v]) => (
+                              <button
+                                key={k}
+                                onClick={() => { handleStatus(t.id, k); setDropdownOpenId(null) }}
+                                style={{
+                                  display: 'flex', alignItems: 'center', gap: 6,
+                                  width: '100%', padding: '8px 12px', textAlign: 'left',
+                                  fontFamily: outfit, fontSize: '.7rem', fontWeight: 600,
+                                  color: v.color, border: 'none', cursor: 'pointer',
+                                  background: t.status === k ? 'var(--color-muted)' : 'transparent',
+                                  transition: 'background 100ms',
+                                }}
+                                onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-muted)')}
+                                onMouseLeave={e => (e.currentTarget.style.background = t.status === k ? 'var(--color-muted)' : 'transparent')}
+                              >
+                                <v.icon size={11} />
+                                {v.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
-                  {/* Controls */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                    {savingId === t.id && <span style={{ fontFamily: mono, fontSize: '.6rem', color: '#5A5A72' }}>···</span>}
-                    <div style={{ position: 'relative' }}>
-                      <select
-                        value={t.status}
-                        onChange={e => handleStatus(t.id, e.target.value as TicketStatus)}
-                        style={{
-                          appearance: 'none', WebkitAppearance: 'none',
-                          border: `1px solid ${sc.border}`, outline: 'none', cursor: 'pointer',
-                          padding: '5px 22px 5px 9px', borderRadius: R,
-                          fontSize: '.7rem', fontWeight: 700,
-                          fontFamily: outfit,
-                          background: sc.bg, color: sc.color,
-                          minWidth: 136, transition: 'all 140ms',
-                        }}
-                      >
-                        {Object.entries(STATUS_CFG).map(([k, v]) => (
-                          <option key={k} value={k}>{v.label}</option>
-                        ))}
-                      </select>
-                      <span style={{ position: 'absolute', right: 7, top: '50%', transform: 'translateY(-50%)', fontSize: '.5rem', pointerEvents: 'none', color: sc.color }}>▾</span>
+                  {/* ── Área expandida ── */}
+                  <div style={{
+                    maxHeight: isExpanded ? 600 : 0,
+                    opacity: isExpanded ? 1 : 0,
+                    overflow: 'hidden',
+                    transition: 'max-height 220ms ease, opacity 180ms ease',
+                  }}>
+                    <div style={{ padding: '0 16px 16px 16px' }}>
+                      <div style={{
+                        background: 'var(--color-surface)', border: '1px solid var(--color-border)',
+                        borderRadius: R, padding: 16,
+                      }}>
+
+                        {isEditing ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            <div>
+                              <label style={labelStyle}>Título</label>
+                              <input
+                                value={editForm.title}
+                                onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))}
+                                style={inputStyle}
+                              />
+                            </div>
+
+                            <div>
+                              <label style={labelStyle}>Descrição</label>
+                              <textarea
+                                value={editForm.description}
+                                onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                                rows={3}
+                                style={{ ...inputStyle, resize: 'vertical' }}
+                              />
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+                              <div>
+                                <label style={labelStyle}>Sprint</label>
+                                <input
+                                  value={editForm.sprint}
+                                  onChange={e => setEditForm(f => ({ ...f, sprint: e.target.value }))}
+                                  style={inputStyle}
+                                />
+                              </div>
+                              <div>
+                                <label style={labelStyle}>Entrega Prevista</label>
+                                <input
+                                  type="date"
+                                  value={editForm.deliveryDate}
+                                  onChange={e => setEditForm(f => ({ ...f, deliveryDate: e.target.value }))}
+                                  style={inputStyle}
+                                />
+                              </div>
+                              <div>
+                                <label style={labelStyle}>Tipo</label>
+                                <select
+                                  value={editForm.tipo}
+                                  onChange={e => setEditForm(f => ({ ...f, tipo: e.target.value }))}
+                                  style={selectStyle}
+                                >
+                                  {TIPO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <label style={labelStyle}>Criticidade</label>
+                                <select
+                                  value={editForm.criticidade}
+                                  onChange={e => setEditForm(f => ({ ...f, criticidade: e.target.value }))}
+                                  style={selectStyle}
+                                >
+                                  {CRIT_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                              </div>
+                              <div>
+                                <label style={labelStyle}>Impacto</label>
+                                <select
+                                  value={editForm.impacto}
+                                  onChange={e => setEditForm(f => ({ ...f, impacto: e.target.value }))}
+                                  style={selectStyle}
+                                >
+                                  {IMPACTO_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label style={labelStyle}>Observação</label>
+                              <textarea
+                                value={editForm.observacao}
+                                onChange={e => setEditForm(f => ({ ...f, observacao: e.target.value }))}
+                                rows={2}
+                                style={{ ...inputStyle, resize: 'vertical' }}
+                              />
+                            </div>
+
+                            <div style={{ fontFamily: outfit, fontSize: '.6rem', color: 'var(--color-text-muted)', textAlign: 'right' }}>
+                              Clique fora para salvar
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            onDoubleClick={() => startEditing(t)}
+                            style={{ cursor: 'default' }}
+                          >
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8, marginBottom: 12 }}>
+                              {[
+                                { label: 'Tipo',             value: t.tipo ?? 'Melhoria' },
+                                { label: 'Criticidade',      value: t.criticidade ?? '—' },
+                                { label: 'Impacto',          value: t.impacto ?? '—' },
+                                { label: 'Sprint',           value: t.sprint ?? '—' },
+                                { label: 'Criado em',        value: t.createdAt?.toDate ? t.createdAt.toDate().toLocaleDateString('pt-BR') : '—' },
+                                { label: 'Entrega prevista', value: t.deliveryDate ? new Date(t.deliveryDate + 'T12:00:00').toLocaleDateString('pt-BR') : 'A definir' },
+                              ].map(item => (
+                                <div key={item.label} style={{ background: 'var(--color-surface)', borderRadius: R, padding: '7px 10px' }}>
+                                  <div style={labelStyle}>{item.label}</div>
+                                  <div style={{ fontFamily: outfit, fontSize: '.76rem', fontWeight: 600, color: 'var(--color-text)' }}>{item.value}</div>
+                                </div>
+                              ))}
+                            </div>
+
+                            <div style={{ marginBottom: t.observacao ? 10 : 0 }}>
+                              <div style={{ ...labelStyle, marginBottom: 4 }}>Descrição</div>
+                              <div style={{ fontFamily: outfit, fontSize: '.76rem', color: 'var(--color-text-2)', lineHeight: 1.5 }}>
+                                {t.description || '—'}
+                              </div>
+                            </div>
+
+                            {t.observacao && (
+                              <div style={{ marginBottom: 10 }}>
+                                <div style={{ ...labelStyle, marginBottom: 4 }}>Observação</div>
+                                <div style={{ fontFamily: outfit, fontSize: '.74rem', color: 'var(--color-text-muted)', lineHeight: 1.45, fontStyle: 'italic' }}>
+                                  {t.observacao}
+                                </div>
+                              </div>
+                            )}
+
+                            {t.aiClassified && (
+                              <div style={{ background: 'rgba(0,212,170,.04)', border: '1px solid rgba(0,212,170,.12)', borderRadius: R, padding: '10px 12px', marginTop: 10 }}>
+                                <div style={{ fontFamily: outfit, fontSize: '.56rem', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--color-brand)', marginBottom: 8 }}>✦ Classificação LAT</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8 }}>
+                                  {[
+                                    { label: 'Prioridade', value: PRIO_LABEL[t.priority] ?? t.priority, color: PRIO_COLOR[t.priority] ?? 'var(--color-text-muted)' },
+                                    { label: 'Esforço',    value: EFFORT_LABEL[t.effort] ?? t.effort,   color: 'var(--color-text-muted)' },
+                                    { label: 'Previsão',   value: t.estimatedDate ?? '—',                color: 'var(--color-text-muted)' },
+                                  ].map(item => (
+                                    <div key={item.label} style={{ background: 'var(--color-surface)', borderRadius: R, padding: '6px 8px' }}>
+                                      <div style={{ fontFamily: outfit, fontSize: '.52rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 2 }}>{item.label}</div>
+                                      <div style={{ fontFamily: mono, fontSize: '.72rem', fontWeight: 700, color: item.color }}>{item.value}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            <div style={{ fontFamily: outfit, fontSize: '.56rem', color: 'var(--color-text-muted)', marginTop: 10, textAlign: 'right' }}>
+                              duplo clique para editar
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -346,29 +704,29 @@ export default function RequisicoesPage() {
                 <div style={{ fontFamily: outfit, fontSize: '.64rem', fontWeight: 700, letterSpacing: '.09em', textTransform: 'uppercase', color: '#3B82F6', marginBottom: 4 }}>Nova Requisição</div>
                 <div style={{ fontFamily: outfit, fontSize: '1rem', fontWeight: 700, letterSpacing: '-.02em' }}>Descreva a solicitação</div>
               </div>
-              <button onClick={() => { setShowModal(false); setClassified(null) }} style={{ background: 'none', border: 'none', color: '#5A5A72', fontSize: '1.1rem', cursor: 'pointer', lineHeight: 1, padding: 4 }}>✕</button>
+              <button onClick={() => { setShowModal(false); setClassified(null) }} style={{ background: 'none', border: 'none', color: 'var(--color-text-muted)', fontSize: '1.1rem', cursor: 'pointer', lineHeight: 1, padding: 4 }}>✕</button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div>
-                <label style={{ fontFamily: outfit, fontSize: '.63rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: '#5A5A72', display: 'block', marginBottom: 5 }}>Título</label>
+                <label style={{ fontFamily: outfit, fontSize: '.63rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--color-text-muted)', display: 'block', marginBottom: 5 }}>Título</label>
                 <input
                   type="text"
                   placeholder="Ex: Adicionar filtro de período no painel DOH"
                   value={form.title}
                   onChange={e => { setForm(f => ({ ...f, title: e.target.value })); setClassified(null) }}
-                  style={{ width: '100%', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.09)', borderRadius: R, padding: '8px 11px', color: '#F0F0F5', fontSize: '.83rem', fontFamily: outfit, transition: 'all 140ms' }}
+                  style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--color-border)', borderRadius: R, padding: '8px 11px', color: 'var(--color-text)', fontSize: '.83rem', fontFamily: outfit, transition: 'all 140ms' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontFamily: outfit, fontSize: '.63rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: '#5A5A72', display: 'block', marginBottom: 5 }}>Descrição</label>
+                <label style={{ fontFamily: outfit, fontSize: '.63rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.08em', color: 'var(--color-text-muted)', display: 'block', marginBottom: 5 }}>Descrição</label>
                 <textarea
                   placeholder="Detalhe o problema ou melhoria. Quanto mais contexto, melhor a classificação automática."
                   value={form.description}
                   onChange={e => { setForm(f => ({ ...f, description: e.target.value })); setClassified(null) }}
                   rows={4}
-                  style={{ width: '100%', background: 'rgba(255,255,255,.03)', border: '1px solid rgba(255,255,255,.09)', borderRadius: R, padding: '8px 11px', color: '#F0F0F5', fontSize: '.83rem', fontFamily: outfit, resize: 'vertical', transition: 'all 140ms' }}
+                  style={{ width: '100%', background: 'var(--input-bg)', border: '1px solid var(--color-border)', borderRadius: R, padding: '8px 11px', color: 'var(--color-text)', fontSize: '.83rem', fontFamily: outfit, resize: 'vertical', transition: 'all 140ms' }}
                 />
               </div>
 
@@ -380,7 +738,7 @@ export default function RequisicoesPage() {
                     padding: '9px', borderRadius: R,
                     background: classifying ? 'rgba(0,212,170,.05)' : 'rgba(0,212,170,.10)',
                     border: '1px solid rgba(0,212,170,.25)',
-                    color: (!form.title.trim() || !form.description.trim()) ? '#5A5A72' : '#00D4AA',
+                    color: (!form.title.trim() || !form.description.trim()) ? 'var(--color-text-muted)' : 'var(--color-brand)',
                     fontFamily: outfit, fontSize: '.8rem', fontWeight: 700,
                     cursor: classifying || !form.title.trim() || !form.description.trim() ? 'not-allowed' : 'pointer',
                     transition: 'all 140ms',
@@ -392,20 +750,20 @@ export default function RequisicoesPage() {
 
               {classified && (
                 <div style={{ background: 'rgba(0,212,170,.04)', border: '1px solid rgba(0,212,170,.16)', borderRadius: R, padding: '13px 15px' }}>
-                  <div style={{ fontFamily: outfit, fontSize: '.62rem', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: '#00D4AA', marginBottom: 10 }}>✦ Classificação LAT</div>
+                  <div style={{ fontFamily: outfit, fontSize: '.62rem', fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--color-brand)', marginBottom: 10 }}>✦ Classificação LAT</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 8, marginBottom: 10 }}>
                     {[
                       { label: 'Prioridade', value: PRIO_LABEL[classified.priority], color: PRIO_COLOR[classified.priority] },
-                      { label: 'Sprint',     value: `Sprint ${classified.sprint}`,   color: '#9898B0' },
-                      { label: 'Previsão',   value: classified.estimatedDate,         color: '#9898B0' },
+                      { label: 'Sprint',     value: `Sprint ${classified.sprint}`,   color: 'var(--color-text-muted)' },
+                      { label: 'Previsão',   value: classified.estimatedDate,         color: 'var(--color-text-muted)' },
                     ].map(item => (
-                      <div key={item.label} style={{ background: 'rgba(255,255,255,.03)', borderRadius: R, padding: '7px 9px' }}>
-                        <div style={{ fontFamily: outfit, fontSize: '.56rem', color: '#5A5A72', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 3 }}>{item.label}</div>
+                      <div key={item.label} style={{ background: 'var(--color-surface)', borderRadius: R, padding: '7px 9px' }}>
+                        <div style={{ fontFamily: outfit, fontSize: '.56rem', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 3 }}>{item.label}</div>
                         <div style={{ fontFamily: mono, fontSize: '.76rem', fontWeight: 700, color: item.color }}>{item.value}</div>
                       </div>
                     ))}
                   </div>
-                  <div style={{ fontFamily: outfit, fontSize: '.74rem', color: '#9898B0', lineHeight: 1.45, fontStyle: 'italic' }}>{classified.reasoning}</div>
+                  <div style={{ fontFamily: outfit, fontSize: '.74rem', color: 'var(--color-text-muted)', lineHeight: 1.45, fontStyle: 'italic' }}>{classified.reasoning}</div>
                 </div>
               )}
 

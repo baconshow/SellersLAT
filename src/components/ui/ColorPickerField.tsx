@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { HexColorPicker } from 'react-colorful'
+import { useTheme } from '@/contexts/ThemeContext'
 
 interface ColorPickerFieldProps {
   value: string
@@ -12,6 +13,8 @@ interface ColorPickerFieldProps {
 export default function ColorPickerField({ value, onChange, label }: ColorPickerFieldProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -28,16 +31,18 @@ export default function ColorPickerField({ value, onChange, label }: ColorPicker
         onClick={() => setOpen(!open)}
         className="flex items-center gap-3 w-full px-4 py-3 rounded transition-all"
         style={{
-          background: 'rgba(255,255,255,0.04)',
-          border: open ? '1px solid rgba(255,255,255,0.22)' : '1px solid rgba(255,255,255,0.08)',
+          background: isDark ? 'rgba(255,255,255,0.04)' : '#EDEEF2',
+          border: isDark
+            ? `1px solid ${open ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)'}`
+            : `1px solid ${open ? '#8888A0' : '#C8C9D0'}`,
         }}
       >
         <div className="w-7 h-7 rounded shrink-0" style={{ background: value }} />
         <div className="text-left">
-          <p className="text-[10px] mb-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-[10px] mb-0.5" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>
             {label}
           </p>
-          <p className="text-xs font-mono" style={{ color: 'rgba(255,255,255,0.6)' }}>
+          <p className="text-xs font-mono" style={{ color: isDark ? 'rgba(255,255,255,0.6)' : '#4A4A68' }}>
             {value}
           </p>
         </div>
@@ -47,9 +52,9 @@ export default function ColorPickerField({ value, onChange, label }: ColorPicker
         <div
           className="absolute z-50 mt-2 p-3 rounded"
           style={{
-            background: '#0e0e16',
-            border: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+            background: isDark ? '#0e0e16' : '#FFFFFF',
+            border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #C8C9D0',
+            boxShadow: isDark ? '0 8px 32px rgba(0,0,0,0.5)' : '0 4px 20px rgba(0,0,0,0.12)',
           }}
         >
           <HexColorPicker color={value} onChange={onChange} />
@@ -64,9 +69,9 @@ export default function ColorPickerField({ value, onChange, label }: ColorPicker
               }}
               className="flex-1 text-xs font-mono px-2 py-1.5 rounded outline-none"
               style={{
-                background: 'rgba(255,255,255,0.06)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                color: 'rgba(255,255,255,0.7)',
+                background: isDark ? 'rgba(255,255,255,0.06)' : '#F4F5F7',
+                border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #C8C9D0',
+                color: isDark ? 'rgba(255,255,255,0.8)' : '#1A1A2E',
               }}
             />
           </div>

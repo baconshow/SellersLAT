@@ -13,6 +13,10 @@ interface DetectedTicket {
   priority: Priority
   assignee: string | null
   notes: string | null
+  tipo: string
+  criticidade: string
+  impacto: string
+  observacao: string
   selected: boolean
 }
 
@@ -27,6 +31,10 @@ interface MagicImporterProps {
     priority: Priority
     assignee: string | null
     notes: string | null
+    tipo: string
+    criticidade: string
+    impacto: string
+    observacao: string
   }) => Promise<void>
 }
 
@@ -54,6 +62,69 @@ function fileToBase64(file: File): Promise<string> {
     reader.onerror = reject
     reader.readAsDataURL(file)
   })
+}
+
+function complexidadeToPriority(complexidade: string): Priority {
+  const val = (complexidade ?? '').toLowerCase().trim()
+  if (val === 'alto' || val === 'alta') return 'hi'
+  if (val === 'médio' || val === 'medio' || val === 'média' || val === 'media') return 'md'
+  return 'lo'
+}
+
+function tryParseExcelDirect(file: File): Promise<DetectedTicket[] | null> {
+  return new Promise(async (resolve) => {
+    try {
+      const name = file.name.toLowerCase()
+      if (!name.endsWith('.xlsx') && !name.endsWith('.xls') && !name.endsWith('.csv')) {
+        return resolve(null)
+      }
+
+      const buffer = await file.arrayBuffer()
+      const wb = XLSX.read(buffer, { type: 'array' })
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      const rows: Record<string, string>[] = XLSX.utils.sheet_to_json(sheet, { defval: '' })
+
+      if (rows.length === 0) return resolve(null)
+
+      // Check if known columns exist
+      const firstRow = rows[0]
+      const keys = Object.keys(firstRow).map(k => k.trim().toLowerCase())
+      const hasTema = keys.some(k => k === 'tema')
+
+      if (!hasTema) return resolve(null)
+
+      // Direct mapping
+      const tickets: DetectedTicket[] = rows
+        .filter(r => {
+          const tema = findCol(r, 'tema')
+          return tema.trim().length > 0
+        })
+        .map(r => ({
+          title: findCol(r, 'tema'),
+          description: findCol(r, 'escopo'),
+          priority: complexidadeToPriority(findCol(r, 'complexidade')),
+          assignee: null,
+          notes: null,
+          tipo: findCol(r, 'tipo') || 'Melhoria',
+          criticidade: findCol(r, 'criticidade') || 'Médio',
+          impacto: findCol(r, 'impacto') || 'Médio',
+          observacao: findCol(r, 'obs'),
+          selected: true,
+        }))
+
+      resolve(tickets.length > 0 ? tickets : null)
+    } catch {
+      resolve(null)
+    }
+  })
+}
+
+function findCol(row: Record<string, string>, colName: string): string {
+  const target = colName.toLowerCase().trim()
+  for (const [key, value] of Object.entries(row)) {
+    if (key.trim().toLowerCase() === target) return String(value ?? '').trim()
+  }
+  return ''
 }
 
 async function fileToText(file: File): Promise<{ content: string; mimeType?: string }> {
@@ -131,6 +202,17 @@ export default function MagicImporter({
   const interpret = useCallback(async () => {
     setInterpreting(true)
     try {
+      // Try direct Excel parsing first
+      if (file) {
+        const direct = await tryParseExcelDirect(file)
+        if (direct) {
+          setTickets(direct)
+          setStep('preview')
+          return
+        }
+      }
+
+      // Fallback to Gemini
       let payload: { content: string; mimeType?: string }
 
       if (file) {
@@ -153,6 +235,10 @@ export default function MagicImporter({
           priority: (['hi', 'md', 'lo'].includes(t.priority) ? t.priority : 'md') as Priority,
           assignee: t.assignee ?? null,
           notes: t.notes ?? null,
+          tipo: t.tipo ?? 'Melhoria',
+          criticidade: t.criticidade ?? 'Médio',
+          impacto: t.impacto ?? 'Médio',
+          observacao: t.observacao ?? '',
           selected: true,
         })))
         setStep('preview')
@@ -200,6 +286,10 @@ export default function MagicImporter({
         priority: t.priority,
         assignee: t.assignee,
         notes: t.notes,
+        tipo: t.tipo,
+        criticidade: t.criticidade,
+        impacto: t.impacto,
+        observacao: t.observacao,
       })
       setImportProgress({ current: i + 1, total: selected.length })
     }
@@ -372,6 +462,13 @@ export default function MagicImporter({
                           transition: 'all 140ms',
                         }}
                       />
+
+                      {/* Tipo badge */}
+                      {t.tipo && (
+                        <span style={{ fontFamily: outfit, fontSize: '.56rem', color: '#5A5A72', flexShrink: 0 }}>
+                          {t.tipo}
+                        </span>
+                      )}
 
                       {/* Priority badge (clickable) */}
                       <button

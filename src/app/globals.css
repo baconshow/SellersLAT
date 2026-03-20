@@ -261,3 +261,26 @@ html, body {
   .brand-border { border-color: var(--color-brand); }
   .brand-bg-soft { background-color: var(--color-brand-soft); }
 }
+
+/* ── Força legibilidade no tema claro ── */
+[data-theme="light"] .text-white,
+[data-theme="light"] [class*="text-white"] {
+  color: var(--color-text) !important;
+}
+
+[data-theme="light"] .text-gray-100,
+[data-theme="light"] .text-gray-200,
+[data-theme="light"] .text-gray-300,
+[data-theme="light"] .text-gray-400 {
+  color: var(--color-text-2) !important;
+}
+
+[data-theme="light"] .text-gray-500,
+[data-theme="light"] .text-gray-600 {
+  color: var(--color-text-muted) !important;
+}
+
+/* Inline styles com rgba branco */
+[data-theme="light"] * {
+  --tw-text-opacity: 1;
+}

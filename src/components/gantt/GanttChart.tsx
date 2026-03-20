@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { differenceInDays, format, eachMonthOfInterval } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { CheckCircle2, Clock, AlertCircle, Circle, X, Trash2, Check } from 'lucide-react'
+import { useTheme } from '@/contexts/ThemeContext'
 import type { Project, ProjectPhase, PhaseStatus } from '@/types'
 import { updateProject } from '@/lib/firestore'
 import DatePicker from '@/components/ui/DatePicker'
@@ -11,23 +12,38 @@ import toast from 'react-hot-toast'
 
 interface Props { project: Project }
 
-const STATUS_CONFIG: Record<PhaseStatus, { color: string; icon: React.ElementType; label: string }> = {
+const BASE_STATUS_CONFIG = {
   completed:   { color: '#10B981',                     icon: CheckCircle2, label: 'Concluída'    },
   in_progress: { color: 'var(--color-brand, #00D4AA)', icon: Clock,        label: 'Em Andamento' },
   blocked:     { color: '#EF4444',                     icon: AlertCircle,  label: 'Bloqueada'    },
-  pending:     { color: 'rgba(255,255,255,0.22)',       icon: Circle,       label: 'Pendente'     },
 }
 
-const BAR_STYLE: Record<PhaseStatus, React.CSSProperties> = {
+const BASE_BAR_STYLE = {
   completed:   { background: 'linear-gradient(90deg,#10B981cc,#10B98155)', borderRadius: 5 },
   in_progress: { background: 'linear-gradient(90deg,var(--color-brand,#00D4AA),var(--color-brand-secondary,#8B5CF6))', boxShadow: '0 0 20px var(--color-brand-glow,rgba(0,212,170,0.28))', borderRadius: 5 },
   blocked:     { background: 'linear-gradient(90deg,#EF4444bb,#EF444455)', boxShadow: '0 0 12px rgba(239,68,68,0.28)', borderRadius: 5 },
-  pending:     { background: 'linear-gradient(90deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 5 },
 }
 
 interface EditPanel { phase: ProjectPhase; x: number; y: number }
 
 export default function GanttChart({ project }: Props) {
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
+
+  const STATUS_CONFIG: Record<PhaseStatus, { color: string; icon: React.ElementType; label: string }> = {
+    ...BASE_STATUS_CONFIG,
+    pending: { color: isDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.18)', icon: Circle, label: 'Pendente' },
+  }
+
+  const BAR_STYLE: Record<PhaseStatus, React.CSSProperties> = {
+    ...BASE_BAR_STYLE,
+    pending: {
+      background: `linear-gradient(90deg,${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'},${isDark ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)'})`,
+      border: `1px solid ${isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)'}`,
+      borderRadius: 5,
+    },
+  }
+
   const [editPanel, setEditPanel] = useState<EditPanel | null>(null)
   const [editName,  setEditName]  = useState('')
   const [editStart, setEditStart] = useState('')
@@ -136,19 +152,19 @@ export default function GanttChart({ project }: Props) {
           {/* Legend */}
           <div className="flex items-center justify-end gap-5 mb-5 px-1">
             {Object.entries(STATUS_CONFIG).map(([s, cfg]) => (
-              <span key={s} className="flex items-center gap-1.5 text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <span key={s} className="flex items-center gap-1.5 text-[11px]" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0' }}>
                 <cfg.icon style={{ width: 11, height: 11, color: cfg.color }} />
                 {cfg.label}
               </span>
             ))}
-            <span className="text-[10px] ml-1" style={{ color: 'rgba(255,255,255,0.15)' }}>· clique direito para editar</span>
+            <span className="text-[10px] ml-1" style={{ color: isDark ? 'rgba(255,255,255,0.15)' : '#B8B9C4' }}>· clique direito para editar</span>
           </div>
 
           {/* Month labels */}
           <div className="relative mb-3 h-5" style={{ marginLeft: LABEL_W }}>
             {months.map(month => (
               <span key={month.toISOString()} className="absolute text-[10px] uppercase tracking-[0.2em] font-bold"
-                    style={{ left: `${pct(month < projectStart ? projectStart : month)}%`, color: 'rgba(255,255,255,0.15)' }}>
+                    style={{ left: `${pct(month < projectStart ? projectStart : month)}%`, color: isDark ? 'rgba(255,255,255,0.15)' : '#8888A0' }}>
                 {format(month, 'MMM', { locale: ptBR })}
               </span>
             ))}
@@ -160,7 +176,7 @@ export default function GanttChart({ project }: Props) {
             {/* Grid lines */}
             {months.map(month => (
               <div key={month.toISOString()} className="absolute top-0 bottom-0 w-px pointer-events-none"
-                   style={{ left: `calc(${LABEL_W}px + ${pct(month < projectStart ? projectStart : month) / 100} * (100% - ${LABEL_W}px))`, background: 'rgba(255,255,255,0.04)' }} />
+                   style={{ left: `calc(${LABEL_W}px + ${pct(month < projectStart ? projectStart : month) / 100} * (100% - ${LABEL_W}px))`, background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.06)' }} />
             ))}
 
             {/* Today line */}
@@ -168,7 +184,7 @@ export default function GanttChart({ project }: Props) {
               <div className="absolute top-0 bottom-0 w-px pointer-events-none"
                    style={{ left: `calc(${LABEL_W}px + ${todayPct / 100} * (100% - ${LABEL_W}px))`, background: 'var(--color-brand,#00D4AA)', opacity: 0.55, zIndex: 10 }}>
                 <div className="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-black px-2 py-0.5 rounded whitespace-nowrap"
-                     style={{ background: 'var(--color-brand,#00D4AA)', color: '#050508' }}>HOJE</div>
+                     style={{ background: 'var(--color-brand,#00D4AA)', color: isDark ? '#050508' : '#FFFFFF' }}>HOJE</div>
               </div>
             )}
 
@@ -194,7 +210,7 @@ export default function GanttChart({ project }: Props) {
                   <div className="flex-shrink-0 flex items-center gap-2 pr-4" style={{ width: LABEL_W }}>
                     <cfg.icon style={{ width: 13, height: 13, color: cfg.color, flexShrink: 0 }} />
                     <span className="text-xs flex-1"
-                          style={{ color: isNow ? '#fff' : 'rgba(255,255,255,0.55)', fontWeight: isNow ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
+                          style={{ color: isNow ? (isDark ? '#fff' : '#1A1A2E') : (isDark ? 'rgba(255,255,255,0.55)' : '#4A4A68'), fontWeight: isNow ? 600 : 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}
                           title={phase.name}>
                       {phase.name}
                     </span>
@@ -207,21 +223,21 @@ export default function GanttChart({ project }: Props) {
                       transition={{ delay: index * 0.035 + 0.1, duration: 0.4, ease: 'easeOut' }}
                       style={{ position: 'absolute', left: `${left}%`, width: `${width}%`, originX: 0, height: 32, zIndex: 5, overflow: 'hidden', ...BAR_STYLE[phase.status] }}
                     >
-                      {isNow && <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)', backgroundSize: '200% 100%', animation: 'shimmer 2s linear infinite' }} />}
+                      {isNow && <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(90deg,transparent,${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)'},transparent)`, backgroundSize: '200% 100%', animation: 'shimmer 2s linear infinite' }} />}
                       {(isNow || phase.status === 'completed') && (
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, width: `${progress}%`, height: 3, background: isNow ? 'rgba(255,255,255,0.35)' : 'rgba(16,185,129,0.5)', transition: 'width 0.5s ease' }} />
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, width: `${progress}%`, height: 3, background: isNow ? (isDark ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.6)') : 'rgba(16,185,129,0.5)', transition: 'width 0.5s ease' }} />
                       )}
-                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.12)' }} />
+                      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 1, background: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.4)' }} />
                       {width > 8 && (
                         <div className="absolute inset-0 flex items-center justify-between px-2.5" style={{ pointerEvents: 'none' }}>
-                          <span style={{ fontSize: 10, color: isNow ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.45)' }}>{format(pStart, 'dd/MM')}</span>
-                          {width > 14 && <span style={{ fontSize: 10, color: isNow ? 'rgba(0,0,0,0.65)' : 'rgba(255,255,255,0.45)' }}>{format(pEnd, 'dd/MM')}</span>}
+                          <span style={{ fontSize: 10, color: isNow ? (isDark ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0.5)') : (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.9)') }}>{format(pStart, 'dd/MM')}</span>
+                          {width > 14 && <span style={{ fontSize: 10, color: isNow ? (isDark ? 'rgba(0,0,0,0.65)' : 'rgba(0,0,0,0.5)') : (isDark ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.9)') }}>{format(pEnd, 'dd/MM')}</span>}
                         </div>
                       )}
                       {isNow && (
                         <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                           style={{ position: 'absolute', top: -24, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center', pointerEvents: 'none' }}>
-                          <div style={{ fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 5, background: 'var(--color-brand,#00D4AA)', color: '#050508', whiteSpace: 'nowrap' }}>📍 ESTAMOS AQUI</div>
+                          <div style={{ fontSize: 8, fontWeight: 900, padding: '2px 7px', borderRadius: 5, background: 'var(--color-brand,#00D4AA)', color: isDark ? '#050508' : '#FFFFFF', whiteSpace: 'nowrap' }}>📍 ESTAMOS AQUI</div>
                           <div style={{ width: 1, height: 5, background: 'var(--color-brand,#00D4AA)', marginTop: 1 }} />
                         </motion.div>
                       )}
@@ -245,17 +261,17 @@ export default function GanttChart({ project }: Props) {
             transition={{ duration: 0.15 }}
             style={{
               position: 'fixed', top: editPanel.y, left: editPanel.x, zIndex: 9999, width: 280,
-              background: 'rgba(10,10,16,0.98)',
+              background: isDark ? 'rgba(10,10,16,0.98)' : '#FFFFFF',
               border: `1px solid ${STATUS_CONFIG[editPanel.phase.status].color}35`,
               borderRadius: 5,
               padding: '14px 16px',
-              boxShadow: '0 16px 48px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.04)',
+              boxShadow: isDark ? '0 16px 48px rgba(0,0,0,0.75), 0 0 0 1px rgba(255,255,255,0.04)' : '0 16px 48px rgba(0,0,0,0.12)',
             }}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.25)' }}>Editar Fase</span>
+                <span className="text-[10px] uppercase tracking-widest font-bold" style={{ color: isDark ? 'rgba(255,255,255,0.25)' : '#8888A0' }}>Editar Fase</span>
                 <AnimatePresence>
                   {saved && (
                     <motion.span initial={{ opacity: 0, x: -4 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
@@ -265,27 +281,27 @@ export default function GanttChart({ project }: Props) {
                   )}
                 </AnimatePresence>
               </div>
-              <button onClick={() => setEditPanel(null)} className="p-1 rounded hover:bg-white/10" style={{ color: 'rgba(255,255,255,0.3)', borderRadius: 5 }}>
+              <button onClick={() => setEditPanel(null)} className="p-1 rounded" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#8888A0', borderRadius: 5 }}>
                 <X style={{ width: 13, height: 13 }} />
               </button>
             </div>
 
             {/* Name */}
             <div className="mb-3">
-              <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Nome</label>
+              <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: isDark ? 'rgba(255,255,255,0.2)' : '#8888A0' }}>Nome</label>
               <input
                 value={editName}
                 onChange={e => { setEditName(e.target.value); triggerAutoSave(e.target.value, editStart, editEnd, editPanel.phase.id) }}
                 autoFocus
-                className="w-full text-sm text-white outline-none px-3 py-2"
-                style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 5 }}
+                className="w-full text-sm outline-none px-3 py-2"
+                style={{ background: isDark ? 'rgba(255,255,255,0.07)' : '#F4F5F7', border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #C8C9D0', borderRadius: 5, color: isDark ? '#fff' : '#1A1A2E' }}
               />
             </div>
 
             {/* Dates — DatePicker com Popover */}
             <div className="flex gap-2 mb-3">
               <div className="flex-1">
-                <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Início</label>
+                <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: isDark ? 'rgba(255,255,255,0.2)' : '#8888A0' }}>Início</label>
                 <DatePicker
                   value={editStart}
                   onChange={v => {
@@ -295,7 +311,7 @@ export default function GanttChart({ project }: Props) {
                 />
               </div>
               <div className="flex-1">
-                <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Fim</label>
+                <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: isDark ? 'rgba(255,255,255,0.2)' : '#8888A0' }}>Fim</label>
                 <DatePicker
                   value={editEnd}
                   onChange={v => {
@@ -308,7 +324,7 @@ export default function GanttChart({ project }: Props) {
 
             {/* Status chips — largura igual com grid */}
             <div className="mb-3">
-              <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: 'rgba(255,255,255,0.2)' }}>Status</label>
+              <label className="text-[10px] uppercase tracking-widest block mb-1.5" style={{ color: isDark ? 'rgba(255,255,255,0.2)' : '#8888A0' }}>Status</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 {(Object.entries(STATUS_CONFIG) as [PhaseStatus, typeof STATUS_CONFIG[PhaseStatus]][]).map(([s, cfg]) => {
                   const isSelected = editPanel.phase.status === s
@@ -318,9 +334,9 @@ export default function GanttChart({ project }: Props) {
                         padding: '6px 8px', borderRadius: 5, fontSize: 11, fontWeight: 600,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
                         cursor: 'pointer', transition: 'all 150ms',
-                        background: isSelected ? `${cfg.color}22` : 'rgba(255,255,255,0.04)',
-                        border: `1px solid ${isSelected ? cfg.color + '55' : 'rgba(255,255,255,0.07)'}`,
-                        color: isSelected ? cfg.color : 'rgba(255,255,255,0.3)',
+                        background: isSelected ? `${cfg.color}22` : (isDark ? 'rgba(255,255,255,0.04)' : '#F4F5F7'),
+                        border: `1px solid ${isSelected ? cfg.color + '55' : (isDark ? 'rgba(255,255,255,0.07)' : '#E8E9ED')}`,
+                        color: isSelected ? cfg.color : (isDark ? 'rgba(255,255,255,0.3)' : '#8888A0'),
                       }}>
                       <cfg.icon style={{ width: 11, height: 11 }} />
                       {cfg.label}
@@ -331,12 +347,12 @@ export default function GanttChart({ project }: Props) {
             </div>
 
             {/* Delete */}
-            <div className="pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+            <div className="pt-2" style={{ borderTop: isDark ? '1px solid rgba(255,255,255,0.06)' : '1px solid #E8E9ED' }}>
               <button onClick={() => deletePhase(editPanel.phase.id)}
                 className="w-full flex items-center justify-center gap-1.5 py-2 text-xs transition-all"
-                style={{ color: 'rgba(255,255,255,0.2)', borderRadius: 5 }}
+                style={{ color: isDark ? 'rgba(255,255,255,0.2)' : '#B8B9C4', borderRadius: 5 }}
                 onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
-                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.2)'; e.currentTarget.style.background = 'transparent' }}>
+                onMouseLeave={e => { e.currentTarget.style.color = isDark ? 'rgba(255,255,255,0.2)' : '#B8B9C4'; e.currentTarget.style.background = 'transparent' }}>
                 <Trash2 style={{ width: 12, height: 12 }} />
                 Remover fase
               </button>

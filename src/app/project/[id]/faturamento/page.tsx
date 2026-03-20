@@ -48,7 +48,6 @@ function getNextBillingDate(): Date {
 }
 
 function getCutoffDate(): Date {
-  // dia 25 do mês atual
   const today = new Date()
   return new Date(today.getFullYear(), today.getMonth(), 25)
 }
@@ -89,7 +88,6 @@ export default function FaturamentoPage() {
     }
   }
 
-  // ── Computed ──
   const data = useMemo(() => {
     const integrated = distributors.filter(d => d.status === 'integrated')
     const pending    = distributors.filter(d => d.status === 'pending')
@@ -108,7 +106,6 @@ export default function FaturamentoPage() {
 
     const pct = revenueTotal > 0 ? Math.round((revenueConfirmed / revenueTotal) * 100) : 0
 
-    // Sorted: integrated → pending → blocked → not_started
     const sorted = [
       ...integrated,
       ...pending,
@@ -122,7 +119,6 @@ export default function FaturamentoPage() {
     const daysUntilCutoff = Math.ceil((cutoff.getTime() - today2.getTime()) / (1000 * 60 * 60 * 24))
     const cutoffPassed  = isAfter(today2, cutoff)
 
-    // Distribuidores que podem entrar no próximo ciclo
     const nearIntegration = distributors.filter(d => isNearIntegration(d))
     const revenueNearIntegration = nearIntegration.reduce((s, d) => s + (d.valuePerConnection || avgValue), 0)
     const revenueNextCycle = revenueConfirmed + revenueNearIntegration
@@ -148,7 +144,7 @@ export default function FaturamentoPage() {
       <div className="mb-8 flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-lg font-bold text-white">Faturamento</h2>
+            <h2 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Faturamento</h2>
             <span
               className="text-[10px] font-bold tracking-widest px-2.5 py-1 rounded"
               style={{ background: `${accent}18`, color: accent, border: `1px solid ${accent}30` }}
@@ -156,19 +152,18 @@ export default function FaturamentoPage() {
               {project.clientName}
             </span>
           </div>
-          <p className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
             Receita por conexão integrada
           </p>
         </div>
 
-        {/* Toggle visibilidade */}
         <button
           onClick={toggleShowValues}
           className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium transition-all"
           style={{
-            background: showValues ? `${accent}15` : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${showValues ? accent + '30' : 'rgba(255,255,255,0.08)'}`,
-            color: showValues ? accent : 'rgba(255,255,255,0.4)',
+            background: showValues ? `${accent}15` : 'var(--color-surface2)',
+            border: `1px solid ${showValues ? accent + '30' : 'var(--color-border-2)'}`,
+            color: showValues ? accent : 'var(--color-text-muted)',
           }}
         >
           {showValues ? <Eye style={{ width: 13, height: 13 }} /> : <EyeOff style={{ width: 13, height: 13 }} />}
@@ -182,12 +177,11 @@ export default function FaturamentoPage() {
         animate={{ opacity: 1, y: 0 }}
         className="rounded p-8 mb-6 relative overflow-hidden"
         style={{
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
           borderRadius: 5,
         }}
       >
-        {/* Radial glow */}
         <div
           className="absolute pointer-events-none"
           style={{
@@ -205,19 +199,18 @@ export default function FaturamentoPage() {
             className="text-5xl font-black mb-2"
             style={{
               fontFamily: 'var(--font-outfit)',
-              color: '#fff',
+              color: 'var(--color-text)',
               letterSpacing: '0.02em',
             }}
           >
             {formatBRL(data.revenueConfirmed)}
           </p>
-          <p className="text-xs mb-6" style={{ color: 'rgba(255,255,255,0.35)' }}>
+          <p className="text-xs mb-6" style={{ color: 'var(--color-text-muted)' }}>
             receita confirmada
           </p>
 
-          {/* Progress bar */}
           <div className="max-w-md mx-auto">
-            <div className="h-3 rounded-full overflow-hidden mb-2" style={{ background: 'rgba(255,255,255,0.06)' }}>
+            <div className="h-3 rounded-full overflow-hidden mb-2" style={{ background: 'var(--color-border)' }}>
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${data.pct}%` }}
@@ -227,7 +220,7 @@ export default function FaturamentoPage() {
               />
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span style={{ color: 'rgba(255,255,255,0.3)' }}>
+              <span style={{ color: 'var(--color-text-muted)' }}>
                 {data.integrated.length} de {data.total} conexões integradas
               </span>
               <span className="font-bold" style={{ color: accent }}>
@@ -236,17 +229,15 @@ export default function FaturamentoPage() {
             </div>
           </div>
 
-          {/* Ciclo de faturamento */}
-          <div className="mt-6 pt-5" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <div className="mt-6 pt-5" style={{ borderTop: '1px solid var(--color-border)' }}>
             <div className="flex flex-col items-center gap-3">
 
-              {/* Próximo faturamento */}
               <div className="flex items-center gap-2">
-                <Calendar style={{ width: 13, height: 13, color: 'rgba(255,255,255,0.3)' }} />
-                <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+                <Calendar style={{ width: 13, height: 13, color: 'var(--color-text-muted)' }} />
+                <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                   Próximo faturamento:
                 </span>
-                <span className="text-xs font-bold text-white">
+                <span className="text-xs font-bold" style={{ color: 'var(--color-text)' }}>
                   {format(data.nextBilling, "1 'de' MMMM", { locale: ptBR })}
                 </span>
                 <span className="text-xs font-black" style={{ color: accent }}>
@@ -254,7 +245,6 @@ export default function FaturamentoPage() {
                 </span>
               </div>
 
-              {/* Alerta de distribuidores na reta final */}
               {data.nearIntegration.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 6 }}
@@ -281,27 +271,26 @@ export default function FaturamentoPage() {
                         : `${data.nearIntegration.length} distribuidores podem entrar no ciclo de ${format(data.nextBilling, "MMMM", { locale: ptBR })}`
                       }
                     </p>
-                    <p className="text-[11px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                       {data.cutoffPassed
                         ? `Integre-os agora para garantir o faturamento de ${format(data.nextBilling, "1 'de' MMMM", { locale: ptBR })}`
                         : `Integrar até dia 25/${format(data.cutoff, 'MM')} garante +${formatBRL(data.revenueNearIntegration)} neste ciclo`
                       }
                     </p>
-                    {/* Lista inline */}
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {data.nearIntegration.slice(0, 5).map(d => (
                         <span key={d.id} className="text-[10px] px-2 py-0.5 rounded font-medium"
                           style={{
-                            background: 'rgba(255,255,255,0.06)',
-                            color: 'rgba(255,255,255,0.5)',
-                            border: '1px solid rgba(255,255,255,0.08)',
+                            background: 'var(--color-border)',
+                            color: 'var(--color-text-2)',
+                            border: '1px solid var(--color-border-2)',
                           }}>
                           {d.name.split(' ')[0]}
                         </span>
                       ))}
                       {data.nearIntegration.length > 5 && (
                         <span className="text-[10px] px-2 py-0.5 rounded"
-                          style={{ color: 'rgba(255,255,255,0.3)' }}>
+                          style={{ color: 'var(--color-text-muted)' }}>
                           +{data.nearIntegration.length - 5} mais
                         </span>
                       )}
@@ -358,7 +347,7 @@ export default function FaturamentoPage() {
             className="rounded p-5 relative overflow-hidden"
             style={{
               background: card.bg,
-              border: '1px solid rgba(255,255,255,0.06)',
+              border: '1px solid var(--color-border)',
               borderRadius: 5,
             }}
           >
@@ -373,11 +362,11 @@ export default function FaturamentoPage() {
               >
                 <card.icon style={{ width: 16, height: 16, color: card.color }} />
               </div>
-              <p className="text-xl font-black text-white">{card.value}</p>
-              <p className="text-[10px] mt-1 font-medium" style={{ color: 'rgba(255,255,255,0.35)' }}>
+              <p className="text-xl font-black" style={{ color: 'var(--color-text)' }}>{card.value}</p>
+              <p className="text-[10px] mt-1 font-medium" style={{ color: 'var(--color-text-muted)' }}>
                 {card.label}
               </p>
-              <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                 {card.sub}
               </p>
             </div>
@@ -392,17 +381,17 @@ export default function FaturamentoPage() {
         transition={{ delay: 0.4 }}
         className="rounded overflow-hidden"
         style={{
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
           borderRadius: 5,
         }}
       >
         <div
           className="flex items-center justify-between px-5 py-3"
-          style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+          style={{ borderBottom: '1px solid var(--color-border)' }}
         >
-          <p className="text-xs font-bold text-white">Detalhamento por distribuidor</p>
-          <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <p className="text-xs font-bold" style={{ color: 'var(--color-text)' }}>Detalhamento por distribuidor</p>
+          <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
             {data.total} distribuidores
           </p>
         </div>
@@ -410,14 +399,14 @@ export default function FaturamentoPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr style={{ background: 'rgba(255,255,255,0.03)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <th className="text-left px-4 py-2.5 font-semibold text-white/40">Nome</th>
-                <th className="text-left px-4 py-2.5 font-semibold text-white/40">ERP</th>
-                <th className="text-left px-4 py-2.5 font-semibold text-white/40">Modo</th>
-                <th className="text-left px-4 py-2.5 font-semibold text-white/40">Status</th>
-                <th className="text-left px-4 py-2.5 font-semibold text-white/40">Fase</th>
-                <th className="text-right px-4 py-2.5 font-semibold text-white/40">Valor</th>
-                <th className="text-left px-4 py-2.5 font-semibold text-white/40">Data Integração</th>
+              <tr style={{ background: 'var(--color-surface)', borderBottom: '1px solid var(--color-border)' }}>
+                <th className="text-left px-4 py-2.5 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Nome</th>
+                <th className="text-left px-4 py-2.5 font-semibold" style={{ color: 'var(--color-text-muted)' }}>ERP</th>
+                <th className="text-left px-4 py-2.5 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Modo</th>
+                <th className="text-left px-4 py-2.5 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Status</th>
+                <th className="text-left px-4 py-2.5 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Fase</th>
+                <th className="text-right px-4 py-2.5 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Valor</th>
+                <th className="text-left px-4 py-2.5 font-semibold" style={{ color: 'var(--color-text-muted)' }}>Data Integração</th>
               </tr>
             </thead>
             <tbody>
@@ -427,7 +416,7 @@ export default function FaturamentoPage() {
                 const valueColor =
                   d.status === 'integrated' ? '#22c55e' :
                   d.status === 'pending'    ? '#f59e0b' :
-                  d.status === 'blocked'    ? '#ef4444' : 'rgba(255,255,255,0.2)'
+                  d.status === 'blocked'    ? '#ef4444' : 'var(--color-text-muted)'
                 const valueSuffix =
                   d.status === 'pending' ? ' previsto' :
                   d.status === 'blocked' ? ' em risco' : ''
@@ -438,9 +427,9 @@ export default function FaturamentoPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.45 + i * 0.015 }}
-                    style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+                    style={{ borderBottom: '1px solid var(--color-muted)' }}
                   >
-                    <td className="px-4 py-2.5 text-white/80 font-medium">{d.name}</td>
+                    <td className="px-4 py-2.5 font-medium" style={{ color: 'var(--color-text)' }}>{d.name}</td>
                     <td className="px-4 py-2.5">
                       {d.erp ? (
                         <span
@@ -450,10 +439,10 @@ export default function FaturamentoPage() {
                           {d.erp}
                         </span>
                       ) : (
-                        <span style={{ color: 'rgba(255,255,255,0.15)' }}>—</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>—</span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-white/40">{d.connectionType || '—'}</td>
+                    <td className="px-4 py-2.5" style={{ color: 'var(--color-text-muted)' }}>{d.connectionType || '—'}</td>
                     <td className="px-4 py-2.5">
                       <span className="flex items-center gap-1.5" style={{ color: cfg.color }}>
                         <cfg.Icon style={{ width: 11, height: 11 }} />
@@ -464,12 +453,12 @@ export default function FaturamentoPage() {
                       {(() => {
                         const fase = (d.notes ?? '').replace('Fase: ', '')
                         const isNear = isNearIntegration(d)
-                        if (!fase) return <span style={{ color: 'rgba(255,255,255,0.15)' }}>—</span>
+                        if (!fase) return <span style={{ color: 'var(--color-text-muted)' }}>—</span>
                         return (
                           <span className="text-[10px] px-1.5 py-0.5 rounded font-medium flex items-center gap-1"
                             style={{
-                              background: isNear ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.05)',
-                              color: isNear ? '#f59e0b' : 'rgba(255,255,255,0.3)',
+                              background: isNear ? 'rgba(245,158,11,0.12)' : 'var(--color-surface2)',
+                              color: isNear ? '#f59e0b' : 'var(--color-text-muted)',
                               border: isNear ? '1px solid rgba(245,158,11,0.25)' : 'none',
                             }}>
                             {isNear && <Zap style={{ width: 9, height: 9 }} />}
@@ -487,10 +476,10 @@ export default function FaturamentoPage() {
                           )}
                         </>
                       ) : (
-                        <span style={{ color: 'rgba(255,255,255,0.15)' }}>—</span>
+                        <span style={{ color: 'var(--color-text-muted)' }}>—</span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-white/30">
+                    <td className="px-4 py-2.5" style={{ color: 'var(--color-text-muted)' }}>
                       {d.status === 'integrated' && d.integratedAt
                         ? format(new Date(d.integratedAt), 'dd MMM yyyy', { locale: ptBR })
                         : '—'}
@@ -504,7 +493,7 @@ export default function FaturamentoPage() {
 
         {data.total === 0 && (
           <div className="flex items-center justify-center py-12">
-            <p className="text-xs" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
               Nenhum distribuidor cadastrado.
             </p>
           </div>

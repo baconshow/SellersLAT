@@ -76,7 +76,7 @@ const DIST_CFG: Record<DistributorStatus, { label: string; color: string; bg: st
   integrated:  { label: 'Integrado',    color: '#22c55e',   bg: 'rgba(34,197,94,0.12)',    Icon: CheckCircle2 },
   pending:     { label: 'Pendente',     color: '#f59e0b',   bg: 'rgba(245,158,11,0.12)',   Icon: Clock        },
   blocked:     { label: 'Bloqueado',    color: '#ef4444',   bg: 'rgba(239,68,68,0.12)',    Icon: XCircle      },
-  not_started: { label: 'Não iniciado', color: '#ffffff40', bg: 'rgba(255,255,255,0.05)', Icon: Circle       },
+  not_started: { label: 'Não iniciado', color: '#ffffff40', bg: 'var(--color-surface2)', Icon: Circle       },
 };
 
 const CONN_ICONS: Record<string, any> = {
@@ -106,31 +106,31 @@ function CoverSlide({ project }: { project: Project }) {
                       color: 'var(--color-brand)', border: '1px solid color-mix(in srgb, var(--color-brand) 30%, transparent)' }}>
           Alinhamento Semanal
         </div>
-        <span className="text-white/30 text-xs font-mono">
+        <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>
           {format(now, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
         </span>
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col justify-center">
-        <p className="text-white/30 text-xs font-medium mb-3 tracking-widest uppercase">Apresentação de Projeto</p>
+        <p className="text-xs font-medium mb-3 tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Apresentação de Projeto</p>
         <h1 className="text-7xl font-black tracking-tight mb-5 leading-none" style={{ color: 'var(--color-brand)' }}>
           {project.clientName}
         </h1>
         {activePhase && (
           <div className="flex items-center gap-3 mb-8">
             <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span className="text-white/50 text-base font-medium">{activePhase.name}</span>
+            <span className="text-base font-medium" style={{ color: 'var(--color-text-2)' }}>{activePhase.name}</span>
           </div>
         )}
         <div className="max-w-md">
-          <div className="flex justify-between text-xs text-white/30 mb-2">
+          <div className="flex justify-between text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>
             <span>{format(toDate(project.startDate), 'MMM yyyy', { locale: ptBR })}</span>
             <span className="font-semibold" style={{ color: 'var(--color-brand)' }}>
               Semana {weekNumber} · {daysElapsed} dias juntos
             </span>
             <span>{format(toDate(project.endDate), 'MMM yyyy', { locale: ptBR })}</span>
           </div>
-          <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--color-border-2)' }}>
             <motion.div className="h-full rounded-full" style={{ background: 'var(--color-brand)' }}
               initial={{ width: 0 }} animate={{ width: `${pct}%` }}
               transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }} />
@@ -140,10 +140,10 @@ function CoverSlide({ project }: { project: Project }) {
 
       <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center">
-            <span className="text-white/60 text-xs font-black">S</span>
+          <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--color-border-2)' }}>
+            <span className="text-xs font-black" style={{ color: 'var(--color-text-2)' }}>S</span>
           </div>
-          <span className="text-white/30 text-xs font-semibold tracking-wider">SELLERS</span>
+          <span className="text-xs font-semibold tracking-wider" style={{ color: 'var(--color-text-muted)' }}>SELLERS</span>
         </div>
         <div className="flex gap-1">
           {project.phases.map(phase => (
@@ -174,26 +174,26 @@ function TogetherSlide({ project }: { project: Project }) {
                       color: 'var(--color-brand)', border: '1px solid color-mix(in srgb, var(--color-brand) 30%, transparent)' }}>
           Semana {weekNumber} em andamento
         </div>
-        <span className="text-white/30 text-xs font-mono">
+        <span className="text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>
           {format(now, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
         </span>
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col justify-center">
-        <p className="text-white/30 text-xs font-medium mb-4 tracking-widest uppercase">Estamos juntos há</p>
+        <p className="text-xs font-medium mb-4 tracking-widest uppercase" style={{ color: 'var(--color-text-muted)' }}>Estamos juntos há</p>
         <p className="font-black leading-none mb-3"
            style={{ fontSize: 'clamp(96px, 16vw, 160px)', color: 'var(--color-brand)', lineHeight: 1 }}>
           {daysElapsed}
         </p>
-        <p className="text-white/40 text-2xl font-light">dias</p>
+        <p className="text-2xl font-light" style={{ color: 'var(--color-text-muted)' }}>dias</p>
       </div>
 
       <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center">
-            <span className="text-white/60 text-xs font-black">S</span>
+          <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'var(--color-border-2)' }}>
+            <span className="text-xs font-black" style={{ color: 'var(--color-text-2)' }}>S</span>
           </div>
-          <span className="text-white/30 text-xs font-semibold tracking-wider">SELLERS</span>
+          <span className="text-xs font-semibold tracking-wider" style={{ color: 'var(--color-text-muted)' }}>SELLERS</span>
         </div>
         <div className="flex gap-1">
           {project.phases.map(phase => (
@@ -211,7 +211,7 @@ function PhasesSlide({ project }: { project: Project }) {
     <div className="w-full h-full flex flex-col p-14 relative overflow-hidden">
       <div className="relative z-10 mb-6 flex-shrink-0">
         <p className="text-xs font-bold uppercase tracking-[0.2em] mb-1" style={{ color: 'var(--color-brand)' }}>Cronograma</p>
-        <h2 className="text-3xl font-black text-white">Fases do Projeto</h2>
+        <h2 className="text-3xl font-black" style={{ color: 'var(--color-text)' }}>Fases do Projeto</h2>
       </div>
       <div className="relative z-10 flex-1 overflow-y-auto space-y-2 pr-1"
            style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
@@ -225,10 +225,10 @@ function PhasesSlide({ project }: { project: Project }) {
               className="flex items-center gap-4 px-5 py-3 rounded border transition-all flex-shrink-0"
               style={isActive
                 ? { background: `color-mix(in srgb, ${cfg.color} 10%, transparent)`, borderColor: `color-mix(in srgb, ${cfg.color} 35%, transparent)` }
-                : { background: 'rgba(255,255,255,0.025)', borderColor: 'rgba(255,255,255,0.06)' }}>
+                : { background: 'var(--color-surface)', borderColor: 'var(--color-border)' }}>
               <cfg.Icon className="w-4 h-4 flex-shrink-0" style={{ color: cfg.color }} />
               <div className="flex-1 min-w-0 flex items-center gap-2">
-                <span className={`text-sm font-semibold ${isActive ? 'text-white' : 'text-white/55'}`}>
+                <span className="text-sm font-semibold" style={{ color: isActive ? 'var(--color-text)' : 'var(--color-text-2)' }}>
                   {phase.name}
                 </span>
                 {isActive && (
@@ -238,10 +238,10 @@ function PhasesSlide({ project }: { project: Project }) {
                   </span>
                 )}
               </div>
-              <span className="text-xs text-white/25 font-mono flex-shrink-0">
+              <span className="text-xs font-mono flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
                 {format(toDate(phase.startDate), 'dd/MM')} – {format(toDate(phase.endDate), 'dd/MM')}
               </span>
-              <div className="w-14 h-1 rounded-full bg-white/5 flex-shrink-0 overflow-hidden">
+              <div className="w-14 h-1 rounded-full flex-shrink-0 overflow-hidden" style={{ background: 'var(--color-surface2)' }}>
                 <div className="h-full rounded-full"
                      style={{ background: cfg.color, width: phase.status === 'completed' ? '100%' : phase.status === 'in_progress' ? '55%' : '0%' }} />
               </div>
@@ -270,7 +270,7 @@ function KPIsSlide({
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   const stats = [
-    { label: 'Total',      value: total,   color: '#ffffff',  bg: 'rgba(255,255,255,0.06)', border: 'rgba(255,255,255,0.12)', key: null              },
+    { label: 'Total',      value: total,   color: 'var(--color-text)',  bg: 'var(--color-border)', border: 'var(--color-border-2)', key: null              },
     { label: 'Integrados', value: done,    color: '#22c55e',  bg: 'rgba(34,197,94,0.08)',   border: 'rgba(34,197,94,0.22)',   key: 'integrated' as DistributorStatus },
     { label: 'Pendentes',  value: pending, color: '#f59e0b',  bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.22)',  key: 'pending'    as DistributorStatus },
     { label: 'Bloqueados', value: blocked, color: '#ef4444',  bg: 'rgba(239,68,68,0.08)',   border: 'rgba(239,68,68,0.22)',   key: 'blocked'    as DistributorStatus },
@@ -282,22 +282,22 @@ function KPIsSlide({
         <p className="text-xs font-bold uppercase tracking-[0.2em] mb-1" style={{ color: 'var(--color-brand)' }}>
           Semana {latest.weekNumber}
         </p>
-        <h2 className="text-3xl font-black text-white">Status de Integrações</h2>
+        <h2 className="text-3xl font-black" style={{ color: 'var(--color-text)' }}>Status de Integrações</h2>
       </div>
 
       <div className="relative z-10 flex-1 flex flex-col justify-center gap-8">
         <div className="flex items-center gap-8">
           <div>
             <span className="text-7xl font-black" style={{ color: 'var(--color-brand)' }}>{pct}%</span>
-            <p className="text-white/35 text-sm font-medium mt-1">taxa de integração</p>
+            <p className="text-sm font-medium mt-1" style={{ color: 'var(--color-text-muted)' }}>taxa de integração</p>
           </div>
           <div className="flex-1">
-            <div className="h-3 bg-white/5 rounded-full overflow-hidden">
+            <div className="h-3 rounded-full overflow-hidden" style={{ background: 'var(--color-surface2)' }}>
               <motion.div className="h-full rounded-full" style={{ background: 'var(--color-brand)' }}
                 initial={{ width: 0 }} animate={{ width: `${pct}%` }}
                 transition={{ duration: 1.2, ease: 'easeOut', delay: 0.2 }} />
             </div>
-            <div className="flex justify-between text-xs text-white/25 mt-1.5">
+            <div className="flex justify-between text-xs mt-1.5" style={{ color: 'var(--color-text-muted)' }}>
               <span>0</span><span>{total} distribuidores</span>
             </div>
           </div>
@@ -319,10 +319,10 @@ function KPIsSlide({
               onMouseLeave={e => { e.currentTarget.style.borderColor = s.border }}
             >
               <div className="text-4xl font-black mb-1.5" style={{ color: s.color }}>{s.value}</div>
-              <div className="text-[10px] font-bold text-white/40 uppercase tracking-wider">{s.label}</div>
+              <div className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>{s.label}</div>
               {s.key && s.value > 0 && (
                 <div className="text-[9px] mt-1.5 flex items-center justify-center gap-1"
-                     style={{ color: 'rgba(255,255,255,0.2)' }}>
+                     style={{ color: 'var(--color-text-muted)' }}>
                   ver lista →
                 </div>
               )}
@@ -352,11 +352,9 @@ function DrilldownSlide({
 
   return (
     <div className="w-full h-full flex flex-col p-14 relative overflow-hidden">
-      {/* Glow */}
       <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full blur-[120px] opacity-10 pointer-events-none"
            style={{ background: cfg.color }} />
 
-      {/* Header */}
       <div className="relative z-10 mb-8 flex-shrink-0 flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -365,27 +363,26 @@ function DrilldownSlide({
               {cfg.label}
             </p>
           </div>
-          <h2 className="text-3xl font-black text-white">
+          <h2 className="text-3xl font-black" style={{ color: 'var(--color-text)' }}>
             {list.length} Distribuidor{list.length !== 1 ? 'es' : ''}
           </h2>
         </div>
         <button
           onClick={onBack}
           className="flex items-center gap-2 px-3 py-2 rounded text-xs font-medium transition-all"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
+          style={{ background: 'var(--color-surface2)', border: '1px solid var(--color-border-2)', color: 'var(--color-text-muted)' }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}
         >
           <ArrowLeft style={{ width: 12, height: 12 }} />
           Integrações
         </button>
       </div>
 
-      {/* List */}
       <div className="relative z-10 flex-1 overflow-y-auto space-y-2 pr-1"
            style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}>
         {list.length === 0 ? (
-          <p className="text-white/25 text-lg">Nenhum distribuidor nessa categoria.</p>
+          <p className="text-lg" style={{ color: 'var(--color-text-muted)' }}>Nenhum distribuidor nessa categoria.</p>
         ) : (
           list.map((d, i) => {
             const ConnIcon = (d as any).connectionType ? (CONN_ICONS[(d as any).connectionType] ?? FileText) : null
@@ -394,34 +391,29 @@ function DrilldownSlide({
                 initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
                 className="flex items-center gap-4 px-5 py-3 rounded"
-                style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
 
-                {/* Index */}
                 <span className="text-xs font-bold w-6 text-center flex-shrink-0"
                       style={{ color: cfg.color, opacity: 0.6 }}>
                   {i + 1}
                 </span>
 
-                {/* Name */}
-                <p className="text-sm font-semibold text-white flex-1 min-w-0 truncate">{d.name}</p>
+                <p className="text-sm font-semibold flex-1 min-w-0 truncate" style={{ color: 'var(--color-text)' }}>{d.name}</p>
 
-                {/* Connection */}
                 {ConnIcon && (d as any).connectionType && (
                   <span className="flex items-center gap-1.5 text-xs flex-shrink-0"
-                        style={{ color: 'rgba(255,255,255,0.3)' }}>
+                        style={{ color: 'var(--color-text-muted)' }}>
                     <ConnIcon style={{ width: 11, height: 11 }} />
                     {(d as any).connectionType}
                   </span>
                 )}
 
-                {/* Responsible */}
                 {(d as any).responsible && (
-                  <span className="text-xs flex-shrink-0" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  <span className="text-xs flex-shrink-0" style={{ color: 'var(--color-text-muted)' }}>
                     {(d as any).responsible}
                   </span>
                 )}
 
-                {/* Blocker */}
                 {status === 'blocked' && (d as any).blockerDescription && (
                   <span className="text-xs flex-shrink-0 max-w-[200px] truncate"
                         style={{ color: '#ef444460' }}>
@@ -429,10 +421,9 @@ function DrilldownSlide({
                   </span>
                 )}
 
-                {/* Notes */}
                 {d.notes && !((d as any).blockerDescription) && (
                   <span className="text-xs flex-shrink-0 max-w-[180px] truncate"
-                        style={{ color: 'rgba(255,255,255,0.2)' }}>
+                        style={{ color: 'var(--color-text-muted)' }}>
                     {d.notes}
                   </span>
                 )}
@@ -463,11 +454,11 @@ function ListSlide({ project, type }: { project: Project; type: 'highlights' | '
            style={{ background: cfg.accent }} />
       <div className="relative z-10 mb-10">
         <p className="text-xs font-bold uppercase tracking-[0.2em] mb-1" style={{ color: cfg.accent }}>{cfg.label}</p>
-        <h2 className="text-3xl font-black text-white">{cfg.title}</h2>
+        <h2 className="text-3xl font-black" style={{ color: 'var(--color-text)' }}>{cfg.title}</h2>
       </div>
       <div className="relative z-10 flex-1 flex flex-col justify-center gap-4">
         {cfg.items.length === 0
-          ? <p className="text-white/25 text-lg">Nenhum item registrado.</p>
+          ? <p className="text-lg" style={{ color: 'var(--color-text-muted)' }}>Nenhum item registrado.</p>
           : cfg.items.map((item, idx) => (
             <motion.div key={idx}
               initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
@@ -477,7 +468,7 @@ function ListSlide({ project, type }: { project: Project; type: 'highlights' | '
                    style={{ background: `color-mix(in srgb, ${cfg.accent} 18%, transparent)`, color: cfg.accent }}>
                 {type === 'nextsteps' ? idx + 1 : cfg.icon}
               </div>
-              <p className="text-white/70 text-lg font-medium leading-relaxed">{item}</p>
+              <p className="text-lg font-medium leading-relaxed" style={{ color: 'var(--color-text-2)' }}>{item}</p>
             </motion.div>
           ))}
       </div>
@@ -504,14 +495,14 @@ function RetroSlide({ project }: { project: Project }) {
         <p className="text-xs font-bold uppercase tracking-[0.2em] mb-1" style={{ color: 'var(--color-brand)' }}>
           Semana {prev.weekNumber} → Semana {curr.weekNumber}
         </p>
-        <h2 className="text-3xl font-black text-white">Retrospectiva</h2>
+        <h2 className="text-3xl font-black" style={{ color: 'var(--color-text)' }}>Retrospectiva</h2>
       </div>
       <div className="relative z-10 flex-1 grid grid-cols-2 gap-5">
         <div className="space-y-3">
-          <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4">Semana {prev.weekNumber}</p>
-          <div className="rounded p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <p className="text-xs text-white/40 font-medium">Integrações</p>
-            <p className="text-2xl font-black text-white">{prev.distributorsIntegrated} <span className="text-sm font-normal text-white/30">/ {prev.distributorsTotal}</span></p>
+          <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--color-text-muted)' }}>Semana {prev.weekNumber}</p>
+          <div className="rounded p-4 space-y-2" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Integrações</p>
+            <p className="text-2xl font-black" style={{ color: 'var(--color-text)' }}>{prev.distributorsIntegrated} <span className="text-sm font-normal" style={{ color: 'var(--color-text-muted)' }}>/ {prev.distributorsTotal}</span></p>
           </div>
           {prev.blockers?.length > 0 && (
             <div className="rounded p-4 space-y-2" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
@@ -520,7 +511,7 @@ function RetroSlide({ project }: { project: Project }) {
                 {prev.blockers.map((b, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <span className="text-xs mt-0.5" style={{ color: '#ef4444' }}>⚠</span>
-                    <p className="text-xs text-white/50">{b}</p>
+                    <p className="text-xs" style={{ color: 'var(--color-text-2)' }}>{b}</p>
                   </div>
                 ))}
               </div>
@@ -529,10 +520,10 @@ function RetroSlide({ project }: { project: Project }) {
         </div>
         <div className="space-y-3">
           <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: 'var(--color-brand)' }}>Semana {curr.weekNumber}</p>
-          <div className="rounded p-4 space-y-2" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <p className="text-xs text-white/40 font-medium">Integrações</p>
+          <div className="rounded p-4 space-y-2" style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <p className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Integrações</p>
             <div className="flex items-end gap-2">
-              <p className="text-2xl font-black text-white">{curr.distributorsIntegrated} <span className="text-sm font-normal text-white/30">/ {curr.distributorsTotal}</span></p>
+              <p className="text-2xl font-black" style={{ color: 'var(--color-text)' }}>{curr.distributorsIntegrated} <span className="text-sm font-normal" style={{ color: 'var(--color-text-muted)' }}>/ {curr.distributorsTotal}</span></p>
               {newIntegrated > 0 && (
                 <span className="text-xs font-bold mb-1 px-2 py-0.5 rounded-full"
                       style={{ background: 'rgba(34,197,94,0.15)', color: '#22c55e' }}>
@@ -544,19 +535,19 @@ function RetroSlide({ project }: { project: Project }) {
           {resolvedBlockers.length > 0 && (
             <div className="rounded p-4 space-y-2" style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)' }}>
               <p className="text-xs font-medium" style={{ color: '#22c55e80' }}>✅ Bloqueios resolvidos</p>
-              {resolvedBlockers.map((b, i) => <p key={i} className="text-xs text-white/50 line-through">{b}</p>)}
+              {resolvedBlockers.map((b, i) => <p key={i} className="text-xs line-through" style={{ color: 'var(--color-text-2)' }}>{b}</p>)}
             </div>
           )}
           {newBlockers.length > 0 && (
             <div className="rounded p-4 space-y-2" style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
               <p className="text-xs font-medium" style={{ color: '#ef444480' }}>🆕 Novos bloqueios</p>
-              {newBlockers.map((b, i) => <p key={i} className="text-xs text-white/50">{b}</p>)}
+              {newBlockers.map((b, i) => <p key={i} className="text-xs" style={{ color: 'var(--color-text-2)' }}>{b}</p>)}
             </div>
           )}
           {persistingBlockers.length > 0 && (
             <div className="rounded p-4 space-y-2" style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.15)' }}>
               <p className="text-xs font-medium" style={{ color: '#f59e0b80' }}>⏳ Em acompanhamento</p>
-              {persistingBlockers.map((b, i) => <p key={i} className="text-xs text-white/50">{b}</p>)}
+              {persistingBlockers.map((b, i) => <p key={i} className="text-xs" style={{ color: 'var(--color-text-2)' }}>{b}</p>)}
             </div>
           )}
         </div>
@@ -574,10 +565,10 @@ function SummarySlide({ aiContent }: { aiContent: any }) {
            style={{ background: 'radial-gradient(circle at 70% 50%, var(--color-brand), transparent 60%)' }} />
       <div className="relative z-10 mb-10">
         <p className="text-xs font-bold uppercase tracking-[0.2em] mb-1" style={{ color: 'var(--color-brand)' }}>Gerado por IA</p>
-        <h2 className="text-3xl font-black text-white">Resumo Executivo</h2>
+        <h2 className="text-3xl font-black" style={{ color: 'var(--color-text)' }}>Resumo Executivo</h2>
       </div>
       <div className="relative z-10 flex-1 flex items-center">
-        <p className="text-2xl text-white/65 leading-relaxed font-light max-w-3xl">
+        <p className="text-2xl leading-relaxed font-light max-w-3xl" style={{ color: 'var(--color-text-2)' }}>
           {aiContent?.executiveSummary ?? '—'}
         </p>
       </div>
@@ -591,17 +582,17 @@ function ThumbnailStrip({ slides, current, onSelect }: {
   slides: Slide[]; current: number; onSelect: (i: number) => void;
 }) {
   return (
-    <div className="flex items-center justify-center gap-2 px-8 py-3 border-t border-white/5 flex-shrink-0 flex-wrap">
+    <div className="flex items-center justify-center gap-2 px-8 py-3 flex-shrink-0 flex-wrap" style={{ borderTop: '1px solid var(--color-border)' }}>
       {slides.map((slide, idx) => (
         <button key={slide.id} onClick={() => onSelect(idx)} className="flex flex-col items-center gap-1 group transition-all">
           <div className="w-[72px] h-10 rounded border flex items-center justify-center text-[9px] font-bold uppercase tracking-wider transition-all"
                style={idx === current
                  ? { borderColor: 'var(--color-brand)', background: 'color-mix(in srgb, var(--color-brand) 12%, transparent)', color: 'var(--color-brand)' }
-                 : { borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.25)' }}>
+                 : { borderColor: 'var(--color-border-2)', background: 'var(--color-surface)', color: 'var(--color-text-muted)' }}>
             {idx + 1}
           </div>
           <span className="text-[9px] font-medium transition-colors"
-                style={{ color: idx === current ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.18)' }}>
+                style={{ color: idx === current ? 'var(--color-text-2)' : 'var(--color-text-muted)' }}>
             {slide.label}
           </span>
         </button>
@@ -650,13 +641,11 @@ export default function SlidesPage() {
     goTo(currentSlide + delta);
   }, [currentSlide, goTo]);
 
-  // Drilldown: navega para o slide de drill com o status correspondente
   const handleDrilldown = useCallback((status: DistributorStatus) => {
     const idx = slides.findIndex(s => s.type === 'drilldown' && s.drillStatus === status);
     if (idx !== -1) goTo(idx);
   }, [slides, goTo]);
 
-  // Voltar do drilldown: navega para o slide kpis
   const handleDrillBack = useCallback(() => {
     const idx = slides.findIndex(s => s.type === 'kpis');
     if (idx !== -1) goTo(idx);
@@ -699,7 +688,7 @@ export default function SlidesPage() {
   };
 
   return (
-    <div ref={containerRef} className="flex-1 flex flex-col h-screen bg-[#050508]">
+    <div ref={containerRef} className="flex-1 flex flex-col h-screen" style={{ background: 'var(--color-bg)' }}>
 
       <main className="flex-1 flex items-center justify-center gap-4 px-6 py-6 relative overflow-hidden min-h-0">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full blur-[140px] opacity-[0.04] pointer-events-none"
@@ -707,16 +696,17 @@ export default function SlidesPage() {
 
         <button onClick={() => go(-1)} disabled={currentSlide === 0}
           className="w-10 h-10 rounded flex-shrink-0 flex items-center justify-center transition-all disabled:opacity-0 disabled:pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
+          style={{ background: 'var(--color-surface2)', border: '1px solid var(--color-border-2)', color: 'var(--color-text-2)' }}>
           <ChevronLeft className="w-5 h-5" />
         </button>
 
-        <div className="relative flex-1 max-w-5xl overflow-hidden rounded border border-white/[0.07]"
+        <div className="relative flex-1 max-w-5xl overflow-hidden rounded"
              style={{
                aspectRatio:    '16/9',
-               background:     'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%)',
+               background:     'linear-gradient(135deg, var(--color-muted) 0%, var(--color-surface) 100%)',
                backdropFilter: 'blur(24px)',
-               boxShadow:      '0 40px 100px rgba(0,0,0,0.7)',
+               boxShadow:      'var(--card-shadow, 0 40px 100px rgba(0,0,0,0.7))',
+               border:         '1px solid var(--color-border)',
              }}>
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div key={currentSlide} custom={direction} variants={variants}
@@ -741,7 +731,7 @@ export default function SlidesPage() {
 
         <button onClick={() => go(1)} disabled={currentSlide === slides.length - 1}
           className="w-10 h-10 rounded flex-shrink-0 flex items-center justify-center transition-all disabled:opacity-0 disabled:pointer-events-none"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}>
+          style={{ background: 'var(--color-surface2)', border: '1px solid var(--color-border-2)', color: 'var(--color-text-2)' }}>
           <ChevronRight className="w-5 h-5" />
         </button>
       </main>
@@ -751,7 +741,7 @@ export default function SlidesPage() {
 
       <button onClick={toggleFullscreen}
         className="fixed bottom-6 right-6 w-9 h-9 rounded flex items-center justify-center transition-all z-50"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)' }}
+        style={{ background: 'var(--color-border)', border: '1px solid var(--color-border-2)', color: 'var(--color-text-muted)' }}
         title={isFullscreen ? 'Sair do fullscreen (F)' : 'Fullscreen (F)'}>
         {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
       </button>

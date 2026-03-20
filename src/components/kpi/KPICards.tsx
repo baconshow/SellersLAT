@@ -43,7 +43,7 @@ export default function KPICards({ project }: Props) {
     integrados: u.distributorsIntegrated,
     pendentes:  u.distributorsPending,
   }))
-  
+
   const chartData = rawChartData.length < 2
     ? [{ week: '', integrados: 0, pendentes: 0 }, ...rawChartData]
     : rawChartData
@@ -68,8 +68,8 @@ export default function KPICards({ project }: Props) {
             transition={{ delay: i * 0.06 }}
             className="rounded p-5 relative overflow-hidden"
             style={{
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid rgba(255,255,255,0.07)',
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
             }}
           >
             <div className="absolute -bottom-6 -left-6 w-20 h-20 rounded-full blur-2xl opacity-15"
@@ -79,8 +79,8 @@ export default function KPICards({ project }: Props) {
                    style={{ background: kpi.bg }}>
                 <kpi.icon style={{ width: 18, height: 18, color: kpi.color }} />
               </div>
-              <p className="text-3xl font-black text-white">{kpi.value}</p>
-              <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.4)' }}>{kpi.label}</p>
+              <p className="text-3xl font-black" style={{ color: 'var(--color-text)' }}>{kpi.value}</p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>{kpi.label}</p>
             </div>
           </motion.div>
         ))}
@@ -92,14 +92,14 @@ export default function KPICards({ project }: Props) {
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}
           className="lg:col-span-2 rounded p-5"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
         >
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-white">Evolução das Integrações</h3>
-              <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>Últimas 8 semanas</p>
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Evolução das Integrações</h3>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>Últimas 8 semanas</p>
             </div>
-            <div className="flex items-center gap-4 text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
+            <div className="flex items-center gap-4 text-xs" style={{ color: 'var(--color-text-muted)' }}>
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />Integrados
               </span>
@@ -122,15 +122,16 @@ export default function KPICards({ project }: Props) {
                   </linearGradient>
                 </defs>
                 <XAxis dataKey="week"
-                  tick={{ fill: 'rgba(255,255,255,0.3)', fontSize: 11 }}
+                  tick={{ fill: 'var(--color-text-muted)', fontSize: 11 }}
                   axisLine={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{
-                    background: 'rgba(22,22,34,0.97)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--color-bg)',
+                    border: '1px solid var(--color-border-2)',
                     borderRadius: 5, fontSize: 12,
+                    color: 'var(--color-text)',
                   }}
-                  labelStyle={{ color: 'rgba(255,255,255,0.5)' }}
+                  labelStyle={{ color: 'var(--color-text-2)' }}
                 />
                 <Area type="monotone" dataKey="integrados" stroke="#10B981" strokeWidth={2} fill="url(#gI)" />
                 <Area type="monotone" dataKey="pendentes"  stroke="#F59E0B" strokeWidth={2} fill="url(#gP)" />
@@ -138,7 +139,7 @@ export default function KPICards({ project }: Props) {
             </ResponsiveContainer>
           ) : (
             <div className="h-[140px] flex items-center justify-center">
-              <p className="text-sm" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
                 Nenhuma atualização semanal ainda
               </p>
             </div>
@@ -149,9 +150,9 @@ export default function KPICards({ project }: Props) {
         <motion.div
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.34 }}
           className="rounded p-5 flex flex-col gap-4"
-          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
         >
-          <h3 className="text-sm font-semibold text-white">Status do Projeto</h3>
+          <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>Status do Projeto</h3>
           <div className="space-y-3">
             <ProgressBar label="Cronograma" icon={Calendar} value={timelinePct} />
             <ProgressBar label={`Fases ${completedPhases}/${totalPhases}`} icon={ClaudeIcon} value={Math.round((completedPhases / totalPhases) * 100)} color="#8B5CF6" />
@@ -172,13 +173,13 @@ function ProgressBar({ label, icon: Icon, value, color }: {
 }) {
   return (
     <div>
-      <div className="flex justify-between text-xs mb-1.5" style={{ color: 'rgba(255,255,255,0.4)' }}>
+      <div className="flex justify-between text-xs mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
         <span className="flex items-center gap-1">
           <Icon style={{ width: 12, height: 12 }} />{label}
         </span>
         <span>{value}%</span>
       </div>
-      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+      <div className="h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${value}%` }}
@@ -194,9 +195,9 @@ function ProgressBar({ label, icon: Icon, value, color }: {
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between py-2 px-3 rounded"
-         style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}>
-      <span className="text-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>{label}</span>
-      <span className="text-xs font-semibold text-white truncate ml-2">{value}</span>
+         style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+      <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{label}</span>
+      <span className="text-xs font-semibold truncate ml-2" style={{ color: 'var(--color-text)' }}>{value}</span>
     </div>
   )
 }

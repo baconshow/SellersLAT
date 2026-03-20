@@ -789,9 +789,14 @@ export async function createTicket(
     createdByEmail: string
     createdByName: string
     priority: 'hi' | 'md' | 'lo'
-    sprint: number
+    sprint: string
     estimatedDate: string
     effort: 'low' | 'medium' | 'high'
+    tipo: string
+    criticidade: string
+    impacto: string
+    observacao?: string
+    deliveryDate?: string
   }
 ): Promise<string> {
   const id = await generateTicketId(projectId, clientName)

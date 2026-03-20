@@ -99,7 +99,6 @@ function getLoadingMessages(project: Project, userName: string): string[] {
     contextual.push('Contando os dias. E ficando nervoso junto com você...')
   }
 
-  // Distribuidores parados
   for (const d of distributors) {
     if (d.status === 'integrated') continue
     const lastComment = d.comments?.length
@@ -111,7 +110,6 @@ function getLoadingMessages(project: Project, userName: string): string[] {
     }
   }
 
-  // Henrique
   contextual.push('Calculando o que contar pro Henrique na próxima reunião...')
   contextual.push('Preparando o relatório que o Henrique vai pedir amanhã...')
 
@@ -141,7 +139,6 @@ interface TerminalLogProps {
 }
 
 function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalLogProps) {
-  // Each log entry: { text: string, typed: string, done: boolean }
   const [log, setLog] = useState<{ text: string; typed: string; done: boolean }[]>([])
   const msgIndexRef = useRef(0)
   const charIndexRef = useRef(0)
@@ -161,7 +158,7 @@ function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalL
     let nextText: string
     if (finalRef.current) {
       nextText = finalRef.current
-      finalRef.current = null // consume it
+      finalRef.current = null
     } else {
       if (msgIndexRef.current >= messages.length) msgIndexRef.current = 0
       nextText = messages[msgIndexRef.current]
@@ -173,7 +170,6 @@ function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalL
 
     setLog(prev => {
       const next = [...prev, { text: nextText, typed: '', done: false }]
-      // Keep max visible + 1 for exit animation
       if (next.length > MAX_VISIBLE + 1) return next.slice(-MAX_VISIBLE - 1)
       return next
     })
@@ -196,7 +192,6 @@ function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalL
       })
 
       if (charIndexRef.current >= fullText.length) {
-        // Done typing this line
         setLog(prev => {
           const updated = [...prev]
           const last = updated[updated.length - 1]
@@ -206,7 +201,6 @@ function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalL
           return updated
         })
 
-        // If this was the final message, notify parent
         if (fullText === DONE_MESSAGE) {
           phaseRef.current = 'idle'
           if (onDoneTyping) {
@@ -215,7 +209,6 @@ function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalL
           return
         }
 
-        // Pause then start next
         phaseRef.current = 'pausing'
         timerRef.current = setTimeout(() => {
           if (activeRef.current || finalRef.current) {
@@ -230,7 +223,6 @@ function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalL
     }, 28)
   }, [startNextMessage, onDoneTyping])
 
-  // Start the cycle
   useEffect(() => {
     if (messages.length === 0) return
     startNextMessage()
@@ -239,16 +231,13 @@ function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalL
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When finalMessage arrives, if we're idle, kick it off
   useEffect(() => {
     if (finalMessage && phaseRef.current === 'idle') {
       startNextMessage()
     }
   }, [finalMessage, startNextMessage])
 
-  // Visible entries: last MAX_VISIBLE
   const visible = log.slice(-MAX_VISIBLE)
-  const exitingId = log.length > MAX_VISIBLE ? log.length - MAX_VISIBLE - 1 : -1
 
   return (
     <div
@@ -262,9 +251,9 @@ function TerminalLog({ messages, active, onDoneTyping, finalMessage }: TerminalL
           const isMiddle = i === visible.length - 2
           const isTop = i <= visible.length - 3
 
-          let textOpacity = 'rgba(255,255,255,0.6)'
-          if (isMiddle) textOpacity = 'rgba(255,255,255,0.3)'
-          if (isTop) textOpacity = 'rgba(255,255,255,0.15)'
+          let textOpacity = 'var(--color-text-2)'
+          if (isMiddle) textOpacity = 'var(--color-text-muted)'
+          if (isTop) textOpacity = 'var(--color-text-muted)'
 
           return (
             <motion.div
@@ -311,21 +300,18 @@ function IntroScreen({ messages, active, finalMessage, onDoneTyping }: IntroScre
     <motion.div
       key="intro"
       className="absolute inset-0 z-50 flex flex-col items-center"
-      style={{ background: 'rgba(5,5,8,0.98)' }}
+      style={{ background: 'var(--color-bg)' }}
       initial={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
     >
-      {/* Center content */}
       <div className="flex-1 flex flex-col items-center justify-center">
-        {/* Icon with glow + pulse */}
         <motion.div
           className="relative flex items-center justify-center"
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         >
-          {/* Glow ring */}
           <motion.div
             className="absolute rounded-full"
             style={{ width: 80, height: 80 }}
@@ -338,7 +324,6 @@ function IntroScreen({ messages, active, finalMessage, onDoneTyping }: IntroScre
             }}
             transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
           />
-          {/* Icon pulse */}
           <motion.div
             animate={{ scale: [1, 1.08, 1] }}
             transition={{ duration: 0.8, delay: 0.3, ease: 'easeInOut' }}
@@ -350,10 +335,9 @@ function IntroScreen({ messages, active, finalMessage, onDoneTyping }: IntroScre
           </motion.div>
         </motion.div>
 
-        {/* Label */}
         <motion.p
           className="text-[11px] uppercase tracking-[0.2em] font-semibold mt-5"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
+          style={{ color: 'var(--color-text-muted)' }}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.4, ease: 'easeOut' }}
@@ -362,7 +346,6 @@ function IntroScreen({ messages, active, finalMessage, onDoneTyping }: IntroScre
         </motion.p>
       </div>
 
-      {/* Terminal at the bottom */}
       <div className="w-full px-8 pb-8">
         <TerminalLog
           messages={messages}
@@ -384,7 +367,7 @@ interface Props {
 const PRIORITY_COLOR = {
   high:   '#EF4444',
   medium: '#F59E0B',
-  low:    'rgba(255,255,255,0.4)',
+  low:    'var(--color-text-muted)',
 }
 
 const SEVERITY_COLOR = {
@@ -403,13 +386,11 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
   const [terminalActive, setTerminalActive] = useState(true)
   const [finalMsg,   setFinalMsg]  = useState<string | null>(null)
 
-  // Chat
   const [messages,  setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([])
   const [input,     setInput]    = useState('')
   const [sending,   setSending]  = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  // Track whether intro and analysis are each done
   const introFinishedRef  = useRef(false)
   const analysisResultRef = useRef<LATAnalysis | null>(null)
   const analysisDoneRef   = useRef(false)
@@ -426,18 +407,15 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
     [project.id, userName]
   )
 
-  // Called when the "Pronto..." message finishes typing
   const handleDoneTyping = useCallback(() => {
     setShowIntro(false)
   }, [])
 
-  // Trigger the final message + reveal
   const revealContent = useCallback(() => {
     if (analysisDoneRef.current && analysisResultRef.current) {
       setTerminalActive(false)
       setFinalMsg(DONE_MESSAGE)
     } else if (analysisDoneRef.current && !analysisResultRef.current) {
-      // Analysis failed — show immediately
       setShowIntro(false)
     }
   }, [])
@@ -452,13 +430,11 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
     setAnalysis(result)
     setLoading(false)
 
-    // If intro already finished, reveal now
     if (introFinishedRef.current) {
       revealContent()
     }
   }
 
-  // Start analysis AND intro timer in parallel on mount
   useEffect(() => {
     introFinishedRef.current = false
     analysisDoneRef.current = false
@@ -474,7 +450,6 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
     return () => clearTimeout(timer)
   }, [project.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // When loading finishes and intro timer already passed, reveal
   useEffect(() => {
     if (!loading && introFinishedRef.current && showIntro) {
       revealContent()
@@ -524,7 +499,7 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
   return (
     <motion.div
       className="relative flex flex-col h-full overflow-hidden"
-      style={{ color: 'rgba(255,255,255,0.85)' }}
+      style={{ color: 'var(--color-text)' }}
       initial={{ opacity: 0, y: 16, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -544,12 +519,12 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
 
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4"
-           style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+           style={{ borderBottom: '1px solid var(--color-border)' }}>
         <div className="flex items-center gap-2.5">
           <ClaudeIcon style={{ width: 22, height: 22, color: 'var(--color-brand,#00D4AA)' }} />
           <div>
-            <p className="text-sm font-semibold text-white">LAT Intelligence</p>
-            <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>LAT Intelligence</p>
+            <p className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
               Live Autonomous Tracker
             </p>
           </div>
@@ -559,16 +534,16 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
             onClick={runAnalysis}
             disabled={loading}
             className="w-7 h-7 rounded flex items-center justify-center transition-colors"
-            style={{ background: 'rgba(255,255,255,0.05)' }}
+            style={{ background: 'var(--color-surface2)' }}
             title="Reanalisar"
           >
-            <RefreshCw style={{ width: 13, height: 13, color: 'rgba(255,255,255,0.4)',
+            <RefreshCw style={{ width: 13, height: 13, color: 'var(--color-text-muted)',
               animation: loading ? 'spin 1s linear infinite' : 'none' }} />
           </button>
           {onClose && (
             <button onClick={onClose}
               className="w-7 h-7 rounded flex items-center justify-center transition-colors"
-              style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.3)' }}>
+              style={{ background: 'var(--color-surface2)', color: 'var(--color-text-muted)' }}>
               <X style={{ width: 13, height: 13 }} />
             </button>
           )}
@@ -577,7 +552,7 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
 
       {/* Tabs */}
       <div className="flex px-5 pt-3 gap-1"
-           style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+           style={{ borderBottom: '1px solid var(--color-border)' }}>
         {[
           { id: 'actions', label: 'Ações & Riscos', icon: ClaudeIcon       },
           { id: 'chat',    label: 'Conversar',       icon: MessageSquare },
@@ -587,9 +562,9 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
             onClick={() => setTab(t.id as any)}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t transition-all"
             style={{
-              color:      tab === t.id ? 'var(--color-brand,#00D4AA)' : 'rgba(255,255,255,0.3)',
+              color:      tab === t.id ? 'var(--color-brand,#00D4AA)' : 'var(--color-text-muted)',
               borderBottom: tab === t.id ? '2px solid var(--color-brand,#00D4AA)' : '2px solid transparent',
-              background: tab === t.id ? 'rgba(255,255,255,0.03)' : 'transparent',
+              background: tab === t.id ? 'var(--color-surface)' : 'transparent',
             }}
           >
             <t.icon style={{ width: 12, height: 12 }} />
@@ -605,7 +580,6 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
         {tab === 'actions' && (
           <div className="p-5 space-y-5">
 
-            {/* Loading: terminal log (when intro is gone but still loading) */}
             {loading && !showIntro && (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                 <ClaudeIcon size={32} style={{ color: 'var(--color-brand,#00D4AA)', animation: 'spin 3s linear infinite' }} />
@@ -629,12 +603,12 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                 {/* Summary */}
                 <motion.div
                   className="rounded px-4 py-3"
-                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+                  style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0 }}
                 >
-                  <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                  <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-2)' }}>
                     {analysis.summary}
                   </p>
                 </motion.div>
@@ -643,7 +617,7 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                 {analysis.urgentActions?.length > 0 && (
                   <div>
                     <p className="text-[10px] uppercase tracking-widest mb-2.5 font-semibold"
-                       style={{ color: 'rgba(255,255,255,0.3)' }}>
+                       style={{ color: 'var(--color-text-muted)' }}>
                       Ações Necessárias
                     </p>
                     <div className="space-y-2">
@@ -654,23 +628,23 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: (i + 1) * 0.06 }}
                           className="rounded overflow-hidden cursor-pointer"
-                          style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+                          style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
                           onClick={() => setExpanded(expanded === `a${i}` ? null : `a${i}`)}
                         >
                           <div className="flex items-center gap-3 px-4 py-3">
                             <div className="w-1.5 h-1.5 rounded-full flex-shrink-0"
                                  style={{ background: PRIORITY_COLOR[action.priority] }} />
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold text-white truncate">
+                              <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text)' }}>
                                 {action.title}
                               </p>
-                              <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                              <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
                                 Prazo: {action.deadline}
                               </p>
                             </div>
                             {expanded === `a${i}`
-                              ? <ChevronUp  style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
-                              : <ChevronDown style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                              ? <ChevronUp  style={{ width: 12, height: 12, color: 'var(--color-text-muted)', flexShrink: 0 }} />
+                              : <ChevronDown style={{ width: 12, height: 12, color: 'var(--color-text-muted)', flexShrink: 0 }} />
                             }
                           </div>
                           <AnimatePresence>
@@ -680,10 +654,10 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 className="px-4 pb-3"
-                                style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}
+                                style={{ borderTop: '1px solid var(--color-border)' }}
                               >
                                 <p className="text-xs mt-2.5 leading-relaxed"
-                                   style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                   style={{ color: 'var(--color-text-2)' }}>
                                   {action.description}
                                 </p>
                                 <button
@@ -715,7 +689,7 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                 {analysis.risks?.length > 0 && (
                   <div>
                     <p className="text-[10px] uppercase tracking-widest mb-2.5 font-semibold"
-                       style={{ color: 'rgba(255,255,255,0.3)' }}>
+                       style={{ color: 'var(--color-text-muted)' }}>
                       Riscos Identificados
                     </p>
                     <div className="space-y-2">
@@ -742,8 +716,8 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                                 {risk.title}
                               </p>
                               {expanded === `r${i}`
-                                ? <ChevronUp  style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
-                                : <ChevronDown style={{ width: 12, height: 12, color: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+                                ? <ChevronUp  style={{ width: 12, height: 12, color: 'var(--color-text-muted)', flexShrink: 0 }} />
+                                : <ChevronDown style={{ width: 12, height: 12, color: 'var(--color-text-muted)', flexShrink: 0 }} />
                               }
                             </div>
                             <AnimatePresence>
@@ -756,7 +730,7 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                                   style={{ borderTop: `1px solid ${SEVERITY_COLOR[risk.severity]}15` }}
                                 >
                                   <p className="text-xs mt-2.5 leading-relaxed"
-                                     style={{ color: 'rgba(255,255,255,0.45)' }}>
+                                     style={{ color: 'var(--color-text-2)' }}>
                                     {risk.description}
                                   </p>
                                 </motion.div>
@@ -773,7 +747,7 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                 {analysis.nextWeekPreview && (
                   <motion.div
                     className="rounded px-4 py-3"
-                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                    style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
                     initial={{ opacity: 0, x: -8 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: ((analysis.urgentActions?.length ?? 0) + (analysis.risks?.length ?? 0) + 2) * 0.06 }}
@@ -785,7 +759,7 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                         Próxima semana
                       </p>
                     </div>
-                    <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                    <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-2)' }}>
                       {analysis.nextWeekPreview}
                     </p>
                   </motion.div>
@@ -796,12 +770,12 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
 
             {!loading && !analysis && !showIntro && (
               <div className="flex flex-col items-center justify-center py-12 gap-3">
-                <p className="text-xs" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                   Não foi possível carregar a análise.
                 </p>
                 <button onClick={runAnalysis}
                   className="text-xs px-4 py-2 rounded"
-                  style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}>
+                  style={{ background: 'var(--color-surface2)', color: 'var(--color-text-muted)' }}>
                   Tentar novamente
                 </button>
               </div>
@@ -815,7 +789,6 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {messages.length === 0 && (
                 <div className="flex flex-col py-6 gap-4">
-                  {/* Motivational welcome from AI */}
                   {analysis?.motivationalNote && (
                     <motion.div
                       className="flex items-start gap-2.5"
@@ -824,30 +797,28 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                       transition={{ duration: 0.4, ease: 'easeOut' }}
                     >
                       <div className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 mt-0.5"
-                           style={{ background: 'rgba(255,255,255,0.06)' }}>
+                           style={{ background: 'var(--color-border)' }}>
                         <ClaudeIcon style={{ width: 14, height: 14, color: 'var(--color-brand,#00D4AA)' }} />
                       </div>
                       <div className="rounded px-4 py-3"
-                           style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                        <p className="text-xs italic leading-relaxed" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                           style={{ background: 'var(--color-surface2)', border: '1px solid var(--color-border-2)' }}>
+                        <p className="text-xs italic leading-relaxed" style={{ color: 'var(--color-text-2)' }}>
                           {analysis.motivationalNote}
                         </p>
                       </div>
                     </motion.div>
                   )}
 
-                  {/* Empty state + suggestions */}
                   <div className="flex flex-col items-center gap-2 pt-2">
                     {!analysis?.motivationalNote && (
                       <>
-                        <ClaudeIcon style={{ width: 28, height: 28, color: 'rgba(255,255,255,0.1)' }} />
-                        <p className="text-xs text-center" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        <ClaudeIcon style={{ width: 28, height: 28, color: 'var(--color-border-2)' }} />
+                        <p className="text-xs text-center" style={{ color: 'var(--color-text-muted)' }}>
                           Pergunte qualquer coisa sobre o projeto.<br />
                           Eu tenho todo o contexto.
                         </p>
                       </>
                     )}
-                    {/* Sugestões rápidas */}
                     <div className="flex flex-col gap-1.5 mt-2 w-full">
                       {[
                         'O que está atrasado?',
@@ -857,8 +828,8 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                       ].map(s => (
                         <button key={s} onClick={() => setInput(s)}
                           className="text-left text-xs px-3 py-2 rounded transition-all hover:opacity-80"
-                          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
-                            color: 'rgba(255,255,255,0.45)' }}>
+                          style={{ background: 'var(--color-muted)', border: '1px solid var(--color-border)',
+                            color: 'var(--color-text-muted)' }}>
                           {s}
                         </button>
                       ))}
@@ -878,12 +849,12 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
                     className="max-w-[85%] rounded px-4 py-3 text-xs leading-relaxed"
                     style={m.role === 'user' ? {
                       background: 'var(--color-brand,#00D4AA)',
-                      color:      '#050508',
+                      color:      'var(--color-bg)',
                       fontWeight: 500,
                     } : {
-                      background: 'rgba(255,255,255,0.05)',
-                      border:     '1px solid rgba(255,255,255,0.08)',
-                      color:      'rgba(255,255,255,0.75)',
+                      background: 'var(--color-surface2)',
+                      border:     '1px solid var(--color-border-2)',
+                      color:      'var(--color-text-2)',
                       whiteSpace: 'pre-wrap',
                     }}
                   >
@@ -895,10 +866,10 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
               {sending && (
                 <div className="flex justify-start">
                   <div className="flex items-center gap-2 px-4 py-3 rounded"
-                       style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                       style={{ background: 'var(--color-surface2)', border: '1px solid var(--color-border-2)' }}>
                     <ClaudeIcon style={{ width: 12, height: 12, color: 'var(--color-brand,#00D4AA)',
                       animation: 'spin 1s linear infinite' }} />
-                    <span className="text-xs" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                    <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
                       Pensando...
                     </span>
                   </div>
@@ -913,18 +884,18 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
 
       {/* Input de chat fixo no bottom */}
       {tab === 'chat' && (
-        <div className="p-4" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div className="p-4" style={{ borderTop: '1px solid var(--color-border)' }}>
           <div className="flex gap-2">
             <input
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
               placeholder="Pergunte sobre o projeto..."
-              className="flex-1 rounded px-3 py-2.5 text-xs text-white outline-none"
+              className="flex-1 rounded px-3 py-2.5 text-xs outline-none"
               style={{
-                background: 'rgba(255,255,255,0.05)',
-                border:     '1px solid rgba(255,255,255,0.09)',
-                color:      'rgba(255,255,255,0.8)',
+                background: 'var(--input-bg)',
+                border:     '1px solid var(--color-border)',
+                color:      'var(--color-text)',
               }}
             />
             <button
@@ -933,7 +904,7 @@ export default function LATIntelligence({ project, distributors = [], onClose }:
               className="w-9 h-9 rounded flex items-center justify-center transition-all hover:opacity-80 disabled:opacity-30"
               style={{ background: 'var(--color-brand,#00D4AA)', flexShrink: 0 }}
             >
-              <Send style={{ width: 13, height: 13, color: '#050508' }} />
+              <Send style={{ width: 13, height: 13, color: 'var(--color-bg)' }} />
             </button>
           </div>
         </div>

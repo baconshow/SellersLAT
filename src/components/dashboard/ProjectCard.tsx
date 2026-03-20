@@ -139,12 +139,12 @@ export default function ProjectCard({
       <div
         className="rounded overflow-hidden transition-all"
         style={{
-          background: 'rgba(255,255,255,0.02)',
-          border: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--color-surface)',
+          border: '1px solid var(--color-border)',
           borderRadius: 5,
         }}
         onMouseEnter={e => (e.currentTarget.style.borderColor = `${accent}40`)}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)')}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
       >
         {/* ── Header ── */}
         <div className="px-5 pt-5 pb-3">
@@ -154,11 +154,11 @@ export default function ProjectCard({
                 className="w-3 h-3 rounded-full flex-shrink-0"
                 style={{ background: accent }}
               />
-              <h3 className="text-sm font-bold text-white" style={{ fontFamily: 'var(--font-outfit)', letterSpacing: '-0.01em' }}>{project.clientName}</h3>
+              <h3 className="text-sm font-bold" style={{ color: 'var(--color-text)', fontFamily: 'var(--font-outfit)', letterSpacing: '-0.01em' }}>{project.clientName}</h3>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold" style={{ color: accent }}>{progress}%</span>
-              <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
@@ -171,30 +171,30 @@ export default function ProjectCard({
           </div>
 
           {/* Stats */}
-          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: 'rgba(255,255,255,0.4)' }}>
+          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
             <span><b style={{ color: '#22c55e' }}>{integrated}</b> integrados</span>
-            <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>·</span>
             <span><b style={{ color: '#f59e0b' }}>{pending}</b> pendentes</span>
-            <span style={{ color: 'rgba(255,255,255,0.15)' }}>·</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>·</span>
             <span><b style={{ color: '#ef4444' }}>{blocked}</b> bloqueados</span>
           </div>
         </div>
 
         {/* ── Preview row ── */}
-        <div className="px-5 py-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+        <div className="px-5 py-2.5" style={{ borderTop: '1px solid var(--color-muted)' }}>
           {lastUserMsg && (
-            <p className="text-[11px] truncate mb-1" style={{ color: 'rgba(255,255,255,0.35)' }}>
-              <span style={{ color: 'rgba(255,255,255,0.5)' }}><MessageCircle size={11} style={{ display: 'inline', marginRight: 5, opacity: 0.5, flexShrink: 0 }} />{lastUserMsg.authorName.split(' ')[0]}:</span>{' '}
+            <p className="text-[11px] truncate mb-1" style={{ color: 'var(--color-text-muted)' }}>
+              <span style={{ color: 'var(--color-text-2)' }}><MessageCircle size={11} style={{ display: 'inline', marginRight: 5, opacity: 0.5, flexShrink: 0 }} />{lastUserMsg.authorName.split(' ')[0]}:</span>{' '}
               "{lastUserMsg.text}"
             </p>
           )}
           {currentPhase && (
-            <p className="text-[11px] truncate" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <p className="text-[11px] truncate" style={{ color: 'var(--color-text-muted)' }}>
               <Calendar size={11} style={{ display: 'inline', marginRight: 5, opacity: 0.5, flexShrink: 0 }} />Fase atual: {currentPhase.name}
             </p>
           )}
           {!lastUserMsg && !currentPhase && (
-            <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+            <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
               Sem atividade recente
             </p>
           )}
@@ -203,15 +203,15 @@ export default function ProjectCard({
         {/* ── Actions ── */}
         <div
           className="flex items-center gap-2 px-5 py-3"
-          style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}
+          style={{ borderTop: '1px solid var(--color-muted)' }}
         >
           <button
             onClick={() => { setChatOpen(v => !v); setLatOpen(false) }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-semibold transition-all"
             style={{
-              background: chatOpen ? `${accent}20` : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${chatOpen ? `${accent}40` : 'rgba(255,255,255,0.06)'}`,
-              color: chatOpen ? accent : 'rgba(255,255,255,0.45)',
+              background: chatOpen ? `${accent}20` : 'var(--color-muted)',
+              border: `1px solid ${chatOpen ? `${accent}40` : 'var(--color-border)'}`,
+              color: chatOpen ? accent : 'var(--color-text-muted)',
             }}
           >
             <MessageCircle style={{ width: 12, height: 12 }} />
@@ -221,12 +221,12 @@ export default function ProjectCard({
             onClick={() => { handleLAT(); setChatOpen(false) }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded text-[11px] font-semibold transition-all"
             style={{
-              background: latOpen ? `${accent}20` : 'rgba(255,255,255,0.04)',
-              border: `1px solid ${latOpen ? `${accent}40` : 'rgba(255,255,255,0.06)'}`,
-              color: latOpen ? accent : 'rgba(255,255,255,0.45)',
+              background: latOpen ? `${accent}20` : 'var(--color-muted)',
+              border: `1px solid ${latOpen ? `${accent}40` : 'var(--color-border)'}`,
+              color: latOpen ? accent : 'var(--color-text-muted)',
             }}
           >
-            <ClaudeIcon size={12} color={latOpen ? accent : 'rgba(255,255,255,0.45)'} />
+            <ClaudeIcon size={12} color={latOpen ? accent : 'var(--color-text-muted)'} />
             LAT
           </button>
           <button
@@ -253,14 +253,14 @@ export default function ProjectCard({
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              style={{ overflow: 'hidden', borderTop: '1px solid rgba(255,255,255,0.04)' }}
+              style={{ overflow: 'hidden', borderTop: '1px solid var(--color-muted)' }}
             >
               <div
                 className="max-h-56 overflow-y-auto px-4 py-3 space-y-2"
                 style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(255,255,255,0.1) transparent' }}
               >
                 {messages.length === 0 && (
-                  <p className="text-[11px] text-center py-4" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                  <p className="text-[11px] text-center py-4" style={{ color: 'var(--color-text-muted)' }}>
                     Nenhuma mensagem ainda. Comece a conversa!
                   </p>
                 )}
@@ -268,8 +268,8 @@ export default function ProjectCard({
                   <div key={msg.id} className="flex items-start gap-2">
                     {msg.type === 'activity' ? (
                       <div className="flex items-center gap-1.5 w-full">
-                        <Activity style={{ width: 10, height: 10, color: 'rgba(255,255,255,0.15)', flexShrink: 0 }} />
-                        <p className="text-[10px] italic" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        <Activity style={{ width: 10, height: 10, color: 'var(--color-text-muted)', flexShrink: 0 }} />
+                        <p className="text-[10px] italic" style={{ color: 'var(--color-text-muted)' }}>
                           {msg.text}
                         </p>
                       </div>
@@ -278,17 +278,17 @@ export default function ProjectCard({
                         <div
                           className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[9px] font-bold"
                           style={{
-                            background: msg.authorEmail === currentUserEmail ? `${accent}25` : 'rgba(255,255,255,0.08)',
-                            color: msg.authorEmail === currentUserEmail ? accent : 'rgba(255,255,255,0.5)',
+                            background: msg.authorEmail === currentUserEmail ? `${accent}25` : 'var(--color-border-2)',
+                            color: msg.authorEmail === currentUserEmail ? accent : 'var(--color-text-2)',
                           }}
                         >
                           {msg.authorName?.[0]?.toUpperCase() ?? '?'}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[10px] font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                          <p className="text-[10px] font-semibold" style={{ color: 'var(--color-text-2)' }}>
                             {msg.authorName.split(' ')[0]}
                           </p>
-                          <p className="text-[11px] break-words" style={{ color: 'rgba(255,255,255,0.7)' }}>
+                          <p className="text-[11px] break-words" style={{ color: 'var(--color-text-2)' }}>
                             {msg.text}
                           </p>
                         </div>
@@ -300,7 +300,7 @@ export default function ProjectCard({
               </div>
 
               {/* Input */}
-              <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.04)' }}>
+              <div className="flex items-center gap-2 px-4 py-2.5" style={{ borderTop: '1px solid var(--color-muted)' }}>
                 <input
                   type="text"
                   value={msgInput}
@@ -309,10 +309,10 @@ export default function ProjectCard({
                   placeholder="Mensagem..."
                   className="flex-1 text-[11px] outline-none"
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--color-border-2)',
                     borderRadius: 5,
-                    color: 'rgba(255,255,255,0.8)',
+                    color: 'var(--color-text)',
                     padding: '7px 10px',
                   }}
                 />
@@ -337,7 +337,7 @@ export default function ProjectCard({
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              style={{ overflow: 'hidden', borderTop: '1px solid rgba(255,255,255,0.04)' }}
+              style={{ overflow: 'hidden', borderTop: '1px solid var(--color-muted)' }}
             >
               <div className="px-4 py-3">
                 {latLoading && !latInsight && (
@@ -365,18 +365,18 @@ export default function ProjectCard({
 
                 {latInsight && (
                   <div className="space-y-2.5">
-                    <p className="text-[11px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                    <p className="text-[11px] leading-relaxed" style={{ color: 'var(--color-text-2)' }}>
                       {latInsight.summary}
                     </p>
                     {latInsight.attentionPoints && latInsight.attentionPoints.length > 0 && (
                       <div className="space-y-1">
-                        <p className="text-[9px] uppercase tracking-widest font-bold" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                        <p className="text-[9px] uppercase tracking-widest font-bold" style={{ color: 'var(--color-text-muted)' }}>
                           Atenção
                         </p>
                         {latInsight.attentionPoints.map((point, i) => (
                           <div key={i} className="flex items-start gap-1.5">
                             <span className="text-[10px] mt-px" style={{ color: '#f59e0b' }}>•</span>
-                            <p className="text-[10px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{point}</p>
+                            <p className="text-[10px]" style={{ color: 'var(--color-text-2)' }}>{point}</p>
                           </div>
                         ))}
                       </div>

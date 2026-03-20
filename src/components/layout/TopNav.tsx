@@ -111,7 +111,8 @@ export default function TopNav({
         <div
           className="relative z-10 flex items-center justify-between px-8 pointer-events-auto"
           style={{
-            height: 64,
+            paddingTop: '0.6rem',
+            paddingBottom: '0.6rem',
             background: 'var(--nav-bg)',
             borderBottom: '1px solid var(--nav-border)',
             backdropFilter: 'blur(20px)',
@@ -275,21 +276,21 @@ export default function TopNav({
               onClick={toggleTheme}
               title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 30,
-                height: 30,
+                height: 36,
+                width: 36,
                 borderRadius: 5,
                 border: '1px solid var(--color-border)',
                 background: 'var(--color-surface2)',
                 cursor: 'pointer',
                 color: 'var(--color-text-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
                 flexShrink: 0,
                 transition: 'all 150ms ease',
               }}
             >
-              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+              {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
             {actions}
           </div>
