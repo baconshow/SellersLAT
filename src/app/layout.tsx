@@ -4,6 +4,7 @@ import "./globals.css";
 import { FirebaseClientProvider } from "@/firebase";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NavActionsProvider } from "@/contexts/NavActionsContext";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { Toaster } from "@/components/ui/toaster";
 
 const outfit = Outfit({
@@ -37,15 +38,17 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={`${outfit.variable} ${dmSans.variable} ${orbitron.variable} antialiased`} style={{ fontFamily: 'var(--font-outfit), sans-serif' }} suppressHydrationWarning>
-        <FirebaseClientProvider>
-          <AuthProvider>
-            <NavActionsProvider>
-              <div className="noise" />
-              {children}
-              <Toaster />
-            </NavActionsProvider>
-          </AuthProvider>
-        </FirebaseClientProvider>
+        <ThemeProvider>
+          <FirebaseClientProvider>
+            <AuthProvider>
+              <NavActionsProvider>
+                <div className="noise" />
+                {children}
+                <Toaster />
+              </NavActionsProvider>
+            </AuthProvider>
+          </FirebaseClientProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

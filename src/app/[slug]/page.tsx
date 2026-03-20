@@ -8,9 +8,11 @@ import { ptBR } from 'date-fns/locale'
 import {
   CheckCircle2, Clock, XCircle, Circle, AlertCircle,
   ChevronRight, Send, LogIn, LogOut, X, ArrowRight,
+  Sun, Moon,
 } from 'lucide-react'
 import { getProjectBySlug, addDistributorCommentDoc, getDistributorComments, subscribeToDistributorsCollection } from '@/lib/firestore'
 import { useAuth } from '@/contexts/AuthContext'
+import { useTheme } from '@/contexts/ThemeContext'
 import { applyTheme } from '@/lib/theme'
 import type { Project, Distributor, DistributorComment, PhaseStatus } from '@/types'
 import ProjectTimeline from '@/components/timeline/ProjectTimeline'
@@ -40,6 +42,7 @@ export default function SlugSharePage() {
   // ============================================================
   const { slug } = useParams<{ slug: string }>()
   const { user, loading: authLoading, signInWithGoogle, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
 
   const [project, setProject]             = useState<Project | null>(null)
   const [distributors, setDistributors]  = useState<Distributor[]>([])
@@ -132,8 +135,8 @@ export default function SlugSharePage() {
   if (status === 'invalid') {
     return (
       <GateScreen>
-        <h2 className="text-lg font-bold text-white">Link inativo ou não encontrado</h2>
-        <p className="text-sm mt-2 max-w-md" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <h2 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Link inativo ou não encontrado</h2>
+        <p className="text-sm mt-2 max-w-md" style={{ color: 'var(--color-text-muted)' }}>
           Este link de compartilhamento não existe ou foi desativado pelo responsável do projeto.
         </p>
       </GateScreen>
@@ -146,13 +149,13 @@ export default function SlugSharePage() {
         <h2 className="text-2xl font-bold" style={{ color: accent }}>
           {project?.clientName}
         </h2>
-        <p className="text-sm mt-3 max-w-md" style={{ color: 'rgba(255,255,255,0.4)' }}>
+        <p className="text-sm mt-3 max-w-md" style={{ color: 'var(--color-text-muted)' }}>
           Acesso restrito a convidados autorizados
         </p>
         <button
           onClick={signInWithGoogle}
           className="flex items-center gap-2 px-6 py-3 rounded text-sm font-bold transition-all mt-6"
-          style={{ background: accent, color: '#050508' }}
+          style={{ background: accent, color: 'var(--color-bg)' }}
           onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')}
           onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
         >
@@ -166,20 +169,20 @@ export default function SlugSharePage() {
   if (status === 'unauthorized') {
     return (
       <GateScreen>
-        <h2 className="text-lg font-bold text-white">Acesso não autorizado</h2>
-        <p className="text-sm mt-2 max-w-md" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          O email <span className="text-white/70 font-medium">{user?.email}</span> não tem
+        <h2 className="text-lg font-bold" style={{ color: 'var(--color-text)' }}>Acesso não autorizado</h2>
+        <p className="text-sm mt-2 max-w-md" style={{ color: 'var(--color-text-muted)' }}>
+          O email <span style={{ color: 'var(--color-text-2)' }} className="font-medium">{user?.email}</span> não tem
           permissão para acessar este projeto.
         </p>
-        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.25)' }}>
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
           Entre em contato com a Sellers para solicitar acesso.
         </p>
         <button
           onClick={logout}
           className="flex items-center gap-2 px-5 py-2.5 rounded text-xs font-bold transition-all mt-5"
-          style={{ border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.5)' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#fff')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.5)')}
+          style={{ border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}
         >
           <LogOut style={{ width: 14, height: 14 }} />
           Sair
@@ -193,209 +196,269 @@ export default function SlugSharePage() {
   // ============================================================
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="max-w-5xl mx-auto px-6 py-8 space-y-8"
-    >
-      {/* A) Header do projeto */}
-      <div>
-        <h1 className="text-3xl font-bold" style={{ color: accent }}>
-          {project!.clientName}
-        </h1>
-        <p className="text-sm mt-1.5" style={{ color: 'rgba(255,255,255,0.35)' }}>
-          Semana {weekNumber} · {daysRunning} dias de projeto
-        </p>
-        {/* Barra de progresso */}
-        <div className="mt-4 flex items-center gap-3">
-          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.06)' }}>
-            <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${integrationPct}%` }}
-              transition={{ duration: 0.8, ease: 'easeOut' }}
-              className="h-full rounded-full"
-              style={{ background: `linear-gradient(90deg, ${accent}, ${project!.clientColorSecondary || accent})` }}
+    <div>
+      {/* ── Nav fixa ── */}
+      <nav
+        style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0,
+          zIndex: 50,
+          background: 'var(--nav-bg)',
+          borderBottom: '1px solid var(--nav-border)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
+        <div className="flex items-center justify-between px-8" style={{ height: 56 }}>
+          {/* Esquerda: LAT + cliente */}
+          <div className="flex items-center gap-3">
+            <span style={{
+              fontFamily: "'Conthrax', 'Orbitron', 'Share Tech Mono', monospace",
+              fontSize: 16,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              color: accent,
+              textTransform: 'uppercase',
+            }}>
+              LAT
+            </span>
+            <div style={{ width: 1, height: 16, background: 'var(--color-border)' }} />
+            <span className="text-xs font-semibold tracking-widest" style={{ color: 'var(--color-text-muted)' }}>
+              {project!.clientName.toUpperCase()}
+            </span>
+          </div>
+
+          {/* Direita: toggle tema */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 30,
+                height: 30,
+                borderRadius: 5,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface2)',
+                cursor: 'pointer',
+                color: 'var(--color-text-muted)',
+                flexShrink: 0,
+                transition: 'all 150ms ease',
+              }}
+            >
+              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="max-w-5xl mx-auto px-6 py-8 space-y-8"
+        style={{ paddingTop: 80 }}
+      >
+        {/* A) Header do projeto */}
+        <div>
+          <h1 className="text-3xl font-bold" style={{ color: accent }}>
+            {project!.clientName}
+          </h1>
+          <p className="text-sm mt-1.5" style={{ color: 'var(--color-text-muted)' }}>
+            Semana {weekNumber} · {daysRunning} dias de projeto
+          </p>
+          {/* Barra de progresso */}
+          <div className="mt-4 flex items-center gap-3">
+            <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--color-border)' }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${integrationPct}%` }}
+                transition={{ duration: 0.8, ease: 'easeOut' }}
+                className="h-full rounded-full"
+                style={{ background: `linear-gradient(90deg, ${accent}, ${project!.clientColorSecondary || accent})` }}
+              />
+            </div>
+            <span className="text-xs font-bold shrink-0" style={{ color: accent }}>
+              {integrationPct}%
+            </span>
+          </div>
+          <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>
+            {counts.integrated} de {counts.total} distribuidores integrados
+          </p>
+        </div>
+
+        {/* B) KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Total */}
+          <div
+            className="group rounded p-4 relative overflow-hidden"
+            style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+          >
+            <div
+              className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full -translate-y-16 translate-x-16 blur-3xl transition-opacity group-hover:opacity-20"
+              style={{ backgroundColor: accent }}
+            />
+            <p className="text-[10px] uppercase tracking-widest font-semibold relative z-10" style={{ color: 'var(--color-text-muted)' }}>
+              Total
+            </p>
+            <p className="text-2xl font-bold mt-1 relative z-10" style={{ color: 'var(--color-text-2)' }}>
+              {counts.total}
+            </p>
+            <p className="text-[10px] mt-1 relative z-10" style={{ color: 'var(--color-text-muted)' }}>
+              {weekNumber} semanas de projeto
+            </p>
+          </div>
+
+          {/* Integrados */}
+          <div
+            className="group rounded p-4 relative overflow-hidden"
+            style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid var(--color-border)' }}
+          >
+            <div
+              className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full -translate-y-16 translate-x-16 blur-3xl transition-opacity group-hover:opacity-20"
+              style={{ backgroundColor: '#10B981' }}
+            />
+            <p className="text-[10px] uppercase tracking-widest font-semibold relative z-10" style={{ color: 'var(--color-text-muted)' }}>
+              Integrados
+            </p>
+            <p className="text-2xl font-bold mt-1 relative z-10" style={{ color: '#22c55e' }}>
+              {counts.integrated}
+            </p>
+            <p className="text-[10px] mt-1 relative z-10" style={{ color: '#10B981' }}>
+              {integrationPct}% concluído
+            </p>
+          </div>
+
+          {/* Pendentes */}
+          <div
+            className="group rounded p-4 relative overflow-hidden cursor-pointer transition-all hover:border-[#f59e0b]/20"
+            style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid var(--color-border)' }}
+            onClick={() => scrollToDistributors('pending')}
+          >
+            <div
+              className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full -translate-y-16 translate-x-16 blur-3xl transition-opacity group-hover:opacity-20"
+              style={{ backgroundColor: '#F59E0B' }}
+            />
+            <p className="text-[10px] uppercase tracking-widest font-semibold relative z-10" style={{ color: 'var(--color-text-muted)' }}>
+              Pendentes
+            </p>
+            <p className="text-2xl font-bold mt-1 relative z-10" style={{ color: '#f59e0b' }}>
+              {counts.pending}
+            </p>
+            <ChevronRight
+              className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ width: 14, height: 14, color: '#f59e0b' }}
             />
           </div>
-          <span className="text-xs font-bold shrink-0" style={{ color: accent }}>
-            {integrationPct}%
-          </span>
-        </div>
-        <p className="text-[10px] mt-1" style={{ color: 'rgba(255,255,255,0.2)' }}>
-          {counts.integrated} de {counts.total} distribuidores integrados
-        </p>
-      </div>
 
-      {/* B) KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {/* Total */}
-        <div
-          className="group rounded p-4 relative overflow-hidden"
-          style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
-        >
+          {/* Bloqueados */}
           <div
-            className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full -translate-y-16 translate-x-16 blur-3xl transition-opacity group-hover:opacity-20"
-            style={{ backgroundColor: accent }}
-          />
-          <p className="text-[10px] uppercase tracking-widest font-semibold relative z-10" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            Total
-          </p>
-          <p className="text-2xl font-bold mt-1 relative z-10" style={{ color: 'rgba(255,255,255,0.6)' }}>
-            {counts.total}
-          </p>
-          <p className="text-[10px] mt-1 relative z-10" style={{ color: 'rgba(255,255,255,0.2)' }}>
-            {weekNumber} semanas de projeto
-          </p>
-        </div>
-
-        {/* Integrados */}
-        <div
-          className="group rounded p-4 relative overflow-hidden"
-          style={{ background: 'rgba(34,197,94,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
-        >
-          <div
-            className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full -translate-y-16 translate-x-16 blur-3xl transition-opacity group-hover:opacity-20"
-            style={{ backgroundColor: '#10B981' }}
-          />
-          <p className="text-[10px] uppercase tracking-widest font-semibold relative z-10" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            Integrados
-          </p>
-          <p className="text-2xl font-bold mt-1 relative z-10" style={{ color: '#22c55e' }}>
-            {counts.integrated}
-          </p>
-          <p className="text-[10px] mt-1 relative z-10" style={{ color: '#10B981' }}>
-            {integrationPct}% concluído
-          </p>
-        </div>
-
-        {/* Pendentes */}
-        <div
-          className="group rounded p-4 relative overflow-hidden cursor-pointer transition-all hover:border-[#f59e0b]/20"
-          style={{ background: 'rgba(245,158,11,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
-          onClick={() => scrollToDistributors('pending')}
-        >
-          <div
-            className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full -translate-y-16 translate-x-16 blur-3xl transition-opacity group-hover:opacity-20"
-            style={{ backgroundColor: '#F59E0B' }}
-          />
-          <p className="text-[10px] uppercase tracking-widest font-semibold relative z-10" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            Pendentes
-          </p>
-          <p className="text-2xl font-bold mt-1 relative z-10" style={{ color: '#f59e0b' }}>
-            {counts.pending}
-          </p>
-          <ChevronRight
-            className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ width: 14, height: 14, color: '#f59e0b' }}
-          />
-        </div>
-
-        {/* Bloqueados */}
-        <div
-          className="group rounded p-4 relative overflow-hidden cursor-pointer transition-all hover:border-[#ef4444]/20"
-          style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
-          onClick={() => scrollToDistributors('blocked')}
-        >
-          <div
-            className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full -translate-y-16 translate-x-16 blur-3xl transition-opacity group-hover:opacity-20"
-            style={{ backgroundColor: '#EF4444' }}
-          />
-          <p className="text-[10px] uppercase tracking-widest font-semibold relative z-10" style={{ color: 'rgba(255,255,255,0.3)' }}>
-            Bloqueados
-          </p>
-          <p className="text-2xl font-bold mt-1 relative z-10" style={{ color: '#ef4444' }}>
-            {counts.blocked}
-          </p>
-          <ChevronRight
-            className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
-            style={{ width: 14, height: 14, color: '#ef4444' }}
-          />
-        </div>
-      </div>
-
-      {/* B2) Evolução das Integrações */}
-      {(project!.weeklyUpdates?.length ?? 0) > 0 && (
-        <section>
-          <h3 style={{
-            fontSize: 11,
-            fontWeight: 700,
-            letterSpacing: '0.15em',
-            color: 'rgba(255,255,255,0.3)',
-            textTransform: 'uppercase',
-            marginBottom: 16,
-          }}>
-            Evolução das Integrações
-          </h3>
-          <div style={{
-            background: 'rgba(255,255,255,0.02)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 5,
-            padding: 20,
-          }}>
-            <ProjectTimeline project={project!} />
+            className="group rounded p-4 relative overflow-hidden cursor-pointer transition-all hover:border-[#ef4444]/20"
+            style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid var(--color-border)' }}
+            onClick={() => scrollToDistributors('blocked')}
+          >
+            <div
+              className="absolute top-0 right-0 w-32 h-32 opacity-10 rounded-full -translate-y-16 translate-x-16 blur-3xl transition-opacity group-hover:opacity-20"
+              style={{ backgroundColor: '#EF4444' }}
+            />
+            <p className="text-[10px] uppercase tracking-widest font-semibold relative z-10" style={{ color: 'var(--color-text-muted)' }}>
+              Bloqueados
+            </p>
+            <p className="text-2xl font-bold mt-1 relative z-10" style={{ color: '#ef4444' }}>
+              {counts.blocked}
+            </p>
+            <ChevronRight
+              className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity"
+              style={{ width: 14, height: 14, color: '#ef4444' }}
+            />
           </div>
-        </section>
-      )}
+        </div>
 
-      {/* C) Gantt read-only */}
-      {project!.startDate && project!.endDate && project!.phases.length > 0 && (
-        <SectionCard title="Timeline" accent={accent}>
-          <ReadOnlyGantt project={project!} />
-        </SectionCard>
-      )}
-
-      {/* D) Distribuidores */}
-      <div id="distribuidores-section">
-        <SectionCard title="Distribuidores" accent={accent}>
-          {/* Filter pills */}
-          {distFilter && (
-            <div className="flex items-center gap-2 -mt-2 mb-1">
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Filtro:</span>
-              <button
-                onClick={() => setDistFilter(null)}
-                className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-all"
-                style={{
-                  background: `${DIST_STATUS[distFilter]?.color ?? '#fff'}20`,
-                  color: DIST_STATUS[distFilter]?.color ?? '#fff',
-                  border: `1px solid ${DIST_STATUS[distFilter]?.color ?? '#fff'}40`,
-                }}
-              >
-                {DIST_STATUS[distFilter]?.label}
-                <X style={{ width: 10, height: 10 }} />
-              </button>
+        {/* B2) Evolução das Integrações */}
+        {(project!.weeklyUpdates?.length ?? 0) > 0 && (
+          <section>
+            <h3 style={{
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: '0.15em',
+              color: 'var(--color-text-muted)',
+              textTransform: 'uppercase',
+              marginBottom: 16,
+            }}>
+              Evolução das Integrações
+            </h3>
+            <div style={{
+              background: 'var(--color-surface)',
+              border: '1px solid var(--color-border)',
+              borderRadius: 5,
+              padding: 20,
+            }}>
+              <ProjectTimeline project={project!} />
             </div>
-          )}
-          <div className="space-y-2">
-            {(distFilter ? grouped.filter(d => d.status === distFilter) : grouped).map(d => (
-              <DistributorRow
-                key={d.id}
-                distributor={d}
-                projectId={project!.id}
-                accent={accent}
-                userEmail={user?.email ?? ''}
-                userName={user?.displayName ?? ''}
-              />
-            ))}
-            {grouped.length === 0 && (
-              <p className="text-xs text-center py-8" style={{ color: 'rgba(255,255,255,0.2)' }}>
-                Nenhum distribuidor cadastrado.
-              </p>
-            )}
-          </div>
-        </SectionCard>
-      </div>
+          </section>
+        )}
 
-      {/* E) LAT Intelligence Chat */}
-      <PublicLATChat
-        slug={slug}
-        userEmail={user?.email ?? ''}
-        userName={user?.displayName ?? ''}
-        accent={accent}
-        accentRgb={project!.clientColorRgb ?? '0,212,170'}
-        clientName={project!.clientName}
-        counts={counts}
-      />
-    </motion.div>
+        {/* C) Gantt read-only */}
+        {project!.startDate && project!.endDate && project!.phases.length > 0 && (
+          <SectionCard title="Timeline" accent={accent}>
+            <ReadOnlyGantt project={project!} />
+          </SectionCard>
+        )}
+
+        {/* D) Distribuidores */}
+        <div id="distribuidores-section">
+          <SectionCard title="Distribuidores" accent={accent}>
+            {/* Filter pills */}
+            {distFilter && (
+              <div className="flex items-center gap-2 -mt-2 mb-1">
+                <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Filtro:</span>
+                <button
+                  onClick={() => setDistFilter(null)}
+                  className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold transition-all"
+                  style={{
+                    background: `${DIST_STATUS[distFilter]?.color ?? '#fff'}20`,
+                    color: DIST_STATUS[distFilter]?.color ?? '#fff',
+                    border: `1px solid ${DIST_STATUS[distFilter]?.color ?? '#fff'}40`,
+                  }}
+                >
+                  {DIST_STATUS[distFilter]?.label}
+                  <X style={{ width: 10, height: 10 }} />
+                </button>
+              </div>
+            )}
+            <div className="space-y-2">
+              {(distFilter ? grouped.filter(d => d.status === distFilter) : grouped).map(d => (
+                <DistributorRow
+                  key={d.id}
+                  distributor={d}
+                  projectId={project!.id}
+                  accent={accent}
+                  userEmail={user?.email ?? ''}
+                  userName={user?.displayName ?? ''}
+                />
+              ))}
+              {grouped.length === 0 && (
+                <p className="text-xs text-center py-8" style={{ color: 'var(--color-text-muted)' }}>
+                  Nenhum distribuidor cadastrado.
+                </p>
+              )}
+            </div>
+          </SectionCard>
+        </div>
+
+        {/* E) LAT Intelligence Chat */}
+        <PublicLATChat
+          slug={slug}
+          userEmail={user?.email ?? ''}
+          userName={user?.displayName ?? ''}
+          accent={accent}
+          accentRgb={project!.clientColorRgb ?? '0,212,170'}
+          clientName={project!.clientName}
+          counts={counts}
+        />
+      </motion.div>
+    </div>
   )
 }
 
@@ -528,27 +591,27 @@ function PublicLATChat({
       transition={{ delay: 0.5 }}
       className="rounded overflow-hidden"
       style={{
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--color-surface)',
+        border: '1px solid var(--color-border)',
         borderRadius: 5,
       }}
     >
       {/* Header */}
       <div
         className="px-5 py-4"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderBottom: '1px solid var(--color-border)' }}
       >
         <div className="flex items-center gap-2">
           <ClaudeIcon size={14} style={{ color: accent }} />
-          <span className="text-xs font-bold text-white">LAT Intelligence</span>
+          <span className="text-xs font-bold" style={{ color: 'var(--color-text)' }}>LAT Intelligence</span>
         </div>
-        <p className="text-[10px] mt-1" style={{ color: 'rgba(255,255,255,0.3)' }}>
+        <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>
           Tire dúvidas sobre o projeto
         </p>
       </div>
 
       {/* Analyze summary area */}
-      <div className="px-5 py-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
         {analyzeLoading ? (
           <motion.div
             initial={{ opacity: 0 }}
@@ -560,13 +623,13 @@ function PublicLATChat({
             </p>
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 border-2 rounded-full animate-spin" style={{ borderColor: `${accent}30`, borderTopColor: accent }} />
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                 Consultando IA...
               </span>
             </div>
           </motion.div>
         ) : analyzeError ? (
-          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+          <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
             Não foi possível carregar a análise automática.
           </p>
         ) : analyzeData ? (
@@ -576,7 +639,7 @@ function PublicLATChat({
             className="space-y-3"
           >
             {analyzeData.summary && (
-              <p className="text-xs leading-relaxed" style={{ color: 'rgba(255,255,255,0.6)' }}>
+              <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-2)' }}>
                 {analyzeData.summary}
               </p>
             )}
@@ -586,7 +649,7 @@ function PublicLATChat({
                 {analyzeData.highlights.map((h, i) => (
                   <div key={i} className="flex items-start gap-2">
                     <CheckCircle2 style={{ width: 11, height: 11, color: '#22c55e', marginTop: 2, flexShrink: 0 }} />
-                    <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{h}</span>
+                    <span className="text-[11px]" style={{ color: 'var(--color-text-2)' }}>{h}</span>
                   </div>
                 ))}
               </div>
@@ -601,7 +664,7 @@ function PublicLATChat({
                     style={{ background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.1)', borderRadius: 5 }}
                   >
                     <p className="text-[11px] font-semibold" style={{ color: '#f59e0b' }}>{p.title}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: 'rgba(255,255,255,0.35)' }}>{p.description}</p>
+                    <p className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{p.description}</p>
                   </div>
                 ))}
               </div>
@@ -613,15 +676,15 @@ function PublicLATChat({
                 style={{ background: `rgba(${accentRgb}, 0.06)`, border: `1px solid rgba(${accentRgb}, 0.1)`, borderRadius: 5 }}
               >
                 <p className="text-[10px] font-bold mb-0.5" style={{ color: accent }}>Esta semana</p>
-                <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.5)' }}>{analyzeData.nextWeekMessage}</p>
+                <p className="text-[11px]" style={{ color: 'var(--color-text-2)' }}>{analyzeData.nextWeekMessage}</p>
               </div>
             )}
 
             <div className="flex items-center gap-3 pt-1">
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                 • {counts.integrated} distribuidores integrados
               </span>
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+              <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
                 • {counts.pending + counts.blocked} em andamento esta semana
               </span>
             </div>
@@ -634,7 +697,7 @@ function PublicLATChat({
         <div
           className="px-5 py-4 space-y-3 max-h-80 overflow-y-auto"
           style={{
-            borderBottom: '1px solid rgba(255,255,255,0.06)',
+            borderBottom: '1px solid var(--color-border)',
             scrollbarWidth: 'thin',
             scrollbarColor: 'rgba(255,255,255,0.1) transparent',
           }}
@@ -651,10 +714,10 @@ function PublicLATChat({
                 style={{
                   background: msg.role === 'user'
                     ? `rgba(${accentRgb}, 0.1)`
-                    : 'rgba(255,255,255,0.04)',
+                    : 'var(--color-surface)',
                   border: msg.role === 'user'
                     ? `1px solid rgba(${accentRgb}, 0.15)`
-                    : '1px solid rgba(255,255,255,0.06)',
+                    : '1px solid var(--color-border)',
                   borderRadius: 5,
                 }}
               >
@@ -667,7 +730,7 @@ function PublicLATChat({
                 <p
                   className="text-[11px] leading-relaxed whitespace-pre-wrap"
                   style={{
-                    color: msg.role === 'user' ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.55)',
+                    color: msg.role === 'user' ? 'var(--color-text)' : 'var(--color-text-2)',
                   }}
                 >
                   {msg.text}
@@ -684,10 +747,10 @@ function PublicLATChat({
             >
               <div
                 className="rounded px-3.5 py-2.5 flex items-center gap-2"
-                style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 5 }}
+                style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)', borderRadius: 5 }}
               >
                 <div className="w-3 h-3 border-2 rounded-full animate-spin" style={{ borderColor: `${accent}30`, borderTopColor: accent }} />
-                <span className="text-[10px] font-mono" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                <span className="text-[10px] font-mono" style={{ color: 'var(--color-text-muted)' }}>
                   Pensando...
                 </span>
               </div>
@@ -709,10 +772,10 @@ function PublicLATChat({
           disabled={chatLoading}
           className="flex-1 text-xs outline-none disabled:opacity-50"
           style={{
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--input-bg)',
+            border: '1px solid var(--color-border-2)',
             borderRadius: 5,
-            color: 'rgba(255,255,255,0.85)',
+            color: 'var(--color-text)',
             padding: '9px 12px',
           }}
         />
@@ -741,7 +804,7 @@ function GateScreen({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
       <div
         className="w-14 h-14 rounded flex items-center justify-center mb-5"
-        style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border-2)' }}
       >
         <span
           style={{
@@ -766,11 +829,11 @@ function SectionCard({ title, accent, children }: { title: string; accent: strin
   return (
     <div
       className="rounded p-5 space-y-4"
-      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
     >
-      <div className="flex items-center gap-2 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <div className="flex items-center gap-2 pb-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
         <span style={{ color: accent, fontSize: 10 }}>●</span>
-        <p className="text-xs font-bold tracking-wide text-white">{title}</p>
+        <p className="text-xs font-bold tracking-wide" style={{ color: 'var(--color-text)' }}>{title}</p>
       </div>
       {children}
     </div>
@@ -798,7 +861,7 @@ function ReadOnlyGantt({ project }: { project: Project }) {
         {/* Legend */}
         <div className="flex items-center justify-end gap-5 mb-3 px-1">
           {Object.entries(PHASE_STATUS).map(([s, cfg]) => (
-            <span key={s} className="flex items-center gap-1.5 text-[10px]" style={{ color: 'rgba(255,255,255,0.3)' }}>
+            <span key={s} className="flex items-center gap-1.5 text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
               <cfg.icon style={{ width: 10, height: 10, color: cfg.color }} />
               {cfg.label}
             </span>
@@ -811,7 +874,7 @@ function ReadOnlyGantt({ project }: { project: Project }) {
             <span
               key={month.toISOString()}
               className="absolute text-[11px] uppercase tracking-widest font-semibold"
-              style={{ left: `${pct(month < projectStart ? projectStart : month)}%`, color: 'rgba(255,255,255,0.2)' }}
+              style={{ left: `${pct(month < projectStart ? projectStart : month)}%`, color: 'var(--color-text-muted)' }}
             >
               {format(month, 'MMM', { locale: ptBR })}
             </span>
@@ -833,7 +896,7 @@ function ReadOnlyGantt({ project }: { project: Project }) {
             >
               <div
                 className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black px-2 py-0.5 rounded whitespace-nowrap"
-                style={{ background: 'var(--color-brand, #00D4AA)', color: '#050508', borderRadius: 5 }}
+                style={{ background: 'var(--color-brand, #00D4AA)', color: 'var(--color-bg)', borderRadius: 5 }}
               >
                 HOJE
               </div>
@@ -877,7 +940,7 @@ function ReadOnlyGantt({ project }: { project: Project }) {
                   <cfg.icon style={{ width: 13, height: 13, color: cfg.color, flexShrink: 0 }} />
                   <span
                     className="text-xs truncate"
-                    style={{ color: active ? '#fff' : 'rgba(255,255,255,0.5)', fontWeight: active ? 600 : 400 }}
+                    style={{ color: active ? 'var(--color-text)' : 'var(--color-text-2)', fontWeight: active ? 600 : 400 }}
                   >
                     {phase.name}
                   </span>
@@ -894,11 +957,11 @@ function ReadOnlyGantt({ project }: { project: Project }) {
                   >
                     {width > 8 && (
                       <div className="absolute inset-0 flex items-center justify-between px-2.5">
-                        <span style={{ fontSize: 10, fontWeight: 500, color: active ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.5)' }}>
+                        <span style={{ fontSize: 10, fontWeight: 500, color: active ? 'rgba(0,0,0,0.6)' : 'var(--color-text-2)' }}>
                           {format(pStart, 'dd/MM')}
                         </span>
                         {width > 15 && (
-                          <span style={{ fontSize: 10, fontWeight: 500, color: active ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.5)' }}>
+                          <span style={{ fontSize: 10, fontWeight: 500, color: active ? 'rgba(0,0,0,0.6)' : 'var(--color-text-2)' }}>
                             {format(pEnd, 'dd/MM')}
                           </span>
                         )}
@@ -979,17 +1042,17 @@ function DistributorRow({
   return (
     <div
       className="rounded overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+      style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
     >
       {/* Main row */}
       <div className="flex items-center gap-3 px-4 py-3">
         <cfg.Icon style={{ width: 14, height: 14, color: cfg.color, flexShrink: 0 }} />
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-white truncate">{distributor.name}</p>
+          <p className="text-xs font-semibold truncate" style={{ color: 'var(--color-text)' }}>{distributor.name}</p>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[10px]" style={{ color: cfg.color }}>{cfg.label}</span>
             {distributor.connectionType && (
-              <span className="text-[10px]" style={{ color: 'rgba(255,255,255,0.2)' }}>{distributor.connectionType}</span>
+              <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>{distributor.connectionType}</span>
             )}
           </div>
         </div>
@@ -997,7 +1060,7 @@ function DistributorRow({
           <button
             onClick={toggleExpand}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded text-[10px] font-medium transition-all"
-            style={{ background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)' }}
+            style={{ background: 'var(--color-surface2)', color: 'var(--color-text-muted)' }}
           >
             <ChevronRight
               style={{
@@ -1014,7 +1077,7 @@ function DistributorRow({
       {/* Blocker description */}
       {canComment && distributor.blockerDescription && (
         <div className="px-4 pb-2">
-          <p className="text-[11px]" style={{ color: 'rgba(255,255,255,0.25)' }}>
+          <p className="text-[11px]" style={{ color: 'var(--color-text-muted)' }}>
             {distributor.blockerDescription}
           </p>
         </div>
@@ -1028,7 +1091,7 @@ function DistributorRow({
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            style={{ borderTop: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}
+            style={{ borderTop: '1px solid var(--color-border)', overflow: 'hidden' }}
           >
             <div className="px-4 py-3 space-y-3">
               {/* Existing comments from subcollection */}
@@ -1045,22 +1108,22 @@ function DistributorRow({
                     <div
                       key={c.id}
                       className="flex items-start gap-3 px-3 py-2.5 rounded"
-                      style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 5 }}
+                      style={{ background: 'var(--color-muted)', border: '1px solid var(--color-border)', borderRadius: 5 }}
                     >
                       <div
                         className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold"
-                        style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)' }}
+                        style={{ background: 'var(--color-surface2)', color: 'var(--color-text-2)' }}
                       >
                         {c.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-semibold text-white/70">{c.name}</span>
-                          <span className="text-[9px]" style={{ color: 'rgba(255,255,255,0.2)' }}>
+                          <span className="text-[11px] font-semibold" style={{ color: 'var(--color-text-2)' }}>{c.name}</span>
+                          <span className="text-[9px]" style={{ color: 'var(--color-text-muted)' }}>
                             {format(new Date(c.timestamp), "dd/MM 'às' HH:mm", { locale: ptBR })}
                           </span>
                         </div>
-                        <p className="text-xs mt-0.5" style={{ color: 'rgba(255,255,255,0.5)' }}>{c.text}</p>
+                        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-2)' }}>{c.text}</p>
                       </div>
                     </div>
                   ))}
@@ -1077,10 +1140,10 @@ function DistributorRow({
                   onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
                   className="flex-1 text-xs outline-none"
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    background: 'var(--input-bg)',
+                    border: '1px solid var(--color-border-2)',
                     borderRadius: 5,
-                    color: 'rgba(255,255,255,0.85)',
+                    color: 'var(--color-text)',
                     padding: '8px 12px',
                   }}
                 />

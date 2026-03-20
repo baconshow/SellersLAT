@@ -4,9 +4,11 @@ import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard, GanttChart, Users,
   Presentation, Settings, DollarSign, ChevronRight, ClipboardList,
+  Sun, Moon,
 } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
 import { useNavActions } from '@/contexts/NavActionsContext'
+import { useTheme } from '@/contexts/ThemeContext'
 import type { Project } from '@/types'
 import { markCommentsAsRead } from '@/lib/firestore'
 
@@ -52,6 +54,7 @@ export default function TopNav({
   const pathname = usePathname()
   const { user, logout } = useAuth()
   const { actions } = useNavActions()
+  const { theme, toggleTheme } = useTheme()
 
   const segment = projectId
     ? pathname.replace(`/project/${projectId}`, '').replace(/^\//, '')
@@ -107,7 +110,13 @@ export default function TopNav({
 
         <div
           className="relative z-10 flex items-center justify-between px-8 pointer-events-auto"
-          style={{ height: 64 }}
+          style={{
+            height: 64,
+            background: 'var(--nav-bg)',
+            borderBottom: '1px solid var(--nav-border)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
         >
           {/* ── Esquerda: Logo LAT + Breadcrumb ── */}
           <div className="flex items-center gap-4 shrink-0">
@@ -124,22 +133,22 @@ export default function TopNav({
               </span>
             </Link>
 
-            <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.08)' }} />
+            <div style={{ width: 1, height: 18, background: 'var(--color-border)' }} />
 
             <div className="flex items-center gap-1.5">
               <Link
                 href="/dashboard"
                 className="text-xs font-semibold tracking-widest transition-colors"
-                style={{ color: 'rgba(255,255,255,0.3)' }}
-                onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.6)')}
-                onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.3)')}
+                style={{ color: 'var(--color-text-muted)' }}
+                onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text-2)')}
+                onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-muted)')}
               >
                 SELLERS
               </Link>
 
               {isDashboard && (
                 <>
-                  <ChevronRight style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.15)' }} strokeWidth={2.5} />
+                  <ChevronRight style={{ width: 11, height: 11, color: 'var(--color-text-muted)' }} strokeWidth={2.5} />
                   <span className="text-xs font-semibold tracking-widest" style={{ color: accent }}>
                     PROJETOS
                   </span>
@@ -148,28 +157,28 @@ export default function TopNav({
 
               {!isDashboard && projectId && (
                 <>
-                  <ChevronRight style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.15)' }} strokeWidth={2.5} />
+                  <ChevronRight style={{ width: 11, height: 11, color: 'var(--color-text-muted)' }} strokeWidth={2.5} />
                   <Link
                     href={`/project/${projectId}`}
                     className="text-xs font-semibold tracking-widest transition-colors"
-                    style={{ color: 'rgba(255,255,255,0.45)' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.7)')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.45)')}
+                    style={{ color: 'var(--color-text-2)' }}
+                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-text)')}
+                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-text-2)')}
                   >
                     {clientName.toUpperCase()}
                   </Link>
 
                   {pageLabel && (
                     <>
-                      <ChevronRight style={{ width: 11, height: 11, color: 'rgba(255,255,255,0.15)' }} strokeWidth={2.5} />
+                      <ChevronRight style={{ width: 11, height: 11, color: 'var(--color-text-muted)' }} strokeWidth={2.5} />
                       <span className="text-xs font-semibold tracking-widest" style={{ color: accent }}>
                         {pageLabel.toUpperCase()}
                       </span>
                     </>
                   )}
 
-                  <div style={{ width: 1, height: 14, background: 'rgba(255,255,255,0.08)', margin: '0 6px' }} />
-                  <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.25)' }}>
+                  <div style={{ width: 1, height: 14, background: 'var(--color-border)', margin: '0 6px' }} />
+                  <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
                     SEMANA
                   </span>
                   <span className="text-xs font-bold" style={{ color: accent }}>
@@ -197,7 +206,7 @@ export default function TopNav({
                         style={{
                           width:      20,
                           height:     20,
-                          color:      showLAT ? accent : 'rgba(255,255,255,0.25)',
+                          color:      showLAT ? accent : 'var(--color-text-muted)',
                           transition: 'all 150ms',
                         }}
                       />
@@ -229,7 +238,7 @@ export default function TopNav({
                       style={{
                         width:       20,
                         height:      20,
-                        color:       isActive ? accent : 'rgba(255,255,255,0.25)',
+                        color:       isActive ? accent : 'var(--color-text-muted)',
                         strokeWidth: isActive ? 2 : 1.5,
                         transition:  'all 150ms',
                       }}
@@ -262,6 +271,26 @@ export default function TopNav({
 
           {/* ── Direita ── */}
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={toggleTheme}
+              title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 30,
+                height: 30,
+                borderRadius: 5,
+                border: '1px solid var(--color-border)',
+                background: 'var(--color-surface2)',
+                cursor: 'pointer',
+                color: 'var(--color-text-muted)',
+                flexShrink: 0,
+                transition: 'all 150ms ease',
+              }}
+            >
+              {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
             {actions}
           </div>
         </div>

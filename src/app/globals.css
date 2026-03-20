@@ -44,7 +44,7 @@
   --color-brand-soft: rgba(0,212,170,0.15);
   --color-brand-glow: rgba(0,212,170,0.35);
   --transition-theme: all 0.35s cubic-bezier(0.4,0,0.2,1);
-  
+
   /* Variáveis Shadcn */
   --background: 240 10% 3.9%;
   --foreground: 0 0% 98%;
@@ -66,6 +66,41 @@
   --input: 240 3.7% 15.9%;
   --ring: 168 100% 41.6%;
   --radius: 5px;
+}
+
+/* ── Tema escuro (padrão) ── */
+:root,
+[data-theme="dark"] {
+  --color-bg:          #050508;
+  --color-surface:     rgba(255,255,255,0.025);
+  --color-surface2:    rgba(255,255,255,0.05);
+  --color-muted:       rgba(255,255,255,0.04);
+  --color-text:        #F0F0F5;
+  --color-text-2:      rgba(255,255,255,0.6);
+  --color-text-muted:  rgba(255,255,255,0.35);
+  --color-border:      rgba(255,255,255,0.065);
+  --color-border-2:    rgba(255,255,255,0.1);
+  --nav-bg:            rgba(5,5,8,0.85);
+  --nav-border:        rgba(255,255,255,0.065);
+  --card-shadow:       none;
+  --input-bg:          rgba(255,255,255,0.05);
+}
+
+/* ── Tema claro ── */
+[data-theme="light"] {
+  --color-bg:          #E2E3E7;
+  --color-surface:     #EDEEF2;
+  --color-surface2:    #F5F5F8;
+  --color-muted:       #D5D6DC;
+  --color-text:        #1A1A2E;
+  --color-text-2:      #4A4A68;
+  --color-text-muted:  #8888A0;
+  --color-border:      #C8C9D0;
+  --color-border-2:    #B8B9C4;
+  --nav-bg:            rgba(237,238,242,0.92);
+  --nav-border:        #C8C9D0;
+  --card-shadow:       0 1px 4px rgba(0,0,0,0.07);
+  --input-bg:          #EDEEF2;
 }
 
 /* Tema Claro */
@@ -92,7 +127,7 @@
 }
 
 /* Mapeamento de Cores para o Tema Claro via Seletores CSS */
-.light .text-white, 
+.light .text-white,
 .light .text-foreground {
   color: #0A0A10 !important;
 }
@@ -146,8 +181,8 @@
                box-shadow 0.35s cubic-bezier(0.4,0,0.2,1); }
 
 html, body {
-  background: #050508;
-  color: #F0F0F5;
+  background: var(--color-bg);
+  color: var(--color-text);
   font-family: var(--font-outfit), sans-serif;
   overflow-x: hidden;
 }
